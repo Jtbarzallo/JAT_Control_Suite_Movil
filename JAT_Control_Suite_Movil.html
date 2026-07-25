@@ -3373,11 +3373,45 @@
             }
         }
 
+        // ---- ELECCIÓN DEL CÓDIGO CORRECTO cuando la cámara ve VARIOS códigos a la vez ----
+        // (por ejemplo una etiqueta con UPC + EAN + JAN + SKU apilados, como en cajas JBL).
+        // Regla: solo se acepta un código si coincide EXACTO, número por número completo,
+        // con el barcode registrado en el egreso actual. Nunca se usa el atajo de
+        // "últimos dígitos" aquí (ese atajo es solo para cuando el usuario ESCRIBE a mano
+        // en el buscador) — usarlo con lecturas de cámara podría confundir dos productos
+        // distintos que por casualidad terminen igual.
+        function elegirCodigoExactoEnEgreso(codigosCrudos) {
+            for (const c of (codigosCrudos || [])) {
+                const limpio = (c || '').trim();
+                if (limpio && currentProductos.some(p => p.barcode === limpio)) return limpio;
+            }
+            return null;
+        }
+
+        function manejarLecturaCamara(codigosCrudos) {
+            const codigos = (codigosCrudos || []).map(c => (c || '').trim()).filter(Boolean);
+            if (!codigos.length) return;
+            const exacto = elegirCodigoExactoEnEgreso(codigos);
+            if (exacto) { manejarCodigoDetectado(exacto); return; }
+            // Ninguno de los códigos vistos en el cuadro coincide EXACTO con este egreso.
+            // No se intenta adivinar por últimos dígitos: se reporta como no encontrado,
+            // usando el primer código leído solo para mostrarlo en pantalla.
+            const primero = codigos[0];
+            const ahora = Date.now();
+            if (primero === camUltimoCodigo && (ahora - camUltimoTiempo) < CAM_DEBOUNCE_MS) return;
+            camUltimoCodigo = primero;
+            camUltimoTiempo = ahora;
+            if (navigator.vibrate) navigator.vibrate([40, 40, 40]);
+            const linea = $('camLastLine');
+            if (linea) { linea.style.display = 'block'; linea.textContent = '📦 Leído: ' + primero + ' (no coincide con este egreso)'; }
+            mostrarUltimoEscaneo(-1, 'error', '❌ CÓDIGO NO ENCONTRADO EN ESTE EGRESO: ' + primero);
+        }
+
         async function detectarConNativo(video) {
             if (!camDetector || video.readyState < 2) return;
             try {
                 const resultados = await camDetector.detect(video);
-                if (resultados && resultados.length) manejarCodigoDetectado(resultados[0].rawValue);
+                if (resultados && resultados.length) manejarLecturaCamara(resultados.map(r => r.rawValue));
             } catch (e) { camUltimoError = e; /* frame sin lectura, normal la mayoría de las veces */ }
         }
 
@@ -3395,7 +3429,7 @@
             cargar().then(() => {
                 camZXingReader = new window.ZXing.BrowserMultiFormatReader();
                 camZXingReader.decodeFromVideoElementContinuously(video, (result) => {
-                    if (result) manejarCodigoDetectado(result.getText());
+                    if (result) manejarLecturaCamara([result.getText()]);
                 });
             }).catch(err => {
                 console.warn(err);
@@ -3415,17 +3449,17 @@
             setEstadoPill('🟡 Analizando foto…', false);
             try {
                 const bitmap = await createImageBitmap(file);
-                let codigo = null;
+                let codigosCandidatos = [];
                 if ('BarcodeDetector' in window) {
                     try {
                         const soportados = await window.BarcodeDetector.getSupportedFormats();
                         const formatos = FORMATOS_BARCODE.filter(f => soportados.includes(f));
                         const detector = new window.BarcodeDetector({ formats: formatos.length ? formatos : soportados });
                         const resultados = await detector.detect(bitmap);
-                        if (resultados && resultados.length) codigo = resultados[0].rawValue;
+                        if (resultados && resultados.length) codigosCandidatos = resultados.map(r => r.rawValue);
                     } catch (e) { console.warn('BarcodeDetector en foto falló:', e); }
                 }
-                if (!codigo) {
+                if (!codigosCandidatos.length) {
                     // Fallback ZXing sobre la imagen estática (misma librería que ya se usa para video)
                     if (!window.ZXing) {
                         await new Promise((resolve, reject) => {
@@ -3444,11 +3478,11 @@
                         r.readAsDataURL(file);
                     });
                     const resultado = await reader.decodeFromImageUrl(dataUrl);
-                    codigo = resultado.getText();
+                    if (resultado) codigosCandidatos = [resultado.getText()];
                 }
-                if (codigo) {
-                    setEstadoPill('🟢 Código leído de la foto', true);
-                    manejarCodigoDetectado(codigo);
+                if (codigosCandidatos.length) {
+                    setEstadoPill('🟢 Foto analizada — ' + codigosCandidatos.length + ' código(s) visto(s)', true);
+                    manejarLecturaCamara(codigosCandidatos);
                 } else {
                     throw new Error('sin código detectado');
                 }
