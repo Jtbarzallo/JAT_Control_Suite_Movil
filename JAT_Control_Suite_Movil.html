@@ -41,16 +41,14 @@
 
         .scanner-input-wrapper { flex: 1; min-width: 280px; position: relative; }
         .scanner-input-wrapper .icon-search { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #8a9aa8; font-size: 1rem; }
+        .scanner-input-wrapper .scanner-input { padding-right: 44px; }
+        .scanner-clear-btn { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; border-radius: 50%; border: none; background: #eef2f6; color: #6a7a8a; font-size: 0.9rem; cursor: pointer; }
+        .scanner-clear-btn:active { background: #dde4ea; }
         .scanner-input { width: 100%; padding: 12px 18px 12px 44px; font-family: 'Fira Code', 'JetBrains Mono', monospace; font-size: 0.95rem; border: 1.5px solid #dce3ea; border-radius: 50px; outline: none; transition: all 0.25s; background: #fafbfc; }
         .scanner-input:focus { border-color: #1a6392; background: white; box-shadow: 0 0 0 4px rgba(26,99,146,0.08); }
         .scanner-input.duplicado { border-color: #e74c3c; box-shadow: 0 0 0 4px rgba(231,76,60,0.15); animation: shake 0.35s ease; }
         @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)} }
 
-        .shortcut-hint { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 0.7rem; color: #6a7a8a; }
-        .tecla { background: #f0f2f5; padding: 2px 10px; border-radius: 6px; font-family: 'Fira Code', monospace; font-size: 0.7rem; font-weight: 600; color: #2c3e50; border: 1px solid #dce3ea; }
-        .tecla.verde { background: #27ae60; color: white; border-color: #27ae60; }
-        .tecla.naranja { background: #e67e22; color: white; border-color: #e67e22; }
-        .tecla.azul { background: #1a6392; color: white; border-color: #1a6392; }
 
         .stats-row { display: flex; gap: 12px; padding: 8px 28px 12px 28px; flex-wrap: wrap; align-items: center; border-bottom: 1px solid #edf2f7; flex-shrink: 0; }
         .stat-item { background: #f8fafc; padding: 6px 18px; border-radius: 40px; font-size: 0.75rem; color: #3a4a5a; border: 1px solid #edf2f7; }
@@ -574,13 +572,8 @@
             <div class="scanner-section">
                 <div class="scanner-input-wrapper">
                     <span class="icon-search">🔍</span>
-                    <input type="text" id="scannerInput" class="scanner-input" placeholder="Escanea o escribe: código, últimos dígitos o nombre del producto..." autocomplete="off">
-                </div>
-                <div class="shortcut-hint">
-                    <span><span class="tecla">←</span><span class="tecla">→</span> Navegar</span>
-                    <span><span class="tecla verde">ENTER</span> +1</span>
-                    <span><span class="tecla azul">F4</span> Conteo rápido</span>
-                    <span><span class="tecla naranja">ESC</span> Limpiar</span>
+                    <input type="text" id="scannerInput" class="scanner-input" placeholder="Escanea o escribe: código, últimos dígitos o nombre del producto..." autocomplete="off" enterkeyhint="done">
+                    <button type="button" id="limpiarBusquedaBtn" class="scanner-clear-btn" title="Limpiar" aria-label="Limpiar búsqueda">✕</button>
                 </div>
             </div>
 
@@ -2225,7 +2218,7 @@
             div.innerHTML = `<span>🔍 <strong>${currentProductos[firstIdx].productName.substring(0,60)}</strong> — pulsa ENTER para verificar</span>`;
         } else {
             mostrarNavegacionMultiple(currentMultipleResults.length);
-            showAlert(`🔍 ${currentMultipleResults.length} pendientes. ← → para navegar, ENTER para verificar.`, 'info');
+            showAlert(`🔍 ${currentMultipleResults.length} pendientes. Usa ◀ ▶ para navegar, ENTER para verificar.`, 'info');
         }
     }
 
@@ -2237,10 +2230,10 @@
         div.innerHTML = `
             <span>🔍 "<strong>${lastSearchTerm}</strong>" — Coincidencia <strong id="multiCounterText">${currentMultiplePosition + 1} de ${total}</strong>${p ? `<br><small><strong>${p.barcode}</strong> — ${p.productName.substring(0,80)}</small>` : ''}</span>
             <div class="multi-nav">
-                <button id="prevResultBtn" title="Anterior (← / ↑ / Shift+F3)">◀</button>
+                <button id="prevResultBtn" title="Anterior">◀</button>
                 <span class="counter" id="multiCounter">${currentMultiplePosition + 1}</span>
                 <span style="color:#7f8c8d;">/ ${total}</span>
-                <button id="nextResultBtn" title="Siguiente (→ / ↓ / F3)">▶</button>
+                <button id="nextResultBtn" title="Siguiente">▶</button>
                 <button id="clearMultiBtn" style="color:#e74c3c;" title="Cerrar búsqueda">✕</button>
             </div>`;
         document.getElementById('prevResultBtn')?.addEventListener('click', () => navegarMultiple(-1));
@@ -2291,7 +2284,7 @@
         document.getElementById('selectedProductCode').innerText = 'CÓDIGO: ' + p.barcode;
         document.getElementById('selectedProductName').innerText = p.productName;
         document.getElementById('selectedProductQty').innerText = `CANTIDAD: ${formatearQty(v)} / ${formatearQty(e)}`;
-        document.getElementById('selectedProductMsg').innerText = faltan === 0 ? '✅ COMPLETO' : (faltan >= HIGH_QTY_THRESHOLD ? `🔢 FALTAN ${formatearQty(faltan)} — CONTEO RÁPIDO recomendado (botón / F4 / Ctrl+Enter)` : `⏳ FALTAN ${formatearQty(faltan)} — ENTER para sumar 1 unidad`);
+        document.getElementById('selectedProductMsg').innerText = faltan === 0 ? '✅ COMPLETO' : (faltan >= HIGH_QTY_THRESHOLD ? `🔢 FALTAN ${formatearQty(faltan)} — usa los botones +5 / +10 / Cantidad… de abajo` : `⏳ FALTAN ${formatearQty(faltan)} — toca ENTER o el botón +1 para sumar 1 unidad`);
     }
 
     function resaltarFilaVerificador(index, guardarEstado = true) {
@@ -3112,6 +3105,11 @@
     onSafe('descargarPdfBtn', 'click', descargarReportePDF);
     onSafe('deshacerBtn', 'click', deshacerUltimaAccion);
     onSafe('conteoRapidoBtn', 'click', abrirConteoRapidoSeleccionado);
+    onSafe('limpiarBusquedaBtn', 'click', () => {
+        limpiarBusquedaMultiple();
+        const input = document.getElementById('scannerInput');
+        if (input) { input.value = ''; input.focus(); }
+    });
     document.querySelectorAll('#quickCountRow .qc-btn[data-qc]').forEach(btn => {
         btn.addEventListener('click', () => manejarBotonConteoRapido(parseInt(btn.dataset.qc, 10)));
     });
