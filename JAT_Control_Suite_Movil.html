@@ -106,7 +106,14 @@
 
         .scanner-section { padding: 16px 28px 12px 28px; border-bottom: 1px solid #edf2f7; flex-shrink: 0; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
 
-        .toolbar-footer { padding: 10px 28px; border-top: 1px solid #edf2f7; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; flex-shrink: 0; background: #fafbfc; }
+        .tabla-pantalla-completa { display: none; flex-direction: column; position: fixed; inset: 0; z-index: 9000; background: #fff; }
+        .tabla-pantalla-completa.abierta { display: flex; }
+        .tabla-pantalla-header { flex-shrink: 0; display: flex; align-items: center; gap: 12px; padding: 14px 18px; background: linear-gradient(90deg,#061b34,#0a2a4d); border-bottom: 3px solid #c99a4a; }
+        .tpc-back-btn { flex-shrink: 0; background: rgba(255,255,255,0.12); color: #f5f7fb; border: 1px solid rgba(255,255,255,0.3); border-radius: 20px; padding: 10px 16px; font-size: 0.85rem; font-weight: 700; cursor: pointer; min-height: 44px; }
+        .tpc-title { color: #f5f7fb; font-size: 1rem; font-weight: 700; }
+        .tabla-pantalla-completa .filtro-tabla-wrap { flex-shrink: 0; }
+        .tabla-pantalla-completa .filter-chips { flex-shrink: 0; }
+        .tabla-pantalla-completa .tpc-table-container { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; height: auto; max-height: none; }
         .toolbar-topbar { flex-shrink: 0; display: flex; gap: 8px; padding: 8px 14px; overflow-x: auto; -webkit-overflow-scrolling: touch; background: #f4f6f8; border-bottom: 1px solid #e2e8f0; }
         .toolbar-topbar::-webkit-scrollbar { display: none; }
         .tt-btn { flex: 0 0 auto; border: none; border-radius: 20px; padding: 9px 14px; font-size: 0.75rem; font-weight: 700; color: #fff; cursor: pointer; white-space: nowrap; min-height: 40px; }
@@ -547,7 +554,7 @@
                 <button id="exportarExcelBtn" class="tt-btn tt-success">📊 CSV</button>
                 <button id="imprimirBtn" class="tt-btn tt-primary">🖨️ Imprimir</button>
                 <button id="descargarPdfBtn" class="tt-btn tt-danger">📄 PDF</button>
-                <button id="modoRevisionBtn" class="tt-btn tt-teal">👁️ Revisión</button>
+                <button id="ttModoTablaBtn" class="tt-btn tt-teal">📋 Ver tabla</button>
                 <button id="conteoRapidoBtn" class="tt-btn tt-primary">🔢 Conteo</button>
                 <button id="voiceToggleBtn" class="tt-btn tt-voice" title="Activar/desactivar asistente de voz">🔊 Voz</button>
                 <button id="marcarTodoBtn" class="tt-btn tt-warning">✅ Marcar todos</button>
@@ -646,39 +653,39 @@
                 <button type="button" class="qc-btn qc-custom" id="qcCustomBtn">🔢 Cantidad…</button>
             </div>
 
-            <div class="view-mode-row">
-                <button id="modoRevisionBtn" class="mode-btn active" type="button">🧭 Modo revisión</button>
-                <button id="modoTablaBtn" class="mode-btn" type="button">📋 Ver tabla</button>
-                <span class="keep-focus-note">El buscador queda fijo y recupera el foco automáticamente.</span>
-            </div>
-
-            <!-- Filtros de tabla dentro del verificador -->
-            <div class="filtro-tabla-wrap">
-                <input type="text" id="filtroTablaVerif" class="filtro-tabla" placeholder="🔎 Filtrar tabla por nombre o código...">
-            </div>
-            <div class="filter-chips">
-                <span class="chip active" data-filter="todos" onclick="cambiarFiltroChip(this)">Todos</span>
-                <span class="chip" data-filter="pendientes" onclick="cambiarFiltroChip(this)">⏳ Pendientes</span>
-                <span class="chip" data-filter="verificados" onclick="cambiarFiltroChip(this)">✅ Verificados</span>
-            </div>
-
-            <div class="table-container" style="margin-top:8px;">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th style="width:16%;">Código de barras</th>
-                            <th style="width:8%;text-align:center;">Verif./Cant.</th>
-                            <th style="width:12%;">Estado</th>
-                            <th style="width:39%;">Producto</th>
-                            <th style="width:25%;">Observaciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="verificadorTableBody"></tbody>
-                </table>
-            </div>
-
             <div id="historialAcciones" class="historial-acciones" style="display:none;"><span style="color:#bdc3c7;">Sin acciones</span></div>
             </div><!-- /.verif-bottom-pane -->
+        </div>
+    </div>
+
+    <!-- ============ TABLA DE PRODUCTOS EN PANTALLA COMPLETA APARTE ============ -->
+    <div id="tablaPantallaCompleta" class="tabla-pantalla-completa">
+        <div class="tabla-pantalla-header">
+            <button id="cerrarTablaPantallaBtn" type="button" class="tpc-back-btn">← Volver al escáner</button>
+            <span class="tpc-title">📋 Lista de productos</span>
+        </div>
+        <div class="filtro-tabla-wrap">
+            <input type="text" id="filtroTablaVerif" class="filtro-tabla" placeholder="🔎 Filtrar tabla por nombre o código...">
+        </div>
+        <div class="filter-chips">
+            <span class="chip active" data-filter="todos" onclick="cambiarFiltroChip(this)">Todos</span>
+            <span class="chip" data-filter="pendientes" onclick="cambiarFiltroChip(this)">⏳ Pendientes</span>
+            <span class="chip" data-filter="verificados" onclick="cambiarFiltroChip(this)">✅ Verificados</span>
+        </div>
+
+        <div class="table-container tpc-table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width:16%;">Código de barras</th>
+                        <th style="width:8%;text-align:center;">Verif./Cant.</th>
+                        <th style="width:12%;">Estado</th>
+                        <th style="width:39%;">Producto</th>
+                        <th style="width:25%;">Observaciones</th>
+                    </tr>
+                </thead>
+                <tbody id="verificadorTableBody"></tbody>
+            </table>
         </div>
     </div>
 
@@ -2029,6 +2036,15 @@
         }, 40);
     }
 
+    function abrirTablaPantallaCompleta() {
+        renderVerificadorTablaProgramado();
+        document.getElementById('tablaPantallaCompleta')?.classList.add('abierta');
+    }
+
+    function cerrarTablaPantallaCompleta() {
+        document.getElementById('tablaPantallaCompleta')?.classList.remove('abierta');
+    }
+
     function setVerificadorViewMode(mode) {
         verificadorViewMode = mode === 'tabla' ? 'tabla' : 'revision';
         const modal = document.getElementById('verificadorModal');
@@ -3134,13 +3150,12 @@
     });
     onSafe('qcCustomBtn', 'click', abrirConteoRapidoSeleccionado);
     onSafe('voiceToggleBtn', 'click', toggleVozHat);
-    onSafe('modoRevisionBtn', 'click', alternarModoRevision);
     onSafe('marcarTodoBtn', 'click', marcarTodosVerificados);
     onSafe('cierreBtn', 'click', abrirCierreSeguro);
     onSafe('confirmarCierreBtn', 'click', finalizarEgresoSeguro);
     onSafe('imprimirCierreBtn', 'click', imprimirCierreSeguro);
-    onSafe('modoRevisionBtn', 'click', () => setVerificadorViewMode('revision'));
-    onSafe('modoTablaBtn', 'click', () => setVerificadorViewMode('tabla'));
+    onSafe('ttModoTablaBtn', 'click', abrirTablaPantallaCompleta);
+    onSafe('cerrarTablaPantallaBtn', 'click', cerrarTablaPantallaCompleta);
 
     onSafe('scannerInput', 'input', (e) => {
         const val = e.target.value.trim();
