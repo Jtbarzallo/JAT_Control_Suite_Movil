@@ -3741,7 +3741,9 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
             if (navigator.vibrate) navigator.vibrate([40, 40, 40]);
             const linea = $('camLastLine');
             if (linea) { linea.style.display = 'block'; linea.textContent = '📦 Leído: ' + primero + ' (no coincide con este egreso)'; }
+            try { lastSearchTerm = primero; } catch (_) {}
             mostrarUltimoEscaneo(-1, 'error', '❌ PRODUCTO NO ENCONTRADO — código leído: ' + primero);
+            hablarHat('Producto no encontrado en este egreso. Verifique.', 'error', { force: true });
         }
 
         // ---- PANTALLA COMPLETA — oculta la barra de direcciones de Chrome sin instalar nada ----
@@ -3850,6 +3852,7 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
                     const linea = $('camLastLine');
                     if (linea) { linea.style.display = 'block'; linea.textContent = '🔤 Leído: "' + resumen + '" (no coincide)'; }
                     mostrarUltimoEscaneo(-1, 'error', '❌ PRODUCTO NO ENCONTRADO por texto leído');
+                    hablarHat('No encontré ese producto por el texto. Verifique.', 'error', { force: true });
                 } else if (textoNorm.length >= 4) {
                     // Modo automático: si de verdad se leyó texto pero no coincide, avisa sin ser
                     // intrusivo (sin alerta fuerte cada pocos segundos) — solo actualiza la línea.
