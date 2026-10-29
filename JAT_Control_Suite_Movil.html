@@ -1029,9 +1029,9 @@
 
     function crearCSVTexto(egreso) {
         const productos = egreso?.productos || [];
-        let csv = 'Código de barras\tCantidad verificada\tCantidad total\tEstado\tProducto\tSeries / Observaciones\n';
+        let csv = 'Código de barras\tCantidad verificada\tCantidad total\tEstado\tProducto\tSeries / Observaciones\tHoras de marcado\n';
         productos.forEach(p => {
-            csv += `${p.barcode}\t${formatearQty(getVerifiedQty(p))}\t${formatearQty(getExpectedQty(p))}\t${isProductoVerificado(p) ? 'VERIFICADO' : 'PENDIENTE'}\t${p.productName}\t${(p.seriesTexto || p.observacion || '').replace(/\n/g, ' | ')}\n`;
+            csv += `${p.barcode}\t${formatearQty(getVerifiedQty(p))}\t${formatearQty(getExpectedQty(p))}\t${isProductoVerificado(p) ? 'VERIFICADO' : 'PENDIENTE'}\t${p.productName}\t${(p.seriesTexto || p.observacion || '').replace(/\n/g, ' | ')}\t${marcasDeHora(p).map(m => horaCorta(m.fecha)).join(' ')}\n`;
         });
         return '\uFEFF' + csv;
     }
@@ -1372,6 +1372,7 @@
             const idx = (typeof ultima.data === 'object') ? ultima.data.idx : ultima.data;
             const prevQty = (typeof ultima.data === 'object') ? ultima.data.prevQty : 0;
             if (idx >= 0 && idx < currentProductos.length) {
+                if (prevQty < getVerifiedQty(currentProductos[idx])) quitarUltimaMarca(currentProductos[idx]);
                 setVerifiedQty(currentProductos[idx], prevQty);
                 renderVerificadorTabla();
                 actualizarStatsVerificador();
@@ -1890,7 +1891,7 @@
         tr.classList.toggle('verified', completo);
         const cells = tr.children;
         if (cells[1]) cells[1].innerText = `${formatearQty(verified)}/${formatearQty(expected)}`;
-        if (cells[2]) cells[2].innerHTML = `<span class="status-badge ${estadoClass}">${estado}</span>`;
+        if (cells[2]) cells[2].innerHTML = `<span class="status-badge ${estadoClass}">${estado}</span>${textoHorasEscaneo(currentProductos[idx]) ? `<div style="font-size:.66rem;color:#475569;margin-top:3px;">🕒 ${textoHorasEscaneo(currentProductos[idx])}</div>` : ''}`;
         return true;
     }
 
@@ -1959,7 +1960,7 @@
             <tr class="${extraClass}" data-index="${p.originalIdx}">
                 <td class="codigo-cell">${htmlSeguro(p.barcode)}</td>
                 <td class="cantidad-cell">${formatearQty(verified)}/${formatearQty(expected)}</td>
-                <td><span class="status-badge ${estadoClass}">${estado}</span></td>
+                <td><span class="status-badge ${estadoClass}">${estado}</span>${textoHorasEscaneo(currentProductos[p.originalIdx]) ? `<div style="font-size:.66rem;color:#475569;margin-top:3px;">🕒 ${textoHorasEscaneo(currentProductos[p.originalIdx])}</div>` : ''}</td>
                 <td>${htmlSeguro(p.productName || p.descripcion || p.nombre || '')}</td>
                 <td>
                     <textarea class="series-input" placeholder="Series del producto y observaciones..." data-idx="${p.originalIdx}">${htmlSeguro(p.seriesTexto || p.observacion || '')}</textarea>
@@ -2060,6 +2061,38 @@
         enfocarBuscador(false);
     }
 
+    // ---- REGISTRO DE HORA DE CADA ESCANEO ----
+    function horaCorta(iso) {
+        try { return new Date(iso).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', hour12: false }); } catch (e) { return ''; }
+    }
+    function marcasDeHora(p) {
+        return (p?.historialMovimientos || []).filter(m => (m.cantidadSumada || 0) > 0);
+    }
+    function textoHorasEscaneo(p) {
+        const m = marcasDeHora(p);
+        if (!m.length) return '';
+        const ultima = m[m.length - 1];
+        if (m.length === 1) return `Marcado a las ${horaCorta(ultima.fecha)}`;
+        return `Primera marca ${horaCorta(m[0].fecha)} · última ${horaCorta(ultima.fecha)} (${m.length} marcas)`;
+    }
+    function quitarUltimaMarca(p) {
+        const hm = p.historialMovimientos || [];
+        for (let k = hm.length - 1; k >= 0; k--) { if ((hm[k].cantidadSumada || 0) > 0) { hm.splice(k, 1); break; } }
+    }
+    function avisoRepetido(idx) {
+        const p = currentProductos[idx];
+        const m = marcasDeHora(p);
+        const hora = m.length ? horaCorta(m[m.length - 1].fecha) : '';
+        const texto = hora ? `🚫 YA FUE MARCADO A LAS ${hora} — REVISE` : '🚫 YA VERIFICADO / COMPLETO — REVISE';
+        mostrarUltimoEscaneo(idx, 'error', texto);
+        showAlert(`${texto}: ${p.productName.substring(0,40)}`, 'error');
+        hablarHat(hora ? `Producto repetido. Ya fue marcado a las ${hora}. Revise.` : 'Producto repetido. Ya está completo. Revise.', 'error', {force:true, interrupt:true});
+        try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) {}
+        p.historialMovimientos = p.historialMovimientos || [];
+        p.historialMovimientos.push({ fecha: new Date().toISOString(), tipo: 'intento_repetido', cantidadSumada: 0 });
+        autoGuardarEgreso('Escaneo repetido ' + p.barcode);
+    }
+
     function mostrarUltimoEscaneo(idx, tipo = 'partial', mensaje = '') {
         const panel = document.getElementById('lastScanPanel');
         if (!panel) return;
@@ -2076,7 +2109,7 @@
         const v = getVerifiedQty(p), e = getExpectedQty(p), faltan = Math.max(0, e - v);
         document.getElementById('lastScanCode').innerText = 'CÓDIGO: ' + p.barcode;
         document.getElementById('lastScanName').innerText = p.productName;
-        document.getElementById('lastScanQty').innerText = `CANTIDAD: ${formatearQty(v)} / ${formatearQty(e)}`;
+        document.getElementById('lastScanQty').innerText = `CANTIDAD: ${formatearQty(v)} / ${formatearQty(e)}` + (textoHorasEscaneo(p) ? `  ·  🕒 ${textoHorasEscaneo(p)}` : '');
         document.getElementById('lastScanMsg').innerText = mensaje || (faltan === 0 ? '✅ COMPLETO' : `⏳ FALTAN ${formatearQty(faltan)}`);
     }
 
@@ -2109,8 +2142,7 @@
         const prev = getVerifiedQty(p);
         const esperado = getExpectedQty(p);
         if (prev >= esperado) {
-            mostrarUltimoEscaneo(idx, 'error', '🚫 YA ESTABA COMPLETO');
-            hablarHat('Cantidad excedida. Producto ya completo.', 'error', {force:true, interrupt:true});
+            avisoRepetido(idx);
             return false;
         }
         const nuevo = Math.min(esperado, prev + cantidad);
@@ -2141,6 +2173,7 @@
         const nuevo = Math.max(0, prev - cantidad);
         setVerifiedQty(p, nuevo);
         p.historialMovimientos = p.historialMovimientos || [];
+        quitarUltimaMarca(p);
         p.historialMovimientos.push({ fecha: new Date().toISOString(), tipo: origen, anterior: prev, cantidadSumada: nuevo - prev, nuevo });
         registrarAccion('verificar', { idx, prevQty: prev });
         autoGuardarEgreso();
@@ -2234,7 +2267,7 @@
             resaltarFilaVerificador(firstIdx);
             const div = document.getElementById('searchStatusVerif');
             div.style.display = 'flex';
-            div.innerHTML = `<span>✅ Ya verificado: <strong>${currentProductos[firstIdx].productName.substring(0,60)}</strong></span>`;
+            div.innerHTML = `<span>✅ Ya verificado: <strong>${currentProductos[firstIdx].productName.substring(0,60)}</strong>${textoHorasEscaneo(currentProductos[firstIdx]) ? ' — 🕒 ' + textoHorasEscaneo(currentProductos[firstIdx]) : ''}</span>`;
             setTimeout(() => { div.style.display = 'none'; }, 2500);
             // Shake input para indicar duplicado
             const input = document.getElementById('scannerInput');
@@ -2443,9 +2476,7 @@
         if (isProductoVerificado(p)) {
             const input = document.getElementById('scannerInput');
             input.classList.add('duplicado');
-            mostrarUltimoEscaneo(idx, 'error', '🚫 YA VERIFICADO / COMPLETO');
-            hablarHat('Cantidad excedida. Producto ya completo.', 'error', {force:true, interrupt:true});
-            showAlert(`🚫 YA VERIFICADO: ${p.productName.substring(0,40)}`, 'error');
+            avisoRepetido(idx);
             setTimeout(() => input.classList.remove('duplicado'), 1000);
             return;
         }
@@ -2508,7 +2539,7 @@
         if (pend.length === 0) { showAlert('Todos ya están verificados ✅', 'info'); return; }
         if (!confirm(`¿Marcar ${pend.length} códigos pendientes como verificados completamente? (Se completarán sus cantidades)`)) return;
         const indices = [];
-        pend.forEach(p => { setVerifiedQty(currentProductos[p.idx], getExpectedQty(currentProductos[p.idx])); indices.push(p.idx); });
+        pend.forEach(p => { const pr = currentProductos[p.idx]; const ant = getVerifiedQty(pr); setVerifiedQty(pr, getExpectedQty(pr)); pr.historialMovimientos = pr.historialMovimientos || []; pr.historialMovimientos.push({ fecha: new Date().toISOString(), tipo: 'marcar_todos', anterior: ant, cantidadSumada: getExpectedQty(pr) - ant, nuevo: getExpectedQty(pr) }); indices.push(p.idx); });
         registrarAccion('verificar_todos', indices);
         autoGuardarEgreso();
         renderVerificadorTabla();
@@ -2527,9 +2558,9 @@
 
     // ---- EXPORTAR ----
     function exportarAExcel() {
-        let csv = "Código de barras\tCantidad\tEstado\tProducto\tSeries / Observaciones\n";
+        let csv = "Código de barras\tCantidad\tEstado\tProducto\tSeries / Observaciones\tHoras de marcado\n";
         currentProductos.forEach(p => {
-            csv += `${p.barcode}\t${formatearQty(getVerifiedQty(p))}/${formatearQty(getExpectedQty(p))}\t${p.verified ? "VERIFICADO" : "PENDIENTE"}\t${p.productName}\t${(p.seriesTexto || p.observacion || '').replace(/\n/g, ' | ')}\n`;
+            csv += `${p.barcode}\t${formatearQty(getVerifiedQty(p))}/${formatearQty(getExpectedQty(p))}\t${p.verified ? "VERIFICADO" : "PENDIENTE"}\t${p.productName}\t${(p.seriesTexto || p.observacion || '').replace(/\n/g, ' | ')}\t${marcasDeHora(p).map(m => horaCorta(m.fecha)).join(' ')}\n`;
         });
         const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
         const link = document.createElement("a");
@@ -2582,8 +2613,8 @@
             <strong>Progreso:</strong> ${verificados} / ${formatearQty(totalEsperado())} unidades (${currentProductos.length > 0 ? Math.round(verificados/totalEsperado()*100) : 0}%)
             <div class="prog"><div class="prog-fill" style="width:${currentProductos.length > 0 ? Math.round(verificados/totalEsperado()*100) : 0}%"></div></div>
         </div>
-        <table><tr><th>#</th><th>Código</th><th>Cant.</th><th>Estado</th><th>Producto</th><th>Observaciones</th></tr>
-        ${currentProductos.map((p,i) => `<tr class="${p.verified?'verified':''}"><td>${i+1}</td><td style="font-family:monospace;font-size:0.75rem;">${p.barcode}</td><td style="text-align:center;">${formatearQty(getVerifiedQty(p))}/${formatearQty(getExpectedQty(p))}</td><td>${p.verified?'✅ VERIFICADO':'⏳ PENDIENTE'}</td><td>${p.productName}</td><td>${p.seriesTexto || p.observacion || ''}</td></tr>`).join('')}
+        <table><tr><th>#</th><th>Código</th><th>Cant.</th><th>Estado</th><th>Producto</th><th>Observaciones</th><th>Hora marcado</th></tr>
+        ${currentProductos.map((p,i) => `<tr class="${p.verified?'verified':''}"><td>${i+1}</td><td style="font-family:monospace;font-size:0.75rem;">${p.barcode}</td><td style="text-align:center;">${formatearQty(getVerifiedQty(p))}/${formatearQty(getExpectedQty(p))}</td><td>${p.verified?'✅ VERIFICADO':'⏳ PENDIENTE'}</td><td>${p.productName}</td><td>${p.seriesTexto || p.observacion || ''}</td><td>${marcasDeHora(p).map(m => horaCorta(m.fecha)).join(' ')}</td></tr>`).join('')}
         </table>
         <div class="footer">JAT Control Suite — Sistema de Verificación de Egresos | ${new Date().toLocaleString()}</div>
         </body></html>`);
@@ -2842,7 +2873,7 @@
                         const p = currentProductos[exactIdx];
                         const faltan = getExpectedQty(p) - getVerifiedQty(p);
                         const sumar = Math.min(n, Math.max(0, faltan));
-                        if (sumar <= 0) { mostrarUltimoEscaneo(exactIdx, 'error', '🚫 YA ESTABA COMPLETO'); hablarHat('Cantidad excedida. Producto ya completo.', 'error', {force:true, interrupt:true}); return; }
+                        if (sumar <= 0) { avisoRepetido(exactIdx); return; }
                         if (n > faltan && !confirm(`La cantidad ingresada (${n}) supera lo pendiente (${faltan}). ¿Completar solo ${faltan}?`)) return;
                         await sumarCantidadProducto(exactIdx, sumar, 'conteo_rapido_escrito');
                         scanInput.value = (getExpectedQty(p) - getVerifiedQty(p)) > 0 ? code : '';
