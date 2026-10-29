@@ -405,6 +405,85 @@
         .btn-voice { background:#111827; color:#f7d07a; border-color:#3b2d12; }
         .btn-voice:hover { background:#0b1220; }
         .btn-voice.off { background:#f8fafc; color:#475569; border-color:#cbd5e1; }
+        /* ===== JAT MÓVIL — OPCIÓN B: pestañas abajo + botón central de escanear ===== */
+        #mNav,#mSheet,#mSheetBg,.cam-close-mobile,#mProgresoTxt{display:none}
+        #dupBanner{display:none;margin:10px 14px 0;padding:12px 14px;border-radius:12px;background:#fff1e6;border:2px solid #c2410c;color:#8a3508;font-weight:700;font-size:.9rem;line-height:1.35;flex-shrink:0}
+        #dupBanner.show{display:block}
+        @media (max-width:720px){
+            body{overflow:hidden}
+            .sidebar,.hat-statusline,.top-bar .badge,.top-bar .user-area{display:none!important}
+            .top-bar{height:52px!important;padding:0 14px!important}
+            .main-layout{height:calc(100vh - 52px - 68px)!important;height:calc(100dvh - 52px - 68px - env(safe-area-inset-bottom))!important}
+            .content-area{padding:10px!important}
+            .modal:not(#verificadorModal) .modal-content{width:94vw!important;max-width:94vw!important;padding:20px!important;max-height:84vh}
+            .modal-panel-large{width:96vw!important;padding:16px!important}
+            .cierre-grid{grid-template-columns:1fr 1fr!important}
+
+            #mNav{display:grid;position:fixed;left:0;right:0;bottom:0;height:68px;box-sizing:content-box;padding-bottom:env(safe-area-inset-bottom);grid-template-columns:1fr 1fr 84px 1fr 1fr;align-items:center;background:#fff;border-top:1px solid #dde3ea;z-index:9500;box-shadow:0 -4px 16px rgba(6,27,52,.08)}
+            .mnav-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:56px;border:0;background:none;font:inherit;font-size:.68rem;font-weight:600;color:#4b5b70;cursor:pointer;-webkit-tap-highlight-color:transparent}
+            .mnav-btn svg{width:22px;height:22px}
+            .mnav-btn.active{color:#0a2e55;font-weight:800}
+            .mnav-scan{width:66px;height:66px;margin:-30px auto 0;border-radius:50%;border:4px solid #f3f5f8;background:#c99a4a;color:#061b34;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(6,27,52,.25);cursor:pointer;-webkit-tap-highlight-color:transparent}
+            .mnav-scan svg{width:30px;height:30px}
+            body.cam-on .mnav-scan{background:#0a2e55;color:#fff}
+            body:has(.modal:not(#verificadorModal)[style*="flex"]) #mNav,
+            body:has(.modal:not(#verificadorModal)[style*="block"]) #mNav,
+            body:has(.qty-modal-overlay[style*="flex"]) #mNav{display:none}
+
+            #verificadorModal .modal-content{height:calc(100vh - 68px)!important;height:calc(100dvh - 68px - env(safe-area-inset-bottom))!important;max-height:none!important}
+            #verificadorModal .toolbar-topbar{display:none!important}
+            #verificadorModal .verificador-header{padding:8px 8px 8px 14px!important;background:#061b34!important;border-bottom:3px solid #c99a4a!important}
+            #verificadorModal .verificador-header .subtitle{color:#e3c48f!important;font-size:.82rem!important;font-weight:700}
+            #mProgresoTxt{display:inline;color:#fff;font-size:.8rem;font-weight:700;white-space:nowrap}
+            #verificadorModal .badge-status{display:none}
+            #verificadorModal .verificador-header .close-modal{color:#fff!important;width:44px;height:44px;display:flex;align-items:center;justify-content:center}
+            .cam-insecure-warning{font-size:.66rem!important;padding:6px 12px!important;max-height:3.4em;overflow:hidden}
+            #camPanel{display:none}
+            body.cam-on #camPanel{display:block;height:38vh;min-height:200px}
+            .cam-close-mobile{display:inline-flex}
+            #verificadorModal .progress-bar-wrap{height:8px}
+            #verificadorModal .scanner-section{padding:10px 12px!important}
+            #verificadorModal .scanner-input{font-size:16px!important;font-family:inherit!important;min-height:48px}
+            #verificadorModal .stats-row{display:grid!important;grid-template-columns:repeat(3,1fr);gap:6px!important;padding:8px 12px!important;position:static!important}
+            #verificadorModal .stats-row .stat-item{padding:6px 10px!important;font-size:.7rem;display:flex;flex-direction:column;align-items:flex-start;gap:0;margin:0}
+            #verificadorModal .stats-row .stat-number{font-size:1.2rem}
+            #verificadorModal .stats-row .stat-item:nth-child(4),#voiceStatusPill,#verificadorModal .stats-row .spacer{display:none!important}
+            #deshacerBtn{grid-column:1/-1;min-height:42px;width:100%}
+            #verificadorModal .work-panels{grid-template-columns:1fr!important;padding:8px 12px!important;gap:8px!important}
+            #verificadorModal.revision-mode .selected-panel,#verificadorModal.revision-mode .last-scan-panel{min-height:0!important}
+            .quick-count-row{padding:4px 12px 12px!important;flex-wrap:nowrap!important;gap:6px!important}
+            .qc-btn{flex:1 1 0;min-height:46px;padding-left:4px!important;padding-right:4px!important}
+            .qc-custom{flex:1.6 1 0}
+
+            .tabla-pantalla-completa{bottom:68px!important;bottom:calc(68px + env(safe-area-inset-bottom))!important}
+            .tabla-pantalla-header{padding:8px 12px!important}
+            .tpc-back-btn{padding:8px 12px!important;font-size:.78rem!important}
+            .tabla-pantalla-completa .filtro-tabla{font-size:16px}
+            .tabla-pantalla-completa .filter-chips .chip{min-height:38px;display:inline-flex;align-items:center}
+            .tpc-table-container thead{display:none}
+            .tpc-table-container .data-table,.tpc-table-container tbody{display:block;width:100%}
+            .tpc-table-container tr{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:10px 12px;border-bottom:1px solid #eef1f5}
+            .tpc-table-container td{padding:0!important;border:0!important;background:transparent!important}
+            .tpc-table-container td:nth-child(4){grid-column:1;grid-row:1;font-weight:600;font-size:.88rem;color:#10203a}
+            .tpc-table-container td:nth-child(2){grid-column:2;grid-row:1/span 2;font-size:1.05rem;font-weight:800;align-self:center;text-align:right}
+            .tpc-table-container td:nth-child(1){grid-column:1;grid-row:2;font-size:.72rem;color:#4b5b70}
+            .tpc-table-container td:nth-child(3){grid-column:1/-1;grid-row:3;margin-top:4px}
+            .tpc-table-container td:nth-child(5){grid-column:1/-1;grid-row:4;margin-top:6px}
+            .tpc-table-container td[colspan]{grid-column:1/-1!important;grid-row:auto!important}
+            .tpc-table-container tr.verified{background:#eef8f1!important}
+            .tpc-table-container tr.verified td:first-child,.tpc-table-container tr.selected-row td:first-child{border-left:0!important}
+
+            #mSheetBg.show{display:block;position:fixed;inset:0;background:rgba(6,27,52,.45);z-index:9600}
+            #mSheet.show{display:block;position:fixed;left:0;right:0;bottom:0;max-height:82vh;overflow:auto;background:#fff;border-radius:18px 18px 0 0;z-index:9700;padding:8px 10px calc(14px + env(safe-area-inset-bottom));box-shadow:0 -10px 30px rgba(6,27,52,.25)}
+            .msheet-grip{width:40px;height:4px;border-radius:2px;background:#b9c3cf;margin:4px auto 8px}
+            .msheet-title{font-size:1rem;font-weight:800;color:#061b34;padding:4px 12px 8px}
+            .msheet-estado{font-size:.72rem;color:#4b5b70;padding:0 12px 8px;line-height:1.5}
+            .msheet-sep{height:1px;background:#e5e9ef;margin:6px 8px}
+            .msheet-item{display:flex;align-items:center;gap:12px;width:100%;min-height:50px;padding:0 12px;border:0;background:none;border-radius:12px;font:inherit;font-size:.95rem;color:#10203a;text-align:left;cursor:pointer}
+            .msheet-item:active{background:#f3f5f8}
+            .msheet-item .ico{width:26px;text-align:center;font-size:1.1rem}
+            .alert-toast{bottom:calc(84px + env(safe-area-inset-bottom))!important;left:12px!important;right:12px!important;max-width:none!important;z-index:9800!important}
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -413,7 +492,7 @@
     <div class="top-bar">
         <div class="logo-area">
             <div class="brand-block">
-                <img src="assets/JAT_logo_aprobado.png" class="brand-emblem" alt="JAT Jorge Andrés Toledo">
+                <img src="assets/JAT_logo_aprobado.png" class="brand-emblem" alt="JAT Jorge Andrés Toledo" onerror="this.style.display='none'">
                 <div class="brand-text">
                     <div class="brand-main">JAT</div>
                     <div class="brand-sub">Control Suite</div>
@@ -486,6 +565,17 @@
         <span id="hatChangeStatus">Último cambio: sin cambios</span>
     </div>
 
+    <!-- ==== JAT MÓVIL — BARRA DE PESTAÑAS (Opción B) ==== -->
+    <nav id="mNav" aria-label="Navegación principal">
+        <button class="mnav-btn active" type="button" data-mnav="egreso"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"></path><path d="M9 12h7M9 16h7"></path></svg>Egreso</button>
+        <button class="mnav-btn" type="button" data-mnav="lista"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"></path></svg>Lista</button>
+        <div><button class="mnav-scan" type="button" id="mNavScan" aria-label="Escanear"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M3 7V4h3M18 4h3v3M21 17v3h-3M6 20H3v-3"></path><path d="M7 8v8M10 8v8M13 8v8M16 8v8"></path></svg></button></div>
+        <button class="mnav-btn" type="button" data-mnav="informe"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6"></path><path d="M6 18H4v-7h16v7h-2"></path><path d="M7 14h10v7H7z"></path></svg>Informe</button>
+        <button class="mnav-btn" type="button" data-mnav="mas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="19" cy="12" r="1.6"></circle></svg>Más</button>
+    </nav>
+    <div id="mSheetBg"></div>
+    <div id="mSheet" role="dialog" aria-modal="true" aria-labelledby="mSheetTitle"><div class="msheet-grip"></div><div class="msheet-title" id="mSheetTitle"></div><div id="mSheetBody"></div></div>
+
     <!-- MODAL GUARDAR -->
     <div id="guardarComoModal" class="modal">
         <div class="modal-content">
@@ -541,6 +631,7 @@
                     <span class="subtitle" id="verificadorNombreEgreso" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:0.72rem;color:#7f8c8d;"></span>
                 </div>
                 <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+                    <span id="mProgresoTxt"></span>
                     <span class="badge-status" style="font-size:0.65rem;padding:3px 10px;">● Activo</span>
                     <span class="close-modal" onclick="cerrarVerificador()" style="font-size:1.4rem;">&times;</span>
                 </div>
@@ -565,6 +656,7 @@
                 <div class="cam-reticle"><div class="box" id="camReticleBox"></div></div>
                 <div class="cam-topbar">
                     <span class="cam-status-pill" id="camStatusPill">📷 Cámara apagada</span>
+                    <button class="cam-mini-btn cam-close-mobile" id="camCerrarMovilBtn" type="button">✕ Cerrar cámara</button>
                     <div class="cam-menu-wrap">
                         <button class="cam-mini-btn" id="camMasBtn" aria-haspopup="true" aria-expanded="false">⋮ Más</button>
                         <div class="cam-dropdown" id="camDropdown" style="display:none;">
@@ -596,6 +688,8 @@
             </div>
             <!-- ==== FIN CÁMARA — a partir de aquí, mitad inferior con scroll propio ==== -->
             <div class="verif-bottom-pane" id="verifBottomPane">
+
+            <div id="dupBanner" role="alert"></div>
 
             <!-- Banner de completado -->
             <div id="completadoBanner" class="completado-banner">
@@ -2014,6 +2108,8 @@
         document.getElementById('verifPendientes').innerText = formatearQty(pendientes);
         const pct = total > 0 ? (verificados / total * 100) : 0;
         document.getElementById('progressBarFill').style.width = pct + '%';
+        const mProg = document.getElementById('mProgresoTxt');
+        if (mProg) mProg.textContent = `${formatearQty(verificados)} de ${formatearQty(total)} listos`;
         // Banner de completado
         const banner = document.getElementById('completadoBanner');
         if (verificados >= total && total > 0) {
@@ -2088,6 +2184,14 @@
         showAlert(`${texto}: ${p.productName.substring(0,40)}`, 'error');
         hablarHat(hora ? `Producto repetido. Ya fue marcado a las ${hora}. Revise.` : 'Producto repetido. Ya está completo. Revise.', 'error', {force:true, interrupt:true});
         try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) {}
+        const dupB = document.getElementById('dupBanner');
+        if (dupB) {
+            dupB.textContent = `${texto.replace('🚫 ', '⚠️ ')} · ${p.productName.substring(0, 40)}`;
+            dupB.classList.add('show');
+            clearTimeout(window._dupBannerT);
+            window._dupBannerT = setTimeout(() => dupB.classList.remove('show'), 7000);
+            try { document.getElementById('verifBottomPane')?.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {}
+        }
         p.historialMovimientos = p.historialMovimientos || [];
         p.historialMovimientos.push({ fecha: new Date().toISOString(), tipo: 'intento_repetido', cantidadSumada: 0 });
         autoGuardarEgreso('Escaneo repetido ' + p.barcode);
@@ -3375,6 +3479,7 @@
             await video.play().catch(() => {});
             $('camOffLayer').style.display = 'none';
             camActiva = true;
+            document.body.classList.add('cam-on');
             setEstadoPill('🟢 Escaneando…', true);
 
             // Poblar selector de cámaras (solo la primera vez que hay permiso)
@@ -3400,6 +3505,7 @@
             const video = $('camVideo');
             if (video) video.srcObject = null;
             camActiva = false;
+            document.body.classList.remove('cam-on');
             const offLayer = $('camOffLayer');
             if (offLayer) offLayer.style.display = 'flex';
             setEstadoPill('📷 Cámara apagada', false);
@@ -3834,6 +3940,17 @@
         }
         // Este script corre al final del <body>, así que el DOM ya existe;
         // se enlaza directo y también por DOMContentLoaded por seguridad.
+        window.jatCam = {
+            activa: () => camActiva,
+            detener: detenerCamaraEscaner,
+            iniciar: () => {
+                const esOrigenLocal = (location.protocol === 'content:' || location.protocol === 'file:');
+                if (esOrigenLocal) { camModoSiguienteFoto = 'barcode'; $('camCaptureInput')?.click(); return; }
+                document.body.classList.add('cam-on');
+                iniciarCamaraEscaner();
+            }
+        };
+        $('camCerrarMovilBtn')?.addEventListener('click', detenerCamaraEscaner);
         if (document.readyState !== 'loading') enlazarBotonesCamara();
         else document.addEventListener('DOMContentLoaded', enlazarBotonesCamara);
 
@@ -3843,6 +3960,102 @@
 
     })();
     </script>
+    <script>
+    /* ==== JAT MÓVIL — Navegación por pestañas (Opción B) ==== */
+    (function () {
+        const $ = id => document.getElementById(id);
+        const verifAbierto = () => $('verificadorModal')?.style.display === 'flex';
+        const tablaAbierta = () => $('tablaPantallaCompleta')?.classList.contains('abierta');
+        const setActivo = k => document.querySelectorAll('#mNav .mnav-btn').forEach(b => b.classList.toggle('active', b.dataset.mnav === k));
+        const hayEgreso = () => {
+            if (typeof currentProductos !== 'undefined' && currentProductos.length) return true;
+            showAlert('⚠️ Carga o abre un egreso primero', 'warning');
+            return false;
+        };
+        const clickId = id => () => $(id)?.click();
+        const menu = (accion, cerrarVerif) => () => {
+            if (cerrarVerif) { if (tablaAbierta()) cerrarTablaPantallaCompleta(); if (verifAbierto()) window.cerrarVerificador(); setActivo('egreso'); }
+            document.querySelector(`.menu-item[data-action="${accion}"]`)?.click();
+        };
+
+        function cerrarHoja() { $('mSheet').classList.remove('show'); $('mSheetBg').classList.remove('show'); }
+        function abrirHoja(titulo, items, estado) {
+            $('mSheetTitle').textContent = titulo;
+            const body = $('mSheetBody');
+            body.innerHTML = (estado ? `<div class="msheet-estado">${estado}</div>` : '') + items.map((it, i) =>
+                it === '-' ? '<div class="msheet-sep"></div>' :
+                `<button type="button" class="msheet-item" data-i="${i}"><span class="ico">${it[0]}</span>${it[1]}</button>`).join('');
+            body.querySelectorAll('.msheet-item').forEach(b => b.addEventListener('click', () => {
+                const it = items[+b.dataset.i]; cerrarHoja(); setTimeout(it[2], 60);
+            }));
+            $('mSheet').classList.add('show'); $('mSheetBg').classList.add('show');
+        }
+        $('mSheetBg')?.addEventListener('click', cerrarHoja);
+
+        function irEgreso() {
+            if (tablaAbierta()) cerrarTablaPantallaCompleta();
+            if (verifAbierto()) window.cerrarVerificador();
+            else cargarVistaNuevoEgreso(false);
+            setActivo('egreso');
+        }
+        function irLista() {
+            if (!hayEgreso()) return;
+            if (!verifAbierto()) abrirVerificador();
+            abrirTablaPantallaCompleta();
+            setActivo('lista');
+        }
+        function escanear() {
+            if (!hayEgreso()) return;
+            if (tablaAbierta()) cerrarTablaPantallaCompleta();
+            if (!verifAbierto()) abrirVerificador();
+            setActivo('');
+            if (window.jatCam?.activa()) { window.jatCam.detener(); return; }
+            window.jatCam?.iniciar();
+        }
+        function informe() {
+            if (!hayEgreso()) return;
+            abrirHoja('Informe del egreso', [
+                ['🧾', 'Cierre seguro (resumen)', clickId('cierreBtn')],
+                ['🖨️', 'Imprimir', clickId('imprimirBtn')],
+                ['📄', 'Descargar PDF', clickId('descargarPdfBtn')],
+                ['📊', 'Exportar CSV (Excel)', clickId('exportarExcelBtn')]
+            ]);
+        }
+        function mas() {
+            const items = [];
+            if (verifAbierto()) {
+                items.push(
+                    ['⌨️', 'Escribir código a mano', () => { window.jatCam?.detener(); if (tablaAbierta()) cerrarTablaPantallaCompleta(); const i = $('scannerInput'); if (i) { i.removeAttribute('inputmode'); i.focus(); } }],
+                    ['🔤', 'Leer texto de la etiqueta', () => { if (!window.jatCam?.activa()) window.jatCam?.iniciar(); setTimeout(() => $('camLeerTextoBtn')?.click(), window.jatCam?.activa() ? 0 : 1500); }],
+                    ['🔁', ($('camAutoOcrBtn')?.textContent || 'Auto-leer').replace('🔤 ', '') + ' (leer texto automático)', () => { if (!window.jatCam?.activa()) { showAlert('Primero toca el botón de escanear para abrir la cámara', 'info'); return; } $('camAutoOcrBtn')?.click(); }],
+                    ['🔢', 'Conteo rápido', clickId('conteoRapidoBtn')],
+                    ['✅', 'Marcar todos', clickId('marcarTodoBtn')],
+                    ['🔊', 'Voz: activar / desactivar', clickId('voiceToggleBtn')],
+                    '-');
+            }
+            items.push(
+                ['📄', 'Nuevo egreso desde PDF', menu('nuevoEgreso', true)],
+                ['📁', 'Abrir egreso guardado', menu('abrirEgreso', false)],
+                ['💾', 'Guardar', menu('guardarAhora', false)],
+                ['📂', 'Guardar como / Carpeta', menu('guardarComo', false)],
+                ['🗂️', 'Carpeta de trabajo', menu('carpetaTrabajo', true)],
+                ['🔍', 'Buscar egresos', menu('buscarEgresos', false)],
+                ['📋', 'Historial / avances', menu('historial', true)],
+                ['📝', 'Cartas de constancia', menu('constancias', true)]);
+            const t = id => ($(id)?.textContent || '').trim();
+            const estado = [t('hatFolderStatus'), t('hatEgresoStatus'), t('hatSaveStatus')].filter(Boolean).join('<br>');
+            abrirHoja('Más opciones', items, estado);
+        }
+
+        const acciones = { egreso: irEgreso, lista: irLista, informe, mas };
+        document.querySelectorAll('#mNav .mnav-btn').forEach(b => b.addEventListener('click', () => acciones[b.dataset.mnav]?.()));
+        $('mNavScan')?.addEventListener('click', escanear);
+        $('cerrarTablaPantallaBtn')?.addEventListener('click', () => setActivo(''));
+        const _cv = window.cerrarVerificador;
+        window.cerrarVerificador = function () { _cv.apply(this, arguments); setActivo('egreso'); };
+    })();
+    </script>
+
     <!-- ====================================================================
          NOTAS DE AUDITORÍA — SEGUNDA PASADA (Jorge reportó: "cámara no funciona")
          Sin log de consola real del teléfono, se auditó el código en busca de
