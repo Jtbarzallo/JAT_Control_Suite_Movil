@@ -1006,6 +1006,26 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
         if (btn) { btn.innerText = voiceEnabled ? '🔊 Voz Nivel 3' : '🔇 Voz apagada'; btn.classList.toggle('off', !voiceEnabled); }
     }
 
+    // Chrome Android solo permite voz y sonido después de un toque en la pantalla: se "desbloquean" con el primer toque.
+    let vozDesbloqueada = false;
+    function desbloquearVozYSonido() {
+        if (vozDesbloqueada) return;
+        vozDesbloqueada = true;
+        try {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (AC) { audioCtxHat = audioCtxHat || new AC(); if (audioCtxHat.state === 'suspended') audioCtxHat.resume(); }
+        } catch(_) {}
+        try {
+            if ('speechSynthesis' in window) {
+                const u0 = new SpeechSynthesisUtterance(' ');
+                u0.volume = 0;
+                window._hatFraseActual = u0;
+                window.speechSynthesis.speak(u0);
+            }
+        } catch(_) {}
+    }
+    ['pointerdown', 'touchstart', 'keydown', 'click'].forEach(ev => document.addEventListener(ev, desbloquearVozYSonido, { capture: true, passive: true }));
+
     function toggleVozHat() {
         voiceEnabled = !voiceEnabled;
         localStorage.setItem('hat_voice_enabled', voiceEnabled ? '1' : '0');
@@ -1051,24 +1071,30 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
 
             if (!('speechSynthesis' in window)) return;
 
-            // Motor fluido: no acumula una cola enorme de voces.
-            // En revisión rápida, una cola larga congela o retrasa la pantalla.
-            // Cancelamos la voz anterior y hablamos solo el evento actual.
-            try { window.speechSynthesis.cancel(); } catch(_) {}
-
+            // Motor de voz compatible con Chrome Android:
+            // - cancel() seguido de speak() inmediato anula la voz nueva en Android → se espera un momento.
+            // - se guarda referencia a la frase para que el navegador no la descarte.
+            // - se elige una voz en español disponible y se usa su idioma real.
+            const synth = window.speechSynthesis;
             const u = new SpeechSynthesisUtterance(limpio);
-            u.lang = 'es-EC';
-            u.rate = opts.rate || 1.18;
+            const voces = synth.getVoices ? synth.getVoices() : [];
+            const voz = voces.find(v => /^es[-_]?(EC|419|US|MX|CO|PE)/i.test(v.lang || ''))
+                     || voces.find(v => /^es/i.test(v.lang || ''))
+                     || voces.find(v => /Spanish|Español/i.test(v.name || ''));
+            if (voz) { u.voice = voz; u.lang = voz.lang; } else { u.lang = 'es-US'; }
+            u.rate = opts.rate || 1.12;
             u.pitch = opts.pitch || 1.0;
-            u.volume = opts.volume || 0.92;
-            const voces = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
-            const voz = voces.find(v => /es[-_](EC|ES|MX|US)|Spanish|Español/i.test((v.lang || '') + ' ' + (v.name || '')));
-            if (voz) u.voice = voz;
-
-            // speak fuera del ciclo actual para no bloquear teclado/tabla.
-            setTimeout(() => {
-                try { window.speechSynthesis.speak(u); } catch(e) { console.warn('Voz no disponible:', e); }
-            }, opts.delay || 0);
+            u.volume = opts.volume || 1;
+            window._hatFraseActual = u;
+            const decir = () => {
+                try { if (synth.paused) synth.resume(); synth.speak(u); } catch(e) { console.warn('Voz no disponible:', e); }
+            };
+            if (synth.speaking || synth.pending) {
+                try { synth.cancel(); } catch(_) {}
+                setTimeout(decir, Math.max(150, opts.delay || 0));
+            } else {
+                setTimeout(decir, opts.delay || 0);
+            }
         } catch(e) { console.warn('Voz no disponible:', e); }
     }
 
@@ -4172,7 +4198,7 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
                     ['🔁', ($('camAutoOcrBtn')?.textContent || 'Auto-leer').replace('🔤 ', '') + ' (leer texto automático)', () => { if (!window.jatCam?.activa()) { showAlert('Primero toca el botón de escanear para abrir la cámara', 'info'); return; } $('camAutoOcrBtn')?.click(); }],
                     ['🔢', 'Conteo rápido', clickId('conteoRapidoBtn')],
                     ['✅', 'Marcar todos', clickId('marcarTodoBtn')],
-                    ['🔊', 'Voz: activar / desactivar', clickId('voiceToggleBtn')],
+                    [voiceEnabled ? '🔊' : '🔇', voiceEnabled ? 'Voz encendida — tocar para apagar' : 'Voz apagada — tocar para encender', clickId('voiceToggleBtn')],
                     '-');
             }
             items.push(
