@@ -409,6 +409,15 @@
         #mNav,#mSheet,#mSheetBg,.cam-close-mobile,#mProgresoTxt{display:none}
         #dupBanner{display:none;margin:10px 14px 0;padding:12px 14px;border-radius:12px;background:#fff1e6;border:2px solid #c2410c;color:#8a3508;font-weight:700;font-size:.9rem;line-height:1.35;flex-shrink:0}
         #dupBanner.show{display:block}
+        #dupConfirm{position:fixed;inset:0;z-index:12000;background:rgba(6,27,52,.6);display:flex;align-items:center;justify-content:center;padding:16px}
+        #dupConfirm .dupc-card{background:#fff;border-radius:20px;width:100%;max-width:400px;padding:22px 18px 18px;display:flex;flex-direction:column;gap:10px;text-align:center;border-top:6px solid #c2410c;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+        #dupConfirm .dupc-ico{font-size:2.2rem;line-height:1}
+        #dupConfirm .dupc-t{font-size:1.2rem;font-weight:800;color:#8a3508}
+        #dupConfirm .dupc-n{font-size:1rem;font-weight:700;color:#10203a}
+        #dupConfirm .dupc-d{font-size:.92rem;color:#334155;line-height:1.45}
+        #dupConfirm button{min-height:52px;border-radius:14px;font:inherit;font-size:1rem;font-weight:800;cursor:pointer}
+        #dupConfirm .dupc-no{background:#0a2e55;color:#fff;border:0}
+        #dupConfirm .dupc-si{background:#fff;color:#0a2e55;border:2px solid #b9c3cf}
         /* Reglas de celular: se activan con la clase jat-movil (también en modo "sitio para computadoras") */
         html.jat-movil body{overflow:hidden}
         html.jat-movil .sidebar,
@@ -2407,6 +2416,76 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
         });
     }
 
+    // ---- GATILLO ANTI-DUPLICADO ----
+    // Ventana en segundos: 0 = apagado, -1 = preguntar siempre que el producto ya tenga marcas.
+    const OPCIONES_ANTIDUP = [30, 60, -1, 10, 0];
+    function ventanaAntiDup() {
+        const v = parseInt(localStorage.getItem('jat_antidup_seg') ?? '30', 10);
+        return isNaN(v) ? 30 : v;
+    }
+    function textoVentanaAntiDup(v = ventanaAntiDup()) {
+        return v === 0 ? 'apagado' : (v === -1 ? 'siempre' : `${v} segundos`);
+    }
+    function cambiarVentanaAntiDup() {
+        const actual = ventanaAntiDup();
+        const i = OPCIONES_ANTIDUP.indexOf(actual);
+        const sig = OPCIONES_ANTIDUP[(i + 1) % OPCIONES_ANTIDUP.length];
+        localStorage.setItem('jat_antidup_seg', String(sig));
+        showAlert('🛡️ Confirmar producto repetido: ' + textoVentanaAntiDup(sig), 'info');
+        hablarHat('Confirmar repetidos: ' + textoVentanaAntiDup(sig) + '.', 'info', { force: true, beep: false });
+    }
+    let dupConfirmAbierto = false;
+    function horaConSegundos(iso) {
+        try { return new Date(iso).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }); } catch (e) { return ''; }
+    }
+    function confirmarPosibleDuplicado(idx) {
+        const p = currentProductos[idx];
+        const seg = ventanaAntiDup();
+        if (!seg) return Promise.resolve(true);
+        const marcas = marcasDeHora(p);
+        if (!marcas.length) return Promise.resolve(true);
+        const ultima = marcas[marcas.length - 1];
+        const hace = Math.max(0, Math.round((Date.now() - new Date(ultima.fecha).getTime()) / 1000));
+        if (seg > 0 && hace > seg) return Promise.resolve(true);
+        if (dupConfirmAbierto) return Promise.resolve(false);
+        dupConfirmAbierto = true;
+        try { if (navigator.vibrate) navigator.vibrate([250, 120, 250]); } catch (e) {}
+        hablarHat('Mismo producto otra vez. ¿Es otra unidad? Confirme.', 'error', { force: true });
+        const hora = horaConSegundos(ultima.fecha);
+        const haceTxt = hace < 2 ? 'hace un momento' : (hace < 60 ? `hace ${hace} segundos` : (Math.round(hace / 60) === 1 ? 'hace 1 minuto' : `hace ${Math.round(hace / 60)} minutos`));
+        return new Promise(resolve => {
+            const capa = document.createElement('div');
+            capa.id = 'dupConfirm';
+            capa.innerHTML = `<div class="dupc-card" role="alertdialog" aria-modal="true" aria-labelledby="dupcT">
+                <div class="dupc-ico">⚠️</div>
+                <div class="dupc-t" id="dupcT">¿Mismo producto otra vez?</div>
+                <div class="dupc-n">${htmlSeguro(p.productName || '')}</div>
+                <div class="dupc-d">Ya se marcó a las <b>${hora}</b> (${haceTxt}).<br>Lleva <b>${formatearQty(getVerifiedQty(p))} de ${formatearQty(getExpectedQty(p))}</b>.</div>
+                <button type="button" class="dupc-no" id="dupcNo">No, fue lectura repetida</button>
+                <button type="button" class="dupc-si" id="dupcSi">Sí, es otra unidad (+1)</button>
+            </div>`;
+            document.body.appendChild(capa);
+            const bloquearTeclas = (ev) => { ev.stopPropagation(); if (ev.key === 'Enter') ev.preventDefault(); };
+            document.addEventListener('keydown', bloquearTeclas, true);
+            const cerrar = (ok) => {
+                document.removeEventListener('keydown', bloquearTeclas, true);
+                capa.remove();
+                dupConfirmAbierto = false;
+                if (!ok) {
+                    p.historialMovimientos = p.historialMovimientos || [];
+                    p.historialMovimientos.push({ fecha: new Date().toISOString(), tipo: 'duplicado_evitado', cantidadSumada: 0 });
+                    mostrarUltimoEscaneo(idx, 'error', `🛡️ LECTURA REPETIDA EVITADA — ya marcado a las ${hora}`);
+                    hablarHat('Lectura repetida. No se sumó.', 'info', { force: true, beep: false });
+                    autoGuardarEgreso('Duplicado evitado ' + p.barcode);
+                }
+                resolve(ok);
+            };
+            capa.querySelector('#dupcNo').addEventListener('click', () => cerrar(false));
+            capa.querySelector('#dupcSi').addEventListener('click', () => cerrar(true));
+            setTimeout(() => capa.querySelector('#dupcNo')?.focus(), 50);
+        });
+    }
+
     async function sumarCantidadProducto(idx, cantidad, origen = 'scan') {
         if (idx < 0 || idx >= currentProductos.length) return false;
         const p = currentProductos[idx];
@@ -2416,11 +2495,18 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
             avisoRepetido(idx);
             return false;
         }
-        const nuevo = Math.min(esperado, prev + cantidad);
+        // GATILLO ANTI-DUPLICADO: si el mismo producto ya se marcó hace poco, pide confirmación antes de sumar.
+        if (origen === 'scan' && prev > 0) {
+            const permitido = await confirmarPosibleDuplicado(idx);
+            if (!permitido) return false;
+        }
+        const nuevo = Math.min(esperado, getVerifiedQty(p) + cantidad);
+        const prevReal = getVerifiedQty(p);
+        if (nuevo <= prevReal) { avisoRepetido(idx); return false; }
         setVerifiedQty(p, nuevo);
         p.historialMovimientos = p.historialMovimientos || [];
-        p.historialMovimientos.push({ fecha: new Date().toISOString(), tipo: origen, anterior: prev, cantidadSumada: nuevo - prev, nuevo });
-        registrarAccion('verificar', { idx, prevQty: prev });
+        p.historialMovimientos.push({ fecha: new Date().toISOString(), tipo: origen, anterior: prevReal, cantidadSumada: nuevo - prevReal, nuevo });
+        registrarAccion('verificar', { idx, prevQty: prevReal });
         autoGuardarEgreso();
         mostrarUltimoEscaneo(idx, isProductoVerificado(p) ? 'ok' : 'partial');
         hablarHat(mensajeConteoVoz(p, prev, nuevo, origen), isProductoVerificado(p) ? 'ok' : 'info', {force: origen.includes('conteo_rapido')});
@@ -4006,7 +4092,9 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
             const codigo = (codigoCrudo || '').trim();
             if (!codigo) return;
             const ahora = Date.now();
-            if (codigo === camUltimoCodigo && (ahora - camUltimoTiempo) < CAM_DEBOUNCE_MS) return;
+            // Mientras el MISMO código siga a la vista (lecturas con menos de 1,5 s de separación),
+            // no se vuelve a contar: hay que retirar el producto del cuadro para que cuente otra vez.
+            if (codigo === camUltimoCodigo && (ahora - camUltimoTiempo) < Math.max(CAM_DEBOUNCE_MS, 1500)) { camUltimoTiempo = ahora; return; }
             camUltimoCodigo = codigo;
             camUltimoTiempo = ahora;
 
@@ -4199,6 +4287,7 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
                     ['⌨️', 'Escribir código a mano', () => { window.jatCam?.detener(); if (tablaAbierta()) cerrarTablaPantallaCompleta(); const i = $('scannerInput'); if (i) { i.removeAttribute('inputmode'); i.focus(); } }],
                     ['🔤', 'Leer texto de la etiqueta', () => { if (!window.jatCam?.activa()) window.jatCam?.iniciar(); setTimeout(() => $('camLeerTextoBtn')?.click(), window.jatCam?.activa() ? 0 : 1500); }],
                     ['🔁', ($('camAutoOcrBtn')?.textContent || 'Auto-leer').replace('🔤 ', '') + ' (leer texto automático)', () => { if (!window.jatCam?.activa()) { showAlert('Primero toca el botón de escanear para abrir la cámara', 'info'); return; } $('camAutoOcrBtn')?.click(); }],
+                    ['🛡️', 'Confirmar repetidos: ' + textoVentanaAntiDup() + ' — tocar para cambiar', cambiarVentanaAntiDup],
                     ['🔢', 'Conteo rápido', clickId('conteoRapidoBtn')],
                     ['✅', 'Marcar todos', clickId('marcarTodoBtn')],
                     [voiceEnabled ? '🔊' : '🔇', voiceEnabled ? 'Voz encendida — tocar para apagar' : 'Voz apagada — tocar para encender', clickId('voiceToggleBtn')],
