@@ -409,6 +409,18 @@
         #mNav,#mSheet,#mSheetBg,.cam-close-mobile,#mProgresoTxt{display:none}
         #dupBanner{display:none;margin:10px 14px 0;padding:12px 14px;border-radius:12px;background:#fff1e6;border:2px solid #c2410c;color:#8a3508;font-weight:700;font-size:.9rem;line-height:1.35;flex-shrink:0}
         #dupBanner.show{display:block}
+        #gatilloBtn{display:none}
+        .cam-laser{display:none;position:absolute;left:6%;right:6%;top:50%;height:3px;background:#ff1f1f;box-shadow:0 0 10px 3px rgba(255,31,31,.75);z-index:4;pointer-events:none;border-radius:2px}
+        body.gatillo-on .cam-laser{display:block;animation:jatLaser .5s ease-in-out infinite alternate}
+        @keyframes jatLaser{from{opacity:.55}to{opacity:1}}
+        body.gatillo-modo.cam-on #gatilloBtn{display:flex;position:fixed;left:16px;right:16px;bottom:calc(84px + env(safe-area-inset-bottom));height:78px;z-index:9550;align-items:center;justify-content:center;gap:12px;border:0;border-radius:22px;background:#b91c1c;color:#fff;font:inherit;font-size:1.15rem;font-weight:900;letter-spacing:.04em;box-shadow:0 10px 24px rgba(127,29,29,.45),inset 0 -5px 0 rgba(0,0,0,.25);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
+        #gatilloBtn svg{width:30px;height:30px}
+        body.gatillo-modo.cam-on.gatillo-on #gatilloBtn{background:#ef4444;transform:scale(.97);box-shadow:0 4px 12px rgba(127,29,29,.45),inset 0 3px 0 rgba(0,0,0,.25)}
+        body.gatillo-modo.cam-on.gatillo-leido #gatilloBtn{background:#15803d}
+        body.gatillo-modo.cam-on #verifBottomPane{padding-bottom:110px}
+        .alert-toast{pointer-events:none}
+        html.jat-movil body.gatillo-modo.cam-on .alert-toast{bottom:calc(176px + env(safe-area-inset-bottom))!important}
+        html:not(.jat-movil) body.gatillo-modo.cam-on #gatilloBtn{left:auto;right:24px;bottom:24px;width:320px}
         #dupConfirm{position:fixed;inset:0;z-index:12000;background:rgba(6,27,52,.6);display:flex;align-items:center;justify-content:center;padding:16px}
         #dupConfirm .dupc-card{background:#fff;border-radius:20px;width:100%;max-width:400px;padding:22px 18px 18px;display:flex;flex-direction:column;gap:10px;text-align:center;border-top:6px solid #c2410c;box-shadow:0 20px 50px rgba(0,0,0,.35)}
         #dupConfirm .dupc-ico{font-size:2.2rem;line-height:1}
@@ -719,6 +731,7 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
         <button class="mnav-btn" type="button" data-mnav="informe"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6"></path><path d="M6 18H4v-7h16v7h-2"></path><path d="M7 14h10v7H7z"></path></svg>Informe</button>
         <button class="mnav-btn" type="button" data-mnav="mas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="19" cy="12" r="1.6"></circle></svg>Más</button>
     </nav>
+    <button type="button" id="gatilloBtn" aria-label="Gatillo: mantener apretado para leer el código"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M3 7V4h3M18 4h3v3M21 17v3h-3M6 20H3v-3"></path><path d="M7 12h10"></path></svg><span>MANTENER PARA LEER</span></button>
     <div id="mSheetBg"></div>
     <div id="mSheet" role="dialog" aria-modal="true" aria-labelledby="mSheetTitle"><div class="msheet-grip"></div><div class="msheet-title" id="mSheetTitle"></div><div id="mSheetBody"></div></div>
 
@@ -800,6 +813,7 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
             <div id="camPanel" class="cam-panel">
                 <video id="camVideo" autoplay playsinline muted></video>
                 <div class="cam-reticle"><div class="box" id="camReticleBox"></div></div>
+                <div class="cam-laser" aria-hidden="true"></div>
                 <div class="cam-topbar">
                     <span class="cam-status-pill" id="camStatusPill">📷 Cámara apagada</span>
                     <button class="cam-mini-btn cam-close-mobile" id="camCerrarMovilBtn" type="button">✕ Cerrar cámara</button>
@@ -3811,9 +3825,46 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
             return null;
         }
 
-        function manejarLecturaCamara(codigosCrudos) {
+        // ---- GATILLO: la cámara solo lee mientras se mantiene apretado el botón, y una sola lectura por apretón ----
+        let gatilloModo = localStorage.getItem('jat_gatillo') !== '0';
+        let gatilloApretado = false;
+        let gatilloYaLeyo = false;
+        function actualizarGatilloUI() {
+            const b = $('gatilloBtn');
+            document.body.classList.toggle('gatillo-modo', gatilloModo);
+            document.body.classList.toggle('gatillo-on', gatilloModo && gatilloApretado && !gatilloYaLeyo);
+            document.body.classList.toggle('gatillo-leido', gatilloModo && gatilloApretado && gatilloYaLeyo);
+            if (b) b.querySelector('span').textContent = !gatilloApretado ? 'MANTENER PARA LEER' : (gatilloYaLeyo ? 'LEÍDO — SUELTE' : 'LEYENDO…');
+        }
+        function apretarGatillo(ev) {
+            if (ev) { ev.preventDefault(); try { ev.currentTarget.setPointerCapture(ev.pointerId); } catch (_) {} }
+            if (gatilloApretado) return;
+            gatilloApretado = true; gatilloYaLeyo = false;
+            camUltimoCodigo = ''; camUltimoTiempo = 0;
+            try { if (navigator.vibrate) navigator.vibrate(15); } catch (_) {}
+            actualizarGatilloUI();
+        }
+        function soltarGatillo() {
+            if (!gatilloApretado) return;
+            gatilloApretado = false; gatilloYaLeyo = false;
+            actualizarGatilloUI();
+        }
+        function alternarModoGatillo() {
+            gatilloModo = !gatilloModo;
+            localStorage.setItem('jat_gatillo', gatilloModo ? '1' : '0');
+            soltarGatillo(); actualizarGatilloUI();
+            showAlert(gatilloModo ? '🔫 Gatillo activado: mantenga apretado para leer' : '📷 Lectura continua: la cámara lee sola', 'info');
+        }
+        window.jatGatillo = { modo: () => gatilloModo, alternar: alternarModoGatillo };
+
+        function manejarLecturaCamara(codigosCrudos, forzar = false) {
             const codigos = (codigosCrudos || []).map(c => (c || '').trim()).filter(Boolean);
             if (!codigos.length) return;
+            if (!forzar && gatilloModo && camActiva) {
+                if (!gatilloApretado || gatilloYaLeyo) return;
+                gatilloYaLeyo = true;
+                actualizarGatilloUI();
+            }
             const exacto = elegirCodigoExactoEnEgreso(codigos);
             if (exacto) { manejarCodigoDetectado(exacto); return; }
             // Ninguno de los códigos vistos en el cuadro coincide EXACTO con este egreso.
@@ -3931,7 +3982,7 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
                 const producto = buscarProductoPorTextoOCR(texto);
                 if (producto && producto.barcode) {
                     setEstadoPill('🟢 Texto reconocido — producto encontrado', true);
-                    manejarLecturaCamara([producto.barcode]);
+                    manejarLecturaCamara([producto.barcode], modo === 'manual');
                 } else if (modo === 'manual') {
                     const resumen = texto.trim().replace(/\s+/g, ' ').slice(0, 70) || '(sin texto legible)';
                     setEstadoPill('🔤 Texto leído, sin coincidencia', false);
@@ -4076,7 +4127,7 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
                 }
                 if (codigosCandidatos.length) {
                     setEstadoPill('🟢 Foto analizada — ' + codigosCandidatos.length + ' código(s) visto(s)', true);
-                    manejarLecturaCamara(codigosCandidatos);
+                    manejarLecturaCamara(codigosCandidatos, true);
                 } else {
                     throw new Error('sin código detectado');
                 }
@@ -4209,6 +4260,15 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
             }
         };
         $('camCerrarMovilBtn')?.addEventListener('click', detenerCamaraEscaner);
+        (function enlazarGatillo() {
+            const b = $('gatilloBtn');
+            if (!b) return;
+            b.addEventListener('pointerdown', apretarGatillo);
+            ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => b.addEventListener(ev, soltarGatillo));
+            b.addEventListener('contextmenu', ev => ev.preventDefault());
+            window.addEventListener('blur', soltarGatillo);
+            actualizarGatilloUI();
+        })();
         if (document.readyState !== 'loading') enlazarBotonesCamara();
         else document.addEventListener('DOMContentLoaded', enlazarBotonesCamara);
 
@@ -4287,6 +4347,7 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
                     ['⌨️', 'Escribir código a mano', () => { window.jatCam?.detener(); if (tablaAbierta()) cerrarTablaPantallaCompleta(); const i = $('scannerInput'); if (i) { i.removeAttribute('inputmode'); i.focus(); } }],
                     ['🔤', 'Leer texto de la etiqueta', () => { if (!window.jatCam?.activa()) window.jatCam?.iniciar(); setTimeout(() => $('camLeerTextoBtn')?.click(), window.jatCam?.activa() ? 0 : 1500); }],
                     ['🔁', ($('camAutoOcrBtn')?.textContent || 'Auto-leer').replace('🔤 ', '') + ' (leer texto automático)', () => { if (!window.jatCam?.activa()) { showAlert('Primero toca el botón de escanear para abrir la cámara', 'info'); return; } $('camAutoOcrBtn')?.click(); }],
+                    [window.jatGatillo?.modo() ? '🔫' : '📷', window.jatGatillo?.modo() ? 'Gatillo activado — tocar para lectura continua' : 'Lectura continua — tocar para activar gatillo', () => window.jatGatillo?.alternar()],
                     ['🛡️', 'Confirmar repetidos: ' + textoVentanaAntiDup() + ' — tocar para cambiar', cambiarVentanaAntiDup],
                     ['🔢', 'Conteo rápido', clickId('conteoRapidoBtn')],
                     ['✅', 'Marcar todos', clickId('marcarTodoBtn')],
