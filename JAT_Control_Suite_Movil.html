@@ -2456,6 +2456,8 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
         const p = currentProductos[idx];
         const seg = ventanaAntiDup();
         if (!seg) return Promise.resolve(true);
+        // Con el gatillo, cada apretón ya es una confirmación: soltar y volver a apretar = otra unidad.
+        if (window._jatLecturaGatilloT && (Date.now() - window._jatLecturaGatilloT) < 4000) { window._jatLecturaGatilloT = 0; return Promise.resolve(true); }
         const marcas = marcasDeHora(p);
         if (!marcas.length) return Promise.resolve(true);
         const ultima = marcas[marcas.length - 1];
@@ -3863,6 +3865,7 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
             if (!forzar && gatilloModo && camActiva) {
                 if (!gatilloApretado || gatilloYaLeyo) return;
                 gatilloYaLeyo = true;
+                window._jatLecturaGatilloT = Date.now();
                 actualizarGatilloUI();
             }
             const exacto = elegirCodigoExactoEnEgreso(codigos);
