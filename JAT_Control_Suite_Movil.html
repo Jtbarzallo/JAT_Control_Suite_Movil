@@ -1927,11 +1927,27 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
         return productos;
     }
 
-    async function leerPDFSeleccionado() {
+    // Los archivos de OneDrive/Drive en Android no siempre informan su tipo:
+    // por eso el explorador no filtra y aquí se revisa el contenido real del archivo.
+    async function esArchivoPDF(file) {
+        try {
+            const cabecera = new Uint8Array(await file.slice(0, 1024).arrayBuffer());
+            return String.fromCharCode(...cabecera).includes('%PDF-');
+        } catch (e) { return false; }
+    }
+
+    let ultimoPdfElegido = null;
+    async function leerPDFSeleccionado(origen) {
         const input = document.getElementById('pdfEgresoInput');
         const status = document.getElementById('pdfStatus');
-        const file = input?.files?.[0];
+        const file = (origen instanceof File) ? origen : (input?.files?.[0] || ultimoPdfElegido);
         if (!file) { showAlert('Selecciona primero un PDF de egreso', 'warning'); return; }
+        if (!(await esArchivoPDF(file))) {
+            if (input) input.value = '';
+            showAlert('El archivo elegido no es un PDF. Elige el PDF del egreso.', 'error');
+            return;
+        }
+        ultimoPdfElegido = file;
         if (!window.pdfjsLib) { showAlert('No se pudo cargar el lector PDF. Revisa Internet o usa copiar/pegar.', 'error'); return; }
         try {
             status.innerText = 'Leyendo PDF...';
@@ -3363,10 +3379,10 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
         try {
             let file = null;
             if ('showOpenFilePicker' in window) {
-                const opts = {
-                    multiple: false,
-                    types: [{ description: 'Egresos HAT / JSON', accept: { 'application/json': ['.json', '.hat'], 'text/plain': ['.hat'] } }]
-                };
+                const opts = { multiple: false };
+                if (!/Android/i.test(navigator.userAgent)) {
+                    opts.types = [{ description: 'Egresos PDF / HAT / JSON', accept: { 'application/pdf': ['.pdf'], 'application/json': ['.json', '.hat'], 'text/plain': ['.hat'] } }];
+                }
                 if (oneDriveDirHandle) opts.startIn = oneDriveDirHandle;
                 const [fh] = await window.showOpenFilePicker(opts);
                 file = await fh.getFile();
@@ -3374,12 +3390,17 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
                 file = await new Promise(resolve => {
                     const input = document.createElement('input');
                     input.type = 'file';
-                    input.accept = '.json,.hat,application/json';
                     input.onchange = () => resolve(input.files?.[0] || null);
                     input.click();
                 });
             }
             if (!file) return;
+            if (await esArchivoPDF(file)) {
+                // Se eligió un PDF: se trata como egreso nuevo en vez de dar error.
+                window.cargarVistaNuevoEgreso?.(false);
+                await leerPDFSeleccionado(file);
+                return;
+            }
             const txt = await file.text();
             const data = JSON.parse(txt);
             let egreso = data;
@@ -3390,8 +3411,9 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
             }
             aplicarEgresoCargado(egreso);
         } catch (e) {
+            if (e && e.name === 'AbortError') return; // canceló el explorador
             console.error('No se pudo abrir egreso:', e);
-            showAlert('No se pudo abrir el archivo. Verifica que sea un egreso .json/.hat válido.', 'error');
+            showAlert('No se pudo abrir el archivo. Verifica que sea un PDF de egreso o un .json/.hat válido.', 'error');
         }
     }
 
@@ -3478,7 +3500,7 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
             <div style="padding:20px 28px;flex:1;display:flex;flex-direction:column;overflow:auto;">
                 <p style="font-size:0.78rem;color:#7f8c8d;margin-bottom:10px;">Presiona <strong>Nuevo Egreso</strong> y se abrirá el explorador para seleccionar el PDF. El sistema extrae cabecera, códigos, cantidades y descripciones sin mezclar datos. También puedes pegar la tabla manualmente si lo necesitas.</p>
                 <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px;background:#fff5f5;border:1px solid #ffd0d0;padding:12px;border-radius:14px;">
-                    <input type="file" id="pdfEgresoInput" accept="application/pdf" style="display:none;">
+                    <input type="file" id="pdfEgresoInput" style="display:none;">
                     <button id="seleccionarPdfBtn" class="btn btn-danger">📄 Seleccionar PDF de egreso</button>
                     <button id="leerPdfBtn" class="btn">🔁 Releer PDF</button>
                     <span id="pdfStatus" style="font-size:0.72rem;color:#7f8c8d;">Sin PDF cargado</span>
@@ -4408,7 +4430,7 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
                 <div class="mi-card mi-activo" id="miActivo" style="display:none"></div>
                 <span class="mi-kicker">Cargar un egreso</span>
                 <button type="button" class="mi-tile principal" id="miPdf"><span class="mi-ico">📄</span><span><b>Nuevo egreso desde PDF</b><small>Elija el PDF y se cargan los productos solos</small></span></button>
-                <button type="button" class="mi-tile" id="miAbrir"><span class="mi-ico">📁</span><span><b>Abrir egreso guardado</b><small>Continúe un archivo .hat de su carpeta</small></span></button>
+                <button type="button" class="mi-tile" id="miAbrir"><span class="mi-ico">📁</span><span><b>Abrir egreso guardado</b><small>Continúe un archivo .hat de su carpeta (o elija un PDF)</small></span></button>
                 <button type="button" class="mi-tile" id="miHist"><span class="mi-ico">📋</span><span><b>Historial / avances</b><small>Egresos guardados en este celular</small></span></button>
                 <div id="miPdfEstado"></div>
                 <details class="mi-details" id="miPegar"><summary>Pegar la tabla a mano</summary><div id="miPegarCuerpo" style="display:flex;flex-direction:column;gap:10px"></div></details>
