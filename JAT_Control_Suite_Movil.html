@@ -76,6 +76,7 @@
         .data-table td { padding: 10px 14px; border-bottom: 1px solid #edf2f7; transition: background 0.15s; }
         .data-table tr { transition: background 0.15s; }
         .data-table tr:hover td { background: #fafbfc; }
+        .data-table tbody tr[data-index] { cursor:pointer; }
         .data-table tr.verified { background-color: #fff9e6 !important; }
         .data-table tr.verified td:first-child { border-left: 3px solid #f5b042; }
         .data-table tr.selected-row { background-color: #fff3bf !important; outline: 3px solid #f59e0b; outline-offset: -3px; }
@@ -662,7 +663,7 @@
     <div id="tablaPantallaCompleta" class="tabla-pantalla-completa">
         <div class="tabla-pantalla-header">
             <button id="cerrarTablaPantallaBtn" type="button" class="tpc-back-btn">← Volver al escáner</button>
-            <span class="tpc-title">📋 Lista de productos</span>
+            <span class="tpc-title">📋 Toca un producto para seleccionarlo</span>
         </div>
         <div class="filtro-tabla-wrap">
             <input type="text" id="filtroTablaVerif" class="filtro-tabla" placeholder="🔎 Filtrar tabla por nombre o código...">
@@ -2111,6 +2112,24 @@
         renderVerificadorTablaProgramado();
         document.getElementById('tablaPantallaCompleta')?.classList.add('abierta');
     }
+
+    // Tocar una fila de la lista la selecciona y vuelve al escáner con ese producto listo para contar.
+    document.getElementById('verificadorTableBody')?.addEventListener('click', (e) => {
+        if (e.target.closest('textarea, input, button')) return;
+        const tr = e.target.closest('tr[data-index]');
+        if (!tr) return;
+        const idx = parseInt(tr.dataset.index, 10);
+        const p = currentProductos[idx];
+        if (isNaN(idx) || !p) return;
+        currentMultipleResults = [idx];
+        currentMultiplePosition = 0;
+        const si = document.getElementById('scannerInput');
+        if (si) si.value = p.barcode;
+        resaltarFilaVerificador(idx);
+        cerrarTablaPantallaCompleta();
+        mostrarUltimoEscaneo(idx, isProductoVerificado(p) ? 'ok' : 'partial', '👆 Seleccionado de la lista');
+        showAlert('✅ Seleccionado: ' + String(p.productName || '').substring(0, 40), 'success');
+    });
 
     function cerrarTablaPantallaCompleta() {
         document.getElementById('tablaPantallaCompleta')?.classList.remove('abierta');
