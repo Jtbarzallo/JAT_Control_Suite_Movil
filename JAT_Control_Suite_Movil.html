@@ -77,6 +77,11 @@
         .data-table tr { transition: background 0.15s; }
         .data-table tr:hover td { background: #fafbfc; }
         .data-table tbody tr[data-index] { cursor:pointer; }
+        .cat-chips { display:flex; gap:8px; overflow-x:auto; padding:8px 12px; -webkit-overflow-scrolling:touch; flex-shrink:0; }
+        .cat-chip { flex:0 0 auto; padding:9px 14px; border-radius:20px; background:#eef2f7; color:#1a3a5c; font-size:.85rem; font-weight:600; border:1.5px solid #dce3ea; white-space:nowrap; cursor:pointer; }
+        .cat-chip.active { background:#1a3a5c; color:#fff; border-color:#1a3a5c; }
+        .cat-chip.done { opacity:.6; }
+        tr.cat-header td { background:#1a3a5c !important; color:#fff; font-weight:700; padding:10px 12px; font-size:.95rem; position:sticky; top:0; }
         .data-table tr.verified { background-color: #fff9e6 !important; }
         .data-table tr.verified td:first-child { border-left: 3px solid #f5b042; }
         .data-table tr.selected-row { background-color: #fff3bf !important; outline: 3px solid #f59e0b; outline-offset: -3px; }
@@ -673,6 +678,8 @@
             <span class="chip" data-filter="pendientes" onclick="cambiarFiltroChip(this)">⏳ Pendientes</span>
             <span class="chip" data-filter="verificados" onclick="cambiarFiltroChip(this)">✅ Verificados</span>
         </div>
+
+        <div id="catChips" class="cat-chips"></div>
 
         <div class="table-container tpc-table-container">
             <table class="data-table">
@@ -1939,6 +1946,59 @@
             .trim();
     }
 
+    // ---- CLASIFICACIÓN AUTOMÁTICA POR TIPO DE PRODUCTO (según palabras del nombre) ----
+    let catFiltroActivo = 'todas';
+    const CATEGORIAS_PRODUCTO = [
+        ['Cuerdas', ['cuerda', 'encordado', 'string']],
+        ['Guitarras', ['guitarra', 'guitar', 'ukelele', 'ukulele', 'bajo electrico', 'bajo acustico']],
+        ['Teclados y pianos', ['teclado', 'piano', 'keyboard', 'organeta']],
+        ['Baterías y percusión', ['bateria', 'bongo', 'cajon', 'tambor', 'percusion', 'platillo']],
+        ['Parlantes y audio', ['parlante', 'speaker', 'bocina', 'bafle', 'subwoofer', 'soundbar', 'amplificador', 'microfono', 'audifono', 'auricular', 'headphone', 'earbud']],
+        ['Sartenes', ['sarten', 'wok', 'crepera', 'plancha', 'grill']],
+        ['Ollas', ['olla', 'caldero', 'cacerola', 'marmita', 'vaporera', 'pailas', 'paila']],
+        ['Cocina y vajilla', ['plato', 'vaso', 'taza', 'cubierto', 'cuchillo', 'cuchara', 'tenedor', 'jarra', 'termo', 'licuadora', 'cafetera', 'tostadora', 'sanduchera', 'arrocera', 'freidora', 'tabla de cortar', 'bandeja', 'recipiente', 'tupper']],
+        ['Memorias y almacenamiento', ['memoria', 'pendrive', 'flash', 'micro sd', 'microsd', 'sd card', 'usb', 'disco duro', 'ssd', 'hdd']],
+        ['Cables y cargadores', ['cable', 'cargador', 'adaptador', 'power bank', 'powerbank', 'bateria externa', 'hdmi']],
+        ['Celulares y tablets', ['celular', 'telefono', 'smartphone', 'tablet', 'iphone', 'samsung galaxy']],
+        ['Computación', ['laptop', 'computador', 'mouse', 'raton', 'monitor', 'impresora', 'webcam']],
+        ['Televisores y video', ['televisor', 'smart tv', 'proyector', 'camara', 'tv ']],
+        ['Herramientas', ['taladro', 'destornillador', 'alicate', 'martillo', 'herramienta', 'llave']],
+        ['Ropa y calzado', ['camiseta', 'camisa', 'pantalon', 'zapato', 'zapatilla', 'chompa', 'chaqueta', 'gorra', 'mochila']],
+        ['Hogar', ['silla', 'mesa', 'lampara', 'ventilador', 'cobija', 'sabana', 'almohada', 'cortina']]
+    ];
+    function categoriaDeProducto(p) {
+        const n = ' ' + normalizarBusqueda(p.productName || p.descripcion || p.nombre || '') + ' ';
+        for (const [cat, palabras] of CATEGORIAS_PRODUCTO) {
+            if (palabras.some(w => n.includes(normalizarBusqueda(w)))) return cat;
+        }
+        return 'Otros';
+    }
+    function ordenCategorias(cats) {
+        return [...cats].sort((a, b) => (a === 'Otros') - (b === 'Otros') || a.localeCompare(b, 'es'));
+    }
+    function renderChipsCategorias() {
+        const cont = document.getElementById('catChips');
+        if (!cont) return;
+        const mapa = {};
+        currentProductos.forEach(p => {
+            const c = categoriaDeProducto(p);
+            mapa[c] = mapa[c] || { total: 0, pend: 0 };
+            mapa[c].total++;
+            if (!isProductoVerificado(p)) mapa[c].pend++;
+        });
+        const cats = ordenCategorias(Object.keys(mapa));
+        if (catFiltroActivo !== 'todas' && !mapa[catFiltroActivo]) catFiltroActivo = 'todas';
+        const totalPend = currentProductos.filter(p => !isProductoVerificado(p)).length;
+        cont.innerHTML = `<span class="cat-chip ${catFiltroActivo === 'todas' ? 'active' : ''}" data-cat="todas">Todas (${totalPend}/${currentProductos.length})</span>` +
+            cats.map(c => `<span class="cat-chip ${catFiltroActivo === c ? 'active' : ''} ${mapa[c].pend === 0 ? 'done' : ''}" data-cat="${htmlSeguro(c)}">${htmlSeguro(c)} (${mapa[c].pend}/${mapa[c].total})</span>`).join('');
+    }
+    document.getElementById('catChips')?.addEventListener('click', (e) => {
+        const chip = e.target.closest('.cat-chip');
+        if (!chip) return;
+        catFiltroActivo = chip.dataset.cat;
+        renderVerificadorTabla();
+    });
+
     function productoCumpleFiltroTabla(p, filtroTexto) {
         if (!filtroTexto) return true;
         const f = normalizarBusqueda(filtroTexto);
@@ -2000,6 +2060,8 @@
         }
 
         productosAMostrar = productosAMostrar.filter(p => productoCumpleFiltroTabla(p, filtroTexto));
+        renderChipsCategorias();
+        if (catFiltroActivo !== 'todas') productosAMostrar = productosAMostrar.filter(p => categoriaDeProducto(p) === catFiltroActivo);
 
         // Seguridad: si hay un producto seleccionado y coincide con el filtro de texto,
         // mantenerlo visible aunque el filtro de chip haya cambiado accidentalmente.
@@ -2021,13 +2083,27 @@
             return;
         }
 
+        // Agrupar por categoría (mantiene el orden original dentro de cada grupo)
+        const ordenCat = ordenCategorias(new Set(productosAMostrar.map(categoriaDeProducto)));
+        productosAMostrar = productosAMostrar
+            .map((p, i) => ({ p, i, c: ordenCat.indexOf(categoriaDeProducto(p)) }))
+            .sort((a, b) => (a.c - b.c) || (a.i - b.i)).map(x => x.p);
+        let _ultimaCat = null;
         tbody.innerHTML = productosAMostrar.map(p => {
+            const _cat = categoriaDeProducto(p);
+            let _cabecera = '';
+            if (_cat !== _ultimaCat) {
+                _ultimaCat = _cat;
+                const delGrupo = productosAMostrar.filter(x => categoriaDeProducto(x) === _cat);
+                const pend = delGrupo.filter(x => !isProductoVerificado(x)).length;
+                _cabecera = `<tr class="cat-header"><td colspan="5">📦 ${htmlSeguro(_cat)} — ${pend} pendientes de ${delGrupo.length}</td></tr>`;
+            }
             const expected = getExpectedQty(p);
             const verified = getVerifiedQty(p);
             const estado = isProductoVerificado(p) ? '✅ VERIFICADO' : (verified > 0 ? `🟡 PARCIAL ${formatearQty(verified)}/${formatearQty(expected)}` : '⏳ PENDIENTE');
             const estadoClass = isProductoVerificado(p) ? 'status-verificado' : 'status-pendiente';
             const extraClass = [isProductoVerificado(p) ? 'verified' : '', p.forcedVisible ? 'forced-visible' : ''].join(' ').trim();
-            return `
+            return _cabecera + `
             <tr class="${extraClass}" data-index="${p.originalIdx}">
                 <td class="codigo-cell">${htmlSeguro(p.barcode)}</td>
                 <td class="cantidad-cell">${formatearQty(verified)}/${formatearQty(expected)}</td>
@@ -2433,7 +2509,7 @@
         });
         // Si está filtrado y no aparece, cambiar temporalmente a Todos para evitar selección invisible.
         if (!found && currentProductos[index]) {
-            filtroChipActivo = 'todos';
+            filtroChipActivo = 'todos'; catFiltroActivo = 'todas';
             document.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c.dataset.filter === 'todos'));
             renderVerificadorTabla();
             setTimeout(() => resaltarFilaVerificador(index, false), 50);
