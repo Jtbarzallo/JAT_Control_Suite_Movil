@@ -693,12 +693,16 @@
 
     <div id="qtyFastModal" class="qty-modal-overlay">
         <div class="qty-modal-card">
-            <h3>Conteo rápido de cantidad</h3>
-            <div id="qtyFastInfo" style="font-size:.85rem;color:#2c3e50;line-height:1.5;"></div>
-            <input id="qtyFastInput" type="number" min="1" step="1" placeholder="Cantidad a sumar">
-            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:10px;">
-                <button class="btn" id="qtyFastCancelBtn">Cancelar</button>
-                <button class="btn btn-success" id="qtyFastConfirmBtn">Confirmar</button>
+            <h3>Cantidad a guardar</h3>
+            <div id="qtyFastInfo" style="font-size:.9rem;color:#2c3e50;line-height:1.5;"></div>
+            <input id="qtyFastInput" type="number" inputmode="numeric" min="1" step="1" placeholder="Escribe la cantidad">
+            <div style="display:flex;gap:10px;margin-top:6px;">
+                <button class="btn" id="qtyFastOneBtn" style="flex:1;min-height:48px;">+1</button>
+                <button class="btn" id="qtyFastAllBtn" style="flex:2;min-height:48px;">Completar todo</button>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:10px;">
+                <button class="btn" id="qtyFastCancelBtn" style="flex:1;min-height:52px;">Cancelar</button>
+                <button class="btn btn-success" id="qtyFastConfirmBtn" style="flex:2;min-height:52px;font-size:1.05rem;">💾 Guardar</button>
             </div>
         </div>
     </div>
@@ -742,7 +746,7 @@
     let oneDrivePending = false;
     let oneDriveDebounceTimer = null;
     let lastScanMemory = { code: '', time: 0 };
-    const HIGH_QTY_THRESHOLD = 20;
+    const HIGH_QTY_THRESHOLD = 2;
     let verificadorViewMode = 'revision';
     let modoRevisionActivo = false;
     let focusScannerTimer = null;
@@ -2156,14 +2160,18 @@
             const input = document.getElementById('qtyFastInput');
             info.innerHTML = `<strong>${p.barcode}</strong><br>${p.productName}<br>Esperado: <strong>${formatearQty(esperado)}</strong> | Revisado: <strong>${formatearQty(actual)}</strong> | Falta: <strong>${formatearQty(faltan)}</strong>`;
             input.value = String(faltan);
+            const host = document.fullscreenElement || document.body;
+            if (modal.parentElement !== host) host.appendChild(modal);
             modal.style.display = 'flex';
             setTimeout(() => { input.focus(); input.select(); }, 80);
             const cerrar = (val) => { modal.style.display = 'none'; resolve(val); };
             document.getElementById('qtyFastCancelBtn').onclick = () => cerrar(0);
+            document.getElementById('qtyFastOneBtn').onclick = () => cerrar(1);
+            document.getElementById('qtyFastAllBtn').onclick = () => cerrar(faltan);
             document.getElementById('qtyFastConfirmBtn').onclick = () => {
                 const n = parseInt(input.value, 10);
                 if (isNaN(n) || n <= 0) { showAlert('Cantidad inválida', 'warning'); return; }
-                if (n > faltan && !confirm(`La cantidad supera lo pendiente (${faltan}). ¿Continuar solo hasta completar?`)) return;
+                if (n > faltan) showAlert(`Se guardó solo lo pendiente (${faltan})`, 'info');
                 cerrar(Math.min(n, faltan));
             };
             input.onkeydown = (e) => { if (e.key === 'Enter') document.getElementById('qtyFastConfirmBtn').click(); if (e.key === 'Escape') cerrar(0); };
