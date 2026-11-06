@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>JAT Salida de Mercadería</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#eef2f7;color:#1f2d3d;padding-bottom:30px}
+header{position:sticky;top:0;z-index:20;background:#1a3a5c;color:#fff;padding:10px 12px}
+header h1{margin:0 0 8px;font-size:1.05rem}
+.bar{display:flex;gap:6px;flex-wrap:wrap}
+.btn{border:0;border-radius:12px;padding:12px 14px;font-size:.95rem;font-weight:700;background:#fff;color:#1a3a5c;min-height:46px;cursor:pointer}
+.btn.pri{background:#16a34a;color:#fff}.btn.warn{background:#f59e0b;color:#1f2d3d}.btn.ghost{background:#eef2f7}
+.btn.small{padding:8px 10px;min-height:38px;font-size:.85rem}
+.info{padding:10px 12px;background:#fff;border-bottom:1px solid #dce3ea;font-size:.9rem}
+.prog{height:10px;border-radius:6px;background:#dce3ea;margin-top:6px;overflow:hidden}.prog i{display:block;height:100%;background:#16a34a;width:0}
+.tools{padding:10px 12px;background:#fff;border-bottom:1px solid #dce3ea}
+input[type=text],input[type=number],select{width:100%;padding:13px;border:1.5px solid #cbd5e1;border-radius:12px;font-size:1rem;background:#fff}
+.seg{display:flex;gap:6px;margin-top:8px;overflow-x:auto}
+.chip{flex:0 0 auto;padding:9px 14px;border-radius:20px;border:1.5px solid #cbd5e1;background:#eef2f7;font-weight:700;font-size:.85rem;color:#1a3a5c}
+.chip.on{background:#1a3a5c;color:#fff;border-color:#1a3a5c}
+.gh{background:#1a3a5c;color:#fff;font-weight:800;padding:10px 12px;margin-top:10px;font-size:.95rem}
+.card{background:#fff;margin:6px 10px;border-radius:14px;padding:12px;border-left:6px solid #f59e0b;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.card.ok{border-left-color:#16a34a;background:#f0fdf4}.card.part{border-left-color:#3b82f6}
+.card .n{font-weight:700;font-size:.98rem;line-height:1.3}
+.card .m{display:flex;justify-content:space-between;gap:8px;margin-top:6px;font-size:.85rem;color:#475569;align-items:center}
+.loc{background:#fef3c7;color:#78350f;border-radius:8px;padding:4px 9px;font-weight:800}.loc.none{background:#fee2e2;color:#991b1b}
+.qty{font-weight:800;font-size:1rem;color:#1a3a5c}
+.sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;display:none;align-items:flex-end}
+.sheet{background:#fff;width:100%;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:16px}
+.sheet h3{margin:0 0 6px;color:#1a3a5c}.sheet label{display:block;font-weight:700;margin:12px 0 4px;font-size:.9rem}
+.row{display:flex;gap:8px;align-items:center}
+.row .btn{flex:1}
+.empty{text-align:center;padding:40px 20px;color:#64748b}
+.li{padding:14px;border:1.5px solid #dce3ea;border-radius:12px;margin-bottom:8px;font-weight:600}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#1f2d3d;color:#fff;padding:12px 18px;border-radius:12px;z-index:90;display:none;max-width:90vw;text-align:center}
+</style>
+</head>
+<body>
+<header>
+  <h1>📤 Salida de Mercadería</h1>
+  <div class="bar">
+    <button class="btn small" id="bEgreso">📂 Egreso</button>
+    <button class="btn small" id="bZonas">🏬 Zonas</button>
+    <button class="btn small warn" id="bGuardar">💾 Guardar ubicaciones</button>
+    <button class="btn small" id="bCargar">📥 Cargar</button>
+  </div>
+</header>
+<div class="info" id="info">Toca <b>📂 Egreso</b> para elegir qué mercadería sacar.</div>
+<div class="tools" id="tools" style="display:none">
+  <input type="text" id="q" placeholder="🔎 Buscar por nombre o código…" autocomplete="off">
+  <div class="seg">
+    <span class="chip on" data-g="ubi">📍 Por ubicación</span>
+    <span class="chip" data-g="cat">📦 Por categoría</span>
+    <span class="chip on" data-f="pend">⏳ Pendientes</span>
+    <span class="chip" data-f="todos">Todos</span>
+  </div>
+</div>
+<div id="lista"></div>
+
+<!-- Hoja: elegir egreso -->
+<div class="sheet-bg" id="shEgreso"><div class="sheet">
+  <h3>Elegir egreso</h3>
+  <button class="btn pri" style="width:100%;margin-bottom:10px" id="bAbrirArchivo">📁 Abrir archivo del egreso (.hat / .json)</button>
+  <div id="egList"></div>
+  <button class="btn ghost" style="width:100%;margin-top:6px" data-close>Cerrar</button>
+</div></div>
+
+<!-- Hoja: producto -->
+<div class="sheet-bg" id="shItem"><div class="sheet">
+  <h3 id="iNom"></h3>
+  <div id="iSub" style="font-size:.85rem;color:#475569"></div>
+  <label>Cantidad sacada <span id="iPed"></span></label>
+  <div class="row"><button class="btn ghost" id="iMenos">−</button><input type="number" id="iQty" inputmode="numeric" min="0" style="flex:2;text-align:center;font-size:1.3rem;font-weight:800"><button class="btn ghost" id="iMas">+</button></div>
+  <button class="btn ghost" style="width:100%;margin-top:8px" id="iTodo">Completar todo</button>
+  <label>📍 Zona (pasillo / cuarto)</label>
+  <select id="iZona"></select>
+  <label>Detalle (estante, nivel, referencia)</label>
+  <input type="text" id="iDet" placeholder="Ej: Estante 3, nivel 2" list="detList" autocomplete="off">
+  <datalist id="detList"></datalist>
+  <div class="row" style="margin-top:16px"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" style="flex:2" id="iGuardar">💾 Guardar</button></div>
+</div></div>
+
+<!-- Hoja: zonas -->
+<div class="sheet-bg" id="shZonas"><div class="sheet">
+  <h3>Pasillos y cuartos</h3>
+  <div style="font-size:.85rem;color:#475569">Escribe los nombres como se usan en la bodega.</div>
+  <div id="zList" style="margin-top:10px"></div>
+  <div class="row" style="margin-top:8px"><input type="text" id="zNueva" placeholder="Ej: Pasillo 1, Cuarto guitarras"><button class="btn pri" style="flex:0 0 auto" id="zAdd">➕</button></div>
+  <button class="btn ghost" style="width:100%;margin-top:14px" data-close>Cerrar</button>
+</div></div>
+
+<div class="toast" id="toast"></div>
+<input type="file" id="fArchivo" accept=".hat,.json,application/json" style="display:none">
+<input type="file" id="fUbic" accept=".json,application/json" style="display:none">
+
+<script>
+const $ = id => document.getElementById(id);
+const LS = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (_) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) {} }
+};
+let ubic = LS.get('jat_ubicaciones', {});                       // codigo -> {z, d, t}
+let zonas = LS.get('jat_zonas', ['Pasillo 1', 'Pasillo 2', 'Pasillo 3', 'Cuarto 1']);
+let egreso = null, productos = [], sacado = {}, egKey = '';
+let agrupar = 'ubi', filtro = 'pend', idxItem = -1, KC = null;
+
+function toast(t) { const e = $('toast'); e.textContent = t; e.style.display = 'block'; clearTimeout(toast.h); toast.h = setTimeout(() => e.style.display = 'none', 2600); }
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+const pedido = p => { const n = parseFloat(String(p.expectedQty ?? p.cantidad ?? 1).replace(',', '.')); return n > 0 ? n : 1; };
+const nombre = p => p.productName || p.descripcion || p.nombre || '';
+
+fetch('kardex_categorias.json').then(r => r.ok ? r.json() : null).then(j => { if (j && j.c) { KC = j; render(); } }).catch(() => {});
+function categoria(p) {
+  if (KC) {
+    const b = String(p.barcode || '').trim();
+    let i = KC.m[b]; if (i === undefined) i = KC.m[b.replace(/^0+/, '')]; if (i === undefined) i = KC.m[b.padStart(12, '0')];
+    if (i !== undefined) return KC.c[i];
+  }
+  return 'Otros';
+}
+function ubicTxt(p) { const u = ubic[String(p.barcode).trim()]; return u && u.z ? (u.z + (u.d ? ' · ' + u.d : '')) : ''; }
+
+// ---------- Egreso ----------
+function claveEgreso(e) { return 'jat_salida_' + (e.id || e.secuencial || e.nombre || 'sin_id'); }
+function abrirEgreso(e) {
+  egreso = e; productos = (e.productos || []).map(p => ({ ...p }));
+  egKey = claveEgreso(e);
+  sacado = LS.get(egKey, null);
+  if (!sacado) { // parte de lo que ya se revisó en el programa de verificación, si lo hay
+    sacado = {};
+  }
+  $('tools').style.display = 'block';
+  cerrar('shEgreso'); render();
+  toast('Egreso cargado: ' + productos.length + ' productos');
+}
+function guardarProgreso() { LS.set(egKey, sacado); }
+
+function listarEgresos() {
+  const lista = LS.get('oneliv_egresos', []);
+  $('egList').innerHTML = lista.length
+    ? '<div style="font-weight:700;margin:6px 0">Guardados en este celular:</div>' + lista.slice().reverse().map((e, i) =>
+      `<div class="li" data-i="${lista.length - 1 - i}">${esc(e.nombre || e.secuencial || 'Sin nombre')}<div style="font-weight:400;font-size:.8rem;color:#64748b">${esc(e.bodegaDestino || '')} · ${(e.productos || []).length} productos</div></div>`).join('')
+    : '<div class="empty">No hay egresos guardados en este celular.<br>Usa “Abrir archivo del egreso”.</div>';
+  $('egList').querySelectorAll('.li').forEach(el => el.onclick = () => abrirEgreso(lista[+el.dataset.i]));
+}
+
+// ---------- Lista ----------
+function render() {
+  const cont = $('lista');
+  if (!egreso) { cont.innerHTML = ''; return; }
+  const q = norm($('q').value);
+  let items = productos.map((p, i) => ({ p, i }));
+  const total = productos.reduce((s, p) => s + pedido(p), 0);
+  const hecho = productos.reduce((s, p, i) => s + Math.min(pedido(p), sacado[i] || 0), 0);
+  $('info').innerHTML = `<b>${esc(egreso.nombre || egreso.secuencial || 'Egreso')}</b> — sacado <b>${hecho}</b> de <b>${total}</b> unidades<div class="prog"><i style="width:${total ? hecho / total * 100 : 0}%"></i></div>`;
+  if (filtro === 'pend') items = items.filter(x => (sacado[x.i] || 0) < pedido(x.p));
+  if (q) items = items.filter(x => norm(nombre(x.p)).includes(q) || String(x.p.barcode).includes(q) || norm(ubicTxt(x.p)).includes(q));
+  const clave = x => agrupar === 'ubi' ? (ubic[String(x.p.barcode).trim()]?.z || '') : categoria(x.p);
+  const ordenZ = z => z === '' ? 1e9 : (zonas.indexOf(z) >= 0 ? zonas.indexOf(z) : 1e6);
+  items.sort((a, b) => {
+    const ka = clave(a), kb = clave(b);
+    if (agrupar === 'ubi') { const d = ordenZ(ka) - ordenZ(kb); if (d) return d; if (ka !== kb) return ka.localeCompare(kb, 'es'); return (ubic[String(a.p.barcode).trim()]?.d || '').localeCompare(ubic[String(b.p.barcode).trim()]?.d || '', 'es', { numeric: true }) || a.i - b.i; }
+    return ka.localeCompare(kb, 'es') || a.i - b.i;
+  });
+  if (!items.length) { cont.innerHTML = '<div class="empty">' + (filtro === 'pend' && !q ? '🎉 No queda nada pendiente' : 'Sin resultados') + '</div>'; return; }
+  let ult = null, html = '';
+  for (const { p, i } of items) {
+    const k = clave({ p, i });
+    if (k !== ult) {
+      ult = k;
+      const g = items.filter(x => clave(x) === k);
+      html += `<div class="gh">${agrupar === 'ubi' ? '📍 ' + esc(k || 'Sin ubicación') : '📦 ' + esc(k)} — ${g.length}</div>`;
+    }
+    const ped = pedido(p), s = sacado[i] || 0, cls = s >= ped ? 'ok' : (s > 0 ? 'part' : '');
+    const u = ubicTxt(p);
+    html += `<div class="card ${cls}" data-i="${i}"><div class="n">${esc(nombre(p))}</div>
+      <div class="m"><span>${esc(p.barcode)}</span><span class="qty">${s}/${ped}</span></div>
+      <div class="m"><span class="loc ${u ? '' : 'none'}">${u ? '📍 ' + esc(u) : 'Sin ubicación'}</span><span>${esc(agrupar === 'ubi' ? categoria(p) : '')}</span></div></div>`;
+  }
+  cont.innerHTML = html;
+  cont.querySelectorAll('.card').forEach(c => c.onclick = () => abrirItem(+c.dataset.i));
+}
+
+// ---------- Producto ----------
+function llenarZonas(sel, actual) {
+  sel.innerHTML = '<option value="">(sin ubicación)</option>' + zonas.map(z => `<option ${z === actual ? 'selected' : ''}>${esc(z)}</option>`).join('');
+}
+function abrirItem(i) {
+  idxItem = i; const p = productos[i], u = ubic[String(p.barcode).trim()] || {};
+  $('iNom').textContent = nombre(p);
+  $('iSub').textContent = p.barcode + ' · ' + categoria(p);
+  $('iPed').textContent = '(pedido: ' + pedido(p) + ')';
+  $('iQty').value = sacado[i] || 0;
+  llenarZonas($('iZona'), u.z || '');
+  $('iDet').value = u.d || '';
+  const dets = [...new Set(Object.values(ubic).map(x => x.d).filter(Boolean))].slice(0, 60);
+  $('detList').innerHTML = dets.map(d => `<option value="${esc(d)}">`).join('');
+  $('shItem').style.display = 'flex';
+}
+$('iMenos').onclick = () => $('iQty').value = Math.max(0, (+$('iQty').value || 0) - 1);
+$('iMas').onclick = () => $('iQty').value = Math.min(pedido(productos[idxItem]), (+$('iQty').value || 0) + 1);
+$('iTodo').onclick = () => $('iQty').value = pedido(productos[idxItem]);
+$('iGuardar').onclick = () => {
+  const p = productos[idxItem], ped = pedido(p);
+  let n = Math.max(0, Math.floor(+$('iQty').value || 0));
+  if (n > ped) { n = ped; toast('Se guardó solo lo pedido (' + ped + ')'); }
+  sacado[idxItem] = n; guardarProgreso();
+  const z = $('iZona').value, d = $('iDet').value.trim();
+  const b = String(p.barcode).trim();
+  if (z || d) ubic[b] = { z, d, t: Date.now() }; else delete ubic[b];
+  LS.set('jat_ubicaciones', ubic);
+  cerrar('shItem'); render();
+  if (n > 0 && !z) toast('Anotado. Falta la ubicación de este producto.');
+  else toast('✅ Guardado');
+};
+
+// ---------- Zonas ----------
+function renderZonas() {
+  $('zList').innerHTML = zonas.map((z, i) => `<div class="row" style="margin-bottom:6px"><div class="li" style="flex:1;margin:0">${esc(z)}</div><button class="btn ghost small" style="flex:0 0 auto" data-up="${i}">⬆️</button><button class="btn ghost small" style="flex:0 0 auto" data-del="${i}">🗑️</button></div>`).join('') || '<div class="empty">Sin zonas</div>';
+  $('zList').querySelectorAll('[data-del]').forEach(b => b.onclick = () => { if (confirm('¿Quitar “' + zonas[+b.dataset.del] + '”? Los productos con esa zona la conservan.')) { zonas.splice(+b.dataset.del, 1); LS.set('jat_zonas', zonas); renderZonas(); render(); } });
+  $('zList').querySelectorAll('[data-up]').forEach(b => b.onclick = () => { const i = +b.dataset.up; if (i > 0) { [zonas[i - 1], zonas[i]] = [zonas[i], zonas[i - 1]]; LS.set('jat_zonas', zonas); renderZonas(); render(); } });
+}
+$('zAdd').onclick = () => { const v = $('zNueva').value.trim(); if (!v) return; if (!zonas.includes(v)) zonas.push(v); $('zNueva').value = ''; LS.set('jat_zonas', zonas); renderZonas(); };
+
+// ---------- Guardar / cargar ubicaciones (archivo → OneDrive) ----------
+async function guardarUbicaciones() {
+  const n = Object.keys(ubic).length;
+  if (!n) { toast('Aún no hay ubicaciones para guardar'); return; }
+  const data = JSON.stringify({ tipo: 'jat_ubicaciones', version: 1, fecha: new Date().toISOString(), zonas, ubic });
+  const file = new File([data], 'ubicaciones_bodega.json', { type: 'application/json' });
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: 'Ubicaciones de bodega' });
+      toast('Elige OneDrive para guardarlo'); return;
+    }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = 'ubicaciones_bodega.json';
+  document.body.appendChild(a); a.click(); a.remove(); toast('Archivo descargado. Súbelo a OneDrive.');
+}
+$('fUbic').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try {
+    const j = JSON.parse(await f.text());
+    if (!j || !j.ubic) throw new Error('formato');
+    let nuevos = 0;
+    for (const [b, v] of Object.entries(j.ubic)) { if (!ubic[b] || (v.t || 0) > (ubic[b].t || 0)) { ubic[b] = v; nuevos++; } }
+    (j.zonas || []).forEach(z => { if (!zonas.includes(z)) zonas.push(z); });
+    LS.set('jat_ubicaciones', ubic); LS.set('jat_zonas', zonas); render();
+    toast('✅ Ubicaciones cargadas (' + nuevos + ' nuevas o actualizadas)');
+  } catch (_) { toast('Ese archivo no es de ubicaciones'); }
+};
+$('fArchivo').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try {
+    const j = JSON.parse(await f.text());
+    if (!j || !Array.isArray(j.productos)) throw new Error('formato');
+    abrirEgreso(j);
+  } catch (_) { toast('Archivo no válido: no contiene un egreso'); }
+};
+
+// ---------- Eventos ----------
+function abrir(id) { $(id).style.display = 'flex'; }
+function cerrar(id) { $(id).style.display = 'none'; }
+document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => b.closest('.sheet-bg').style.display = 'none');
+document.querySelectorAll('.sheet-bg').forEach(bg => bg.addEventListener('click', e => { if (e.target === bg) bg.style.display = 'none'; }));
+$('bEgreso').onclick = () => { listarEgresos(); abrir('shEgreso'); };
+$('bAbrirArchivo').onclick = () => $('fArchivo').click();
+$('bZonas').onclick = () => { renderZonas(); abrir('shZonas'); };
+$('bGuardar').onclick = guardarUbicaciones;
+$('bCargar').onclick = () => $('fUbic').click();
+$('q').oninput = render;
+document.querySelectorAll('.chip[data-g]').forEach(c => c.onclick = () => { agrupar = c.dataset.g; document.querySelectorAll('.chip[data-g]').forEach(x => x.classList.toggle('on', x === c)); render(); });
+document.querySelectorAll('.chip[data-f]').forEach(c => c.onclick = () => { filtro = c.dataset.f; document.querySelectorAll('.chip[data-f]').forEach(x => x.classList.toggle('on', x === c)); render(); });
+</script>
+</body>
+</html>
