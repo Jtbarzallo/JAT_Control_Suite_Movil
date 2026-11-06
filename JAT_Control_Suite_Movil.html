@@ -1966,7 +1966,22 @@
         ['Ropa y calzado', ['camiseta', 'camisa', 'pantalon', 'zapato', 'zapatilla', 'chompa', 'chaqueta', 'gorra', 'mochila']],
         ['Hogar', ['silla', 'mesa', 'lampara', 'ventilador', 'cobija', 'sabana', 'almohada', 'cortina']]
     ];
+    // Categorías reales del kardex (archivo kardex_categorias.json junto a este programa): código de barras → artículo
+    let KARDEX_CATS = null;
+    fetch('kardex_categorias.json').then(r => r.ok ? r.json() : null).then(j => {
+        if (j && j.c && j.m) { KARDEX_CATS = j; if (typeof renderVerificadorTablaProgramado === 'function') renderVerificadorTablaProgramado(); }
+    }).catch(() => {});
+    function categoriaKardex(p) {
+        if (!KARDEX_CATS) return null;
+        const b = String(p.barcode || '').trim();
+        let i = KARDEX_CATS.m[b];
+        if (i === undefined) i = KARDEX_CATS.m[b.replace(/^0+/, '')];
+        if (i === undefined) i = KARDEX_CATS.m[b.padStart(12, '0')];
+        return i === undefined ? null : KARDEX_CATS.c[i];
+    }
     function categoriaDeProducto(p) {
+        const ck = categoriaKardex(p);
+        if (ck) return ck;
         const n = ' ' + normalizarBusqueda(p.productName || p.descripcion || p.nombre || '') + ' ';
         for (const [cat, palabras] of CATEGORIAS_PRODUCTO) {
             if (palabras.some(w => n.includes(normalizarBusqueda(w)))) return cat;
