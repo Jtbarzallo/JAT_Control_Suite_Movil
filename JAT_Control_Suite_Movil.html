@@ -3155,7 +3155,7 @@
                 file = await new Promise(resolve => {
                     const input = document.createElement('input');
                     input.type = 'file';
-                    input.accept = '.json,.hat,application/json';
+                    input.accept = '*/*';
                     input.onchange = () => resolve(input.files?.[0] || null);
                     input.click();
                 });

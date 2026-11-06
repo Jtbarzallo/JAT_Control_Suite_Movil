@@ -103,8 +103,8 @@ input[type=text],input[type=number],select{width:100%;padding:13px;border:1.5px 
   <div class="bot"><button class="btn ghost" id="sCerrar" style="flex:1">✖ Cerrar</button><button class="btn" id="sTexto" style="flex:1">🔤 Leer texto</button><button class="btn warn" id="sManual" style="flex:1">⌨️ A mano</button></div>
 </div>
 <div class="toast" id="toast"></div>
-<input type="file" id="fArchivo" accept=".hat,.json,application/json" style="display:none">
-<input type="file" id="fUbic" accept=".json,application/json" style="display:none">
+<input type="file" id="fArchivo" accept="*/*" style="display:none">
+<input type="file" id="fUbic" accept="*/*" style="display:none">
 
 <script>
 const $ = id => document.getElementById(id);
@@ -154,7 +154,7 @@ function listarEgresos() {
   $('egList').innerHTML = lista.length
     ? '<div style="font-weight:700;margin:6px 0">Guardados en este celular:</div>' + lista.slice().reverse().map((e, i) =>
       `<div class="li" data-i="${lista.length - 1 - i}">${esc(e.nombre || e.secuencial || 'Sin nombre')}<div style="font-weight:400;font-size:.8rem;color:#64748b">${esc(e.bodegaDestino || '')} · ${(e.productos || []).length} productos</div></div>`).join('')
-    : '<div class="empty">No hay egresos guardados en este celular.<br>Usa “Abrir archivo del egreso”.</div>';
+    : '<div class="empty">No hay egresos guardados en este celular.<br>Toca “Abrir archivo del egreso” y busca el archivo en OneDrive o en Descargas.</div>';
   $('egList').querySelectorAll('.li').forEach(el => el.onclick = () => abrirEgreso(lista[+el.dataset.i]));
 }
 
