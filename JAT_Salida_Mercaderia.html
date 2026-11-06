@@ -69,7 +69,7 @@ input[type=text],input[type=number],select{width:100%;padding:13px;border:1.5px 
 <!-- Hoja: elegir egreso -->
 <div class="sheet-bg" id="shEgreso"><div class="sheet">
   <h3>Elegir egreso</h3>
-  <button class="btn pri" style="width:100%;margin-bottom:10px" id="bAbrirArchivo">📁 Abrir archivo del egreso (.hat / .json)</button>
+  <button class="btn pri" style="width:100%;margin-bottom:10px" id="bAbrirArchivo">📄 Abrir PDF del egreso (OneDrive / Descargas)</button>
   <div id="egList"></div>
   <button class="btn ghost" style="width:100%;margin-top:6px" data-close>Cerrar</button>
 </div></div>
@@ -106,6 +106,7 @@ input[type=text],input[type=number],select{width:100%;padding:13px;border:1.5px 
 <input type="file" id="fArchivo" accept="*/*" style="display:none">
 <input type="file" id="fUbic" accept="*/*" style="display:none">
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 const LS = {
@@ -134,10 +135,193 @@ function categoria(p) {
 }
 function ubicTxt(p) { const u = ubic[String(p.barcode).trim()]; return u && u.z ? (u.z + (u.d ? ' · ' + u.d : '')) : ''; }
 
+
+// ---------- Lectura del PDF del egreso (mismo lector que el programa de revisión) ----------
+function normalizarProducto(p) { return p; }
+    function extraerCabeceraEgreso(rawText) {
+        const text = String(rawText || '').replace(/\r/g, '\n');
+        const plano = text.replace(/\s+/g, ' ').trim();
+        const meta = {};
+
+        const sec = plano.match(/(?:Secuencial\s*)?(EGR-\d{3}-\d{3}-\d{3}-\d{9})/i);
+        if (sec) meta.secuencial = sec[1].toUpperCase();
+
+        const punto = plano.match(/Punto\s+de\s+emisi[oó]n\s+(.+?)(?=\s+(?:Establecimiento|Concepto|Observaciones|Bodega\s+origen|Bodega\s+destino|Detalle|Secuencial|Fecha\s+de|Tipo\s+de|No\.))/i);
+        if (punto) meta.puntoEmision = punto[1].trim();
+
+        const origen = plano.match(/Bodega\s+origen\s+(.+?)(?=\s+(?:Bodega\s+destino|Fecha\s+de|Tipo\s+de|Punto\s+de|Establecimiento|Concepto|Observaciones|Detalle|Código\s+de\s+barras|Producto|Unidad|Cantidad|$))/i);
+        if (origen) meta.bodegaOrigen = origen[1].trim();
+
+        const destino = plano.match(/Bodega\s+destino\s+(.+?)(?=\s+(?:Fecha\s+de|Tipo\s+de|Punto\s+de|Establecimiento|Concepto|Observaciones|Detalle|Código\s+de\s+barras|Producto|Unidad|Cantidad|$))/i);
+        if (destino) meta.bodegaDestino = destino[1].trim();
+
+        const fecha = plano.match(/Fecha\s+de\s+comprobante\s+(\d{2}\/\d{2}\/\d{4})/i);
+        if (fecha) meta.fechaComprobante = fecha[1];
+
+        const noComp = plano.match(/No\.\s*comprobante\s+(\d+)/i);
+        if (noComp) meta.noComprobante = noComp[1];
+
+        const totalDoc = plano.match(/No\.\s*art[ií]culos\s+(\d+(?:[\.,]\d+)?)/i);
+        if (totalDoc) meta.totalDocumento = parseFloat(totalDoc[1].replace(',', '.'));
+
+        return meta;
+    }
+
+    function parsearTablaEgreso(rawText) {
+        const lines = rawText.split(/\r?\n/)
+            .map(l => l.replace(/\f/g, ' ').replace(/\uFFFE/g, '').trim())
+            .filter(l => l.length > 0);
+        const productos = [];
+        let actual = null;
+
+        const esCodigo = (v) => /^\d{6,18}$/.test(String(v || '').trim());
+        const esCantidad = (v) => /^\d+(?:[\.,]\d+)?$/.test(String(v || '').trim());
+        const normalizarCantidad = (v) => {
+            const n = parseFloat(String(v || '').trim().replace(',', '.'));
+            return (!isNaN(n) && n > 0) ? n : null;
+        };
+        const esUnidadBodega = (v) => /^UNIDAD(?:ES)?\s+[A-ZÁÉÍÓÚÑ0-9 _.-]{2,}$/i.test(String(v || '').trim());
+        const lineaIgnorable = (l) => /^(Detalle|Información general|Producto|Unidad Bodega|Cantidad|Código de|barras|Código de barras|No\. artículos|Elaborado por|Autorizado por|Recibido por)$/i.test(l) || /^_+$/.test(l);
+
+        const agregarProducto = (barcode, productName, cantidad, unidadBodega) => {
+            const qty = normalizarCantidad(cantidad);
+            const nombre = String(productName || '').replace(/\s+/g, ' ').trim();
+            if (!esCodigo(barcode) || !nombre || qty === null) return false;
+            let unidad = 'UNIDAD', bodega = '';
+            const ub = String(unidadBodega || '').trim().match(/^(UNIDAD(?:ES)?)\s+(.+)$/i);
+            if (ub) { unidad = ub[1].toUpperCase(); bodega = ub[2].trim(); }
+            productos.push(normalizarProducto({
+                fuenteOrden: 'codigo-cantidad-producto-validado',
+                barcode: String(barcode).trim(),
+                productName: nombre.substring(0, 220),
+                unidad,
+                bodega,
+                expectedQty: qty,
+                verifiedQty: 0,
+                verified: false,
+                observacion: ''
+            }));
+            return true;
+        };
+
+        const cerrarActual = () => {
+            if (!actual) return;
+            if (actual.codigo && actual.desc.length && actual.unidadBodega && actual.cantidad !== null) {
+                agregarProducto(actual.codigo, actual.desc.join(' '), actual.cantidad, actual.unidadBodega);
+            }
+            actual = null;
+        };
+
+        const intentarTabulado = (linea) => {
+            if (!linea.includes('\t')) return false;
+            const c = linea.split('\t').map(x => x.trim()).filter(Boolean);
+            if (c.length < 5 || !esCodigo(c[0])) return false;
+            for (let i = 2; i < c.length - 2; i++) {
+                if (/^UNIDAD(?:ES)?$/i.test(c[i]) && !esCantidad(c[i+1]) && esCantidad(c[i+2])) {
+                    return agregarProducto(c[0], c.slice(1, i).join(' '), c[i+2], `${c[i]} ${c[i+1]}`);
+                }
+            }
+            return false;
+        };
+
+        const intentarFilaUnaLinea = (linea) => {
+            const m = linea.match(/^(\d{6,18})\s+(.+?)\s+(UNIDAD(?:ES)?\s+[A-ZÁÉÍÓÚÑ0-9 _.-]+)\s+(\d+(?:[\.,]\d+)?)\s*$/i);
+            if (!m) return false;
+            return agregarProducto(m[1], m[2], m[4], m[3]);
+        };
+
+        for (const linea of lines) {
+            if (lineaIgnorable(linea)) continue;
+            if (/^No\.\s*comprobante/i.test(linea) || /^Fecha de/i.test(linea) || /^Tipo de/i.test(linea) || /^Punto de/i.test(linea) || /^Establecimiento/i.test(linea) || /^Concepto/i.test(linea) || /^Observaciones/i.test(linea) || /^Bodega origen/i.test(linea) || /^Bodega destino/i.test(linea)) continue;
+
+            if (intentarTabulado(linea) || intentarFilaUnaLinea(linea)) { cerrarActual(); continue; }
+
+            if (esCodigo(linea)) {
+                cerrarActual();
+                actual = { codigo: linea, desc: [], unidadBodega: '', cantidad: null };
+                continue;
+            }
+
+            const empiezaCodigo = linea.match(/^(\d{6,18})\s+(.+)$/);
+            if (empiezaCodigo) {
+                cerrarActual();
+                actual = { codigo: empiezaCodigo[1], desc: [], unidadBodega: '', cantidad: null };
+                const resto = empiezaCodigo[2].trim();
+                const una = resto.match(/^(.+?)\s+(UNIDAD(?:ES)?\s+[A-ZÁÉÍÓÚÑ0-9 _.-]+)\s+(\d+(?:[\.,]\d+)?)$/i);
+                if (una) {
+                    agregarProducto(actual.codigo, una[1], una[3], una[2]);
+                    actual = null;
+                } else {
+                    actual.desc.push(resto);
+                }
+                continue;
+            }
+
+            if (!actual) continue;
+
+            const descUbCant = linea.match(/^(.+?)\s+(UNIDAD(?:ES)?\s+[A-ZÁÉÍÓÚÑ0-9 _.-]+)\s+(\d+(?:[\.,]\d+)?)$/i);
+            if (descUbCant) {
+                actual.desc.push(descUbCant[1]);
+                actual.unidadBodega = descUbCant[2];
+                actual.cantidad = descUbCant[3];
+                cerrarActual();
+                continue;
+            }
+
+            const descUb = linea.match(/^(.+?)\s+(UNIDAD(?:ES)?\s+[A-ZÁÉÍÓÚÑ0-9 _.-]+)$/i);
+            if (descUb) {
+                actual.desc.push(descUb[1]);
+                actual.unidadBodega = descUb[2];
+                continue;
+            }
+
+            if (esUnidadBodega(linea)) {
+                actual.unidadBodega = linea;
+                continue;
+            }
+            if (actual.unidadBodega && esCantidad(linea)) {
+                actual.cantidad = linea;
+                cerrarActual();
+                continue;
+            }
+            actual.desc.push(linea);
+        }
+        cerrarActual();
+        return productos;
+    }
+
+
+async function leerPdfEgreso(file) {
+  if (!window.pdfjsLib) throw new Error('No se pudo cargar el lector de PDF (revisa internet)');
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+  let texto = '';
+  for (let n = 1; n <= pdf.numPages; n++) {
+    const content = await (await pdf.getPage(n)).getTextContent();
+    let lastY = null, line = '';
+    const items = content.items.map(it => ({ str: it.str, x: it.transform[4], y: Math.round(it.transform[5]) })).sort((a, b) => b.y - a.y || a.x - b.x);
+    for (const it of items) {
+      if (lastY === null || Math.abs(it.y - lastY) <= 2) line += (line ? ' ' : '') + it.str;
+      else { texto += line + '\n'; line = it.str; }
+      lastY = it.y;
+    }
+    if (line) texto += line + '\n';
+  }
+  const meta = extraerCabeceraEgreso(texto), prods = parsearTablaEgreso(texto);
+  if (!prods.length) throw new Error('No se encontraron productos en el PDF');
+  const sec = meta.secuencial || file.name.replace(/\.pdf$/i, '');
+  return { id: sec, nombre: sec + (meta.bodegaDestino ? ' → ' + meta.bodegaDestino : ''), secuencial: sec, bodegaOrigen: meta.bodegaOrigen || '', bodegaDestino: meta.bodegaDestino || '', totalDocumento: meta.totalDocumento, productos: prods };
+}
+function recordarEgreso(e) {
+  const l = LS.get('jat_salida_lista', []).filter(x => x.id !== e.id);
+  l.push(e); LS.set('jat_salida_lista', l.slice(-15));
+}
+
 // ---------- Egreso ----------
 function claveEgreso(e) { return 'jat_salida_' + (e.id || e.secuencial || e.nombre || 'sin_id'); }
 function abrirEgreso(e) {
   egreso = e; productos = (e.productos || []).map(p => ({ ...p }));
+  if (e.secuencial && e.productos && !e._ya) recordarEgreso(e);
   egKey = claveEgreso(e);
   sacado = LS.get(egKey, null);
   if (!sacado) { // parte de lo que ya se revisó en el programa de verificación, si lo hay
@@ -150,11 +334,11 @@ function abrirEgreso(e) {
 function guardarProgreso() { LS.set(egKey, sacado); }
 
 function listarEgresos() {
-  const lista = LS.get('oneliv_egresos', []);
+  const lista = [...LS.get('jat_salida_lista', []), ...LS.get('oneliv_egresos', [])].filter((e, i, a) => a.findIndex(x => (x.id || x.nombre) === (e.id || e.nombre)) === i).reverse();
   $('egList').innerHTML = lista.length
-    ? '<div style="font-weight:700;margin:6px 0">Guardados en este celular:</div>' + lista.slice().reverse().map((e, i) =>
-      `<div class="li" data-i="${lista.length - 1 - i}">${esc(e.nombre || e.secuencial || 'Sin nombre')}<div style="font-weight:400;font-size:.8rem;color:#64748b">${esc(e.bodegaDestino || '')} · ${(e.productos || []).length} productos</div></div>`).join('')
-    : '<div class="empty">No hay egresos guardados en este celular.<br>Toca “Abrir archivo del egreso” y busca el archivo en OneDrive o en Descargas.</div>';
+    ? '<div style="font-weight:700;margin:6px 0">Egresos en este celular:</div>' + lista.map((e, i) =>
+      `<div class="li" data-i="${i}">${esc(e.nombre || e.secuencial || 'Sin nombre')}<div style="font-weight:400;font-size:.8rem;color:#64748b">${esc(e.bodegaDestino || '')} · ${(e.productos || []).length} productos</div></div>`).join('')
+    : '<div class="empty">Aún no hay egresos en este celular.<br>Toca “Abrir PDF del egreso” y elígelo de OneDrive.</div>';
   $('egList').querySelectorAll('.li').forEach(el => el.onclick = () => abrirEgreso(lista[+el.dataset.i]));
 }
 
@@ -266,10 +450,11 @@ $('fUbic').onchange = async e => {
 $('fArchivo').onchange = async e => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;
   try {
+    if (/\.pdf$/i.test(f.name) || f.type === 'application/pdf') { toast('Leyendo PDF…'); abrirEgreso(await leerPdfEgreso(f)); return; }
     const j = JSON.parse(await f.text());
     if (!j || !Array.isArray(j.productos)) throw new Error('formato');
     abrirEgreso(j);
-  } catch (_) { toast('Archivo no válido: no contiene un egreso'); }
+  } catch (err) { toast('No se pudo abrir: ' + (err.message === 'formato' ? 'el archivo no es un egreso' : err.message)); }
 };
 
 
