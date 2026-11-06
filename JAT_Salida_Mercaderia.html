@@ -100,7 +100,7 @@ input[type=text],input[type=number],select{width:100%;padding:13px;border:1.5px 
 
 <div class="scan" id="scan">
   <div class="vid"><video id="sVideo" playsinline muted autoplay></video><div class="ret"></div><div class="st" id="sSt">Iniciando cámara…</div></div>
-  <div class="bot"><button class="btn ghost" id="sCerrar" style="flex:1">✖ Cerrar cámara</button><button class="btn warn" id="sManual" style="flex:1">⌨️ Buscar a mano</button></div>
+  <div class="bot"><button class="btn ghost" id="sCerrar" style="flex:1">✖ Cerrar</button><button class="btn" id="sTexto" style="flex:1">🔤 Leer texto</button><button class="btn warn" id="sManual" style="flex:1">⌨️ A mano</button></div>
 </div>
 <div class="toast" id="toast"></div>
 <input type="file" id="fArchivo" accept=".hat,.json,application/json" style="display:none">
@@ -286,7 +286,7 @@ async function abrirScanner() {
     sStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
     const v = $('sVideo'); v.srcObject = sStream; await v.play().catch(() => {});
     try { const tr = sStream.getVideoTracks()[0]; const cap = tr.getCapabilities ? tr.getCapabilities() : {}; if (cap.focusMode && cap.focusMode.includes('continuous')) await tr.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch (_) {}
-    sEstado('🟢 Apunta al código de barras');
+    sEstado('🟢 Apunta al código de barras o al nombre del producto'); iniciarAutoOCR();
     if ('BarcodeDetector' in window) {
       try {
         const fm = await BarcodeDetector.getSupportedFormats();
@@ -305,7 +305,7 @@ async function abrirScanner() {
 }
 function sPausado() { return $('shItem').style.display === 'flex'; }
 function cerrarScanner() {
-  clearInterval(sTimer); sTimer = null; sDet = null;
+  clearInterval(sTimer); sTimer = null; sDet = null; clearInterval(ocrTimer); ocrTimer = null; ocrUlt = '';
   try { sZX && sZX.reset(); } catch (_) {} sZX = null;
   if (sStream) { sStream.getTracks().forEach(t => t.stop()); sStream = null; }
   $('sVideo').srcObject = null; $('scan').style.display = 'none';
@@ -317,6 +317,7 @@ function buscarIdx(cod) {
   return i;
 }
 function lectura(codigos) {
+  sUltBarcode = Date.now();
   // De todos los códigos a la vista, se elige el que coincide COMPLETO con el egreso
   let idx = -1;
   for (const c of codigos) { const i = buscarIdx(String(c || '').trim()); if (i >= 0) { idx = i; break; } }
@@ -328,6 +329,9 @@ function lectura(codigos) {
     if (navigator.vibrate) navigator.vibrate([40, 40, 40]);
     sEstado('❌ PRODUCTO NO ENCONTRADO — ' + cod); decir('Producto no encontrado.'); return;
   }
+  accionProducto(idx);
+}
+function accionProducto(idx) {
   const p = productos[idx];
   if ((sacado[idx] || 0) >= pedido(p)) {
     if (navigator.vibrate) navigator.vibrate([40, 40, 40]);
@@ -339,8 +343,96 @@ function lectura(codigos) {
   $('iQty').value = Math.min(pedido(p), (sacado[idx] || 0) + 1);
   const u = ubicTxt(p); decir(u ? 'Ubicación ' + u : 'Sin ubicación');
 }
+
+// ---------- LECTURA DE TEXTO (OCR) ----------
+let sUltBarcode = 0, ocrW = null, ocrP = null, ocrBusy = false, ocrTimer = null, ocrUlt = '', ocrUltT = 0;
+const tokens = t => String(t || '').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').split(/[^A-Z0-9]+/).filter(x => x.length >= 3);
+function dist(a, b) {
+  const m = a.length, n = b.length; if (!m) return n; if (!n) return m;
+  let prev = Array.from({ length: n + 1 }, (_, k) => k);
+  for (let x = 1; x <= m; x++) { const cur = [x]; for (let y = 1; y <= n; y++) cur[y] = Math.min(prev[y] + 1, cur[y - 1] + 1, prev[y - 1] + (a[x - 1] === b[y - 1] ? 0 : 1)); prev = cur; }
+  return prev[n];
+}
+function tokOk(tp, tl) {
+  if (tp === tl) return true;
+  if (tp.length >= 4 && tl.length >= 4 && (tp.includes(tl) || tl.includes(tp))) return true;
+  return tp.length >= 5 && tl.length >= 5 && Math.abs(tp.length - tl.length) <= 1 && dist(tp, tl) <= 1;
+}
+function buscarPorTexto(texto) {
+  const plano = String(texto || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const leidos = tokens(texto);
+  if (!plano) return {};
+  for (let i = 0; i < productos.length; i++) { const b = String(productos[i].barcode).replace(/[^A-Z0-9]/gi, '').toUpperCase(); if (b.length >= 6 && plano.includes(b)) return { idx: i }; }
+  const cands = [];
+  productos.forEach((p, i) => {
+    const tp = [...new Set(tokens(nombre(p)))]; if (!tp.length) return;
+    let n = 0, ch = 0; tp.forEach(t => { if (leidos.some(l => tokOk(t, l))) { n++; ch += t.length; } });
+    if ((n >= 2 && ch >= 7) || (tp.length <= 2 && n === tp.length && ch >= 4)) cands.push({ i, n, ch });
+  });
+  if (!cands.length) return {};
+  cands.sort((a, b) => b.ch - a.ch || b.n - a.n);
+  let top = cands.filter(c => c.ch === cands[0].ch).map(c => c.i);
+  if (top.length > 1) { const pend = top.filter(i => (sacado[i] || 0) < pedido(productos[i])); if (pend.length === 1) return { idx: pend[0] }; return { ambiguo: top.length }; }
+  return { idx: top[0] };
+}
+async function ocrWorker() {
+  if (ocrW) return ocrW;
+  if (!ocrP) ocrP = (async () => {
+    if (!window.Tesseract) await new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'; sc.onload = res; sc.onerror = () => rej(new Error('sin internet')); document.head.appendChild(sc); });
+    const w = await Tesseract.createWorker(['eng', 'spa']);
+    try { await w.setParameters({ tessedit_pageseg_mode: '11', preserve_interword_spaces: '1' }); } catch (_) {}
+    return (ocrW = w);
+  })().catch(e => { ocrP = null; throw e; });
+  return ocrP;
+}
+function recorte(v, fw, fh, maxW) {
+  if (!(v.readyState >= 2 && v.videoWidth)) return null;
+  const sw = Math.round(v.videoWidth * fw), sh = Math.round(v.videoHeight * fh), sx = Math.round((v.videoWidth - sw) / 2), sy = Math.round((v.videoHeight - sh) / 2);
+  const k = Math.min(1, maxW / sw), c = document.createElement('canvas'); c.width = Math.round(sw * k); c.height = Math.round(sh * k);
+  const x = c.getContext('2d', { willReadFrequently: true });
+  try { x.filter = 'grayscale(1) contrast(1.35)'; } catch (_) {}
+  x.drawImage(v, sx, sy, sw, sh, 0, 0, c.width, c.height); return c;
+}
+function nitidez(c) {
+  const w = 160, h = Math.max(2, Math.round(160 * c.height / c.width)), t = document.createElement('canvas'); t.width = w; t.height = h;
+  const x = t.getContext('2d', { willReadFrequently: true }); x.drawImage(c, 0, 0, w, h);
+  const d = x.getImageData(0, 0, w, h).data; let s = 0, n = 0;
+  for (let y = 0; y < h - 1; y++) for (let q = 0; q < w - 1; q++) { const i = (y * w + q) * 4; s += Math.abs(d[i] - d[i + 4]) + Math.abs(d[i] - d[i + w * 4]); n++; }
+  return n ? s / n : 0;
+}
+async function leerTexto(modo) {
+  if (ocrBusy || !sStream) return;
+  const c = recorte($('sVideo'), modo === 'manual' ? 1 : 0.92, modo === 'manual' ? 1 : 0.72, modo === 'manual' ? 1400 : 1100);
+  if (!c) return;
+  if (modo === 'auto' && nitidez(c) < 5) return; // imagen movida o borrosa
+  ocrBusy = true;
+  if (modo === 'manual') sEstado('🟡 Leyendo texto…');
+  try {
+    const w = await ocrWorker();
+    const { data } = await w.recognize(c);
+    const texto = (data && data.text) || '', r = buscarPorTexto(texto), resumen = texto.trim().replace(/\s+/g, ' ').slice(0, 50);
+    if (r.idx !== undefined) {
+      const clave = 'o' + r.idx, ahora = Date.now();
+      if (modo === 'auto' && clave === ocrUlt && ahora - ocrUltT < 6000) { ocrUltT = ahora; return; } // mismo producto en cuadro
+      ocrUlt = clave; ocrUltT = ahora;
+      if (!sPausado()) accionProducto(r.idx);
+    } else if (r.ambiguo) {
+      sEstado('⚠️ Coinciden ' + r.ambiguo + ' productos — enfoca el color o el código');
+      if (modo === 'manual') decir('Varios productos coinciden.');
+    } else if (modo === 'manual') {
+      sEstado('❌ PRODUCTO NO ENCONTRADO — leído: ' + (resumen || '(nada legible)')); decir('Producto no encontrado.');
+    } else { ocrUlt = ''; }
+  } catch (e) { if (modo === 'manual') sEstado('Error al leer texto: ' + (e.message || e)); }
+  finally { ocrBusy = false; }
+}
+function iniciarAutoOCR() {
+  clearInterval(ocrTimer);
+  ocrWorker().catch(() => {}); // deja el lector cargado
+  ocrTimer = setInterval(() => { if (!sPausado() && !document.hidden && Date.now() - sUltBarcode > 2500) leerTexto('auto'); }, 1300);
+}
 $('bEscanear').onclick = abrirScanner;
 $('sCerrar').onclick = cerrarScanner;
+$('sTexto').onclick = () => leerTexto('manual');
 $('sManual').onclick = () => { cerrarScanner(); $('q').focus(); };
 
 // ---------- Eventos ----------
