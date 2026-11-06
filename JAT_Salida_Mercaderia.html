@@ -34,6 +34,12 @@ input[type=text],input[type=number],select{width:100%;padding:13px;border:1.5px 
 .row .btn{flex:1}
 .empty{text-align:center;padding:40px 20px;color:#64748b}
 .li{padding:14px;border:1.5px solid #dce3ea;border-radius:12px;margin-bottom:8px;font-weight:600}
+.scan{position:fixed;inset:0;background:#000;z-index:40;display:none;flex-direction:column}
+.scan .vid{position:relative;flex:1;min-height:0;overflow:hidden}
+.scan video{width:100%;height:100%;object-fit:cover}
+.scan .ret{position:absolute;left:5%;right:5%;top:22%;bottom:22%;border:3px solid #22c55e;border-radius:16px;box-shadow:0 0 0 9999px rgba(0,0,0,.35);pointer-events:none}
+.scan .st{position:absolute;left:0;right:0;top:0;background:rgba(0,0,0,.6);color:#fff;padding:10px 12px;font-weight:700;text-align:center;font-size:.95rem}
+.scan .bot{background:#fff;padding:10px 12px;display:flex;gap:8px}
 .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#1f2d3d;color:#fff;padding:12px 18px;border-radius:12px;z-index:90;display:none;max-width:90vw;text-align:center}
 </style>
 </head>
@@ -49,6 +55,7 @@ input[type=text],input[type=number],select{width:100%;padding:13px;border:1.5px 
 </header>
 <div class="info" id="info">Toca <b>📂 Egreso</b> para elegir qué mercadería sacar.</div>
 <div class="tools" id="tools" style="display:none">
+  <button class="btn pri" id="bEscanear" style="width:100%;margin-bottom:8px;font-size:1.05rem">📷 Escanear código de barras</button>
   <input type="text" id="q" placeholder="🔎 Buscar por nombre o código…" autocomplete="off">
   <div class="seg">
     <span class="chip on" data-g="ubi">📍 Por ubicación</span>
@@ -91,6 +98,10 @@ input[type=text],input[type=number],select{width:100%;padding:13px;border:1.5px 
   <button class="btn ghost" style="width:100%;margin-top:14px" data-close>Cerrar</button>
 </div></div>
 
+<div class="scan" id="scan">
+  <div class="vid"><video id="sVideo" playsinline muted autoplay></video><div class="ret"></div><div class="st" id="sSt">Iniciando cámara…</div></div>
+  <div class="bot"><button class="btn ghost" id="sCerrar" style="flex:1">✖ Cerrar cámara</button><button class="btn warn" id="sManual" style="flex:1">⌨️ Buscar a mano</button></div>
+</div>
 <div class="toast" id="toast"></div>
 <input type="file" id="fArchivo" accept=".hat,.json,application/json" style="display:none">
 <input type="file" id="fUbic" accept=".json,application/json" style="display:none">
@@ -260,6 +271,77 @@ $('fArchivo').onchange = async e => {
     abrirEgreso(j);
   } catch (_) { toast('Archivo no válido: no contiene un egreso'); }
 };
+
+
+// ---------- ESCÁNER ----------
+let sStream = null, sDet = null, sTimer = null, sZX = null, sUlt = '', sUltT = 0;
+function decir(t) { try { if (!window.speechSynthesis) return; const u = new SpeechSynthesisUtterance(t); u.lang = 'es-ES'; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (_) {} }
+function pitido() { try { const a = new (window.AudioContext || window.webkitAudioContext)(); const o = a.createOscillator(); o.frequency.value = 880; o.connect(a.destination); o.start(); setTimeout(() => { o.stop(); a.close(); }, 120); } catch (_) {} }
+function sEstado(t) { $('sSt').textContent = t; }
+async function abrirScanner() {
+  if (!egreso) { toast('Primero elige un egreso'); return; }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.isSecureContext) { toast('La cámara solo funciona abriendo el programa desde la dirección de GitHub (https)'); return; }
+  $('scan').style.display = 'flex'; sEstado('Iniciando cámara…');
+  try {
+    sStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
+    const v = $('sVideo'); v.srcObject = sStream; await v.play().catch(() => {});
+    try { const tr = sStream.getVideoTracks()[0]; const cap = tr.getCapabilities ? tr.getCapabilities() : {}; if (cap.focusMode && cap.focusMode.includes('continuous')) await tr.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch (_) {}
+    sEstado('🟢 Apunta al código de barras');
+    if ('BarcodeDetector' in window) {
+      try {
+        const fm = await BarcodeDetector.getSupportedFormats();
+        sDet = new BarcodeDetector({ formats: fm.filter(f => /ean|upc|code_|itf|codabar|qr/.test(f)) });
+        sTimer = setInterval(async () => {
+          if (sPausado() || v.readyState < 2) return;
+          try { const r = await sDet.detect(v); if (r.length) lectura(r.map(x => x.rawValue)); } catch (_) {}
+        }, 220);
+        return;
+      } catch (_) {}
+    }
+    await new Promise((res, rej) => { if (window.ZXing) return res(); const sc = document.createElement('script'); sc.src = 'https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js'; sc.onload = res; sc.onerror = () => rej(new Error('sin internet')); document.head.appendChild(sc); });
+    sZX = new ZXing.BrowserMultiFormatReader();
+    sZX.decodeFromVideoElementContinuously(v, r => { if (r && !sPausado()) lectura([r.getText()]); });
+  } catch (e) { cerrarScanner(); toast('No se pudo abrir la cámara: ' + (e.message || e.name)); }
+}
+function sPausado() { return $('shItem').style.display === 'flex'; }
+function cerrarScanner() {
+  clearInterval(sTimer); sTimer = null; sDet = null;
+  try { sZX && sZX.reset(); } catch (_) {} sZX = null;
+  if (sStream) { sStream.getTracks().forEach(t => t.stop()); sStream = null; }
+  $('sVideo').srcObject = null; $('scan').style.display = 'none';
+}
+function buscarIdx(cod) {
+  const limpio = c => String(c || '').trim().replace(/^0+/, '');
+  let i = productos.findIndex(p => String(p.barcode).trim() === cod);
+  if (i < 0) i = productos.findIndex(p => limpio(p.barcode) === limpio(cod));
+  return i;
+}
+function lectura(codigos) {
+  // De todos los códigos a la vista, se elige el que coincide COMPLETO con el egreso
+  let idx = -1;
+  for (const c of codigos) { const i = buscarIdx(String(c || '').trim()); if (i >= 0) { idx = i; break; } }
+  const cod = String(codigos[0] || '').trim(), ahora = Date.now();
+  const clave = idx >= 0 ? 'i' + idx : cod;
+  if (clave === sUlt && ahora - sUltT < 1800) return;
+  sUlt = clave; sUltT = ahora;
+  if (idx < 0) {
+    if (navigator.vibrate) navigator.vibrate([40, 40, 40]);
+    sEstado('❌ PRODUCTO NO ENCONTRADO — ' + cod); decir('Producto no encontrado.'); return;
+  }
+  const p = productos[idx];
+  if ((sacado[idx] || 0) >= pedido(p)) {
+    if (navigator.vibrate) navigator.vibrate([40, 40, 40]);
+    sEstado('🚫 YA ESTÁ COMPLETO — ' + nombre(p).slice(0, 40)); decir('Producto ya completo.'); return;
+  }
+  if (navigator.vibrate) navigator.vibrate(70);
+  pitido(); sEstado('✅ ' + nombre(p).slice(0, 45));
+  abrirItem(idx);
+  $('iQty').value = Math.min(pedido(p), (sacado[idx] || 0) + 1);
+  const u = ubicTxt(p); decir(u ? 'Ubicación ' + u : 'Sin ubicación');
+}
+$('bEscanear').onclick = abrirScanner;
+$('sCerrar').onclick = cerrarScanner;
+$('sManual').onclick = () => { cerrarScanner(); $('q').focus(); };
 
 // ---------- Eventos ----------
 function abrir(id) { $(id).style.display = 'flex'; }
