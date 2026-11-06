@@ -405,252 +405,15 @@
         .btn-voice { background:#111827; color:#f7d07a; border-color:#3b2d12; }
         .btn-voice:hover { background:#0b1220; }
         .btn-voice.off { background:#f8fafc; color:#475569; border-color:#cbd5e1; }
-        /* ===== JAT MÓVIL — OPCIÓN B: pestañas abajo + botón central de escanear ===== */
-        #mNav,#mSheet,#mSheetBg,.cam-close-mobile,#mProgresoTxt{display:none}
-        #dupBanner{display:none;margin:10px 14px 0;padding:12px 14px;border-radius:12px;background:#fff1e6;border:2px solid #c2410c;color:#8a3508;font-weight:700;font-size:.9rem;line-height:1.35;flex-shrink:0}
-        #dupBanner.show{display:block}
-        #gatilloBtn{display:none}
-        .cam-laser{display:none;position:absolute;left:6%;right:6%;top:50%;height:3px;background:#ff1f1f;box-shadow:0 0 10px 3px rgba(255,31,31,.75);z-index:4;pointer-events:none;border-radius:2px}
-        body.gatillo-on .cam-laser{display:block;animation:jatLaser .5s ease-in-out infinite alternate}
-        @keyframes jatLaser{from{opacity:.55}to{opacity:1}}
-        body.gatillo-modo.cam-on #gatilloBtn{display:flex;position:fixed;left:16px;right:16px;bottom:calc(84px + env(safe-area-inset-bottom));height:78px;z-index:9550;align-items:center;justify-content:center;gap:12px;border:0;border-radius:22px;background:#b91c1c;color:#fff;font:inherit;font-size:1.15rem;font-weight:900;letter-spacing:.04em;box-shadow:0 10px 24px rgba(127,29,29,.45),inset 0 -5px 0 rgba(0,0,0,.25);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
-        #gatilloBtn svg{width:30px;height:30px}
-        body.gatillo-modo.cam-on.gatillo-on #gatilloBtn{background:#ef4444;transform:scale(.97);box-shadow:0 4px 12px rgba(127,29,29,.45),inset 0 3px 0 rgba(0,0,0,.25)}
-        body.gatillo-modo.cam-on.gatillo-leido #gatilloBtn{background:#15803d}
-        body.gatillo-modo.cam-on #verifBottomPane{padding-bottom:110px}
-        .alert-toast{pointer-events:none}
-        html.jat-movil body.gatillo-modo.cam-on .alert-toast{bottom:calc(176px + env(safe-area-inset-bottom))!important}
-        html:not(.jat-movil) body.gatillo-modo.cam-on #gatilloBtn{left:auto;right:24px;bottom:24px;width:320px}
-        #dupConfirm{position:fixed;inset:0;z-index:12000;background:rgba(6,27,52,.6);display:flex;align-items:center;justify-content:center;padding:16px}
-        #dupConfirm .dupc-card{background:#fff;border-radius:20px;width:100%;max-width:400px;padding:22px 18px 18px;display:flex;flex-direction:column;gap:10px;text-align:center;border-top:6px solid #c2410c;box-shadow:0 20px 50px rgba(0,0,0,.35)}
-        #dupConfirm .dupc-ico{font-size:2.2rem;line-height:1}
-        #dupConfirm .dupc-t{font-size:1.2rem;font-weight:800;color:#8a3508}
-        #dupConfirm .dupc-n{font-size:1rem;font-weight:700;color:#10203a}
-        #dupConfirm .dupc-d{font-size:.92rem;color:#334155;line-height:1.45}
-        #dupConfirm button{min-height:52px;border-radius:14px;font:inherit;font-size:1rem;font-weight:800;cursor:pointer}
-        #dupConfirm .dupc-no{background:#0a2e55;color:#fff;border:0}
-        #dupConfirm .dupc-si{background:#fff;color:#0a2e55;border:2px solid #b9c3cf}
-        /* Reglas de celular: se activan con la clase jat-movil (también en modo "sitio para computadoras") */
-        html.jat-movil body{overflow:hidden}
-        html.jat-movil .sidebar,
-        html.jat-movil .hat-statusline,
-        html.jat-movil .top-bar .badge,
-        html.jat-movil .top-bar .user-area{display:none!important}
-        html.jat-movil .top-bar{height:52px!important;padding:0 14px!important}
-        html.jat-movil .main-layout{height:calc(var(--appH,100dvh) - 52px - 68px - env(safe-area-inset-bottom))!important}
-        html.jat-movil .content-area{padding:10px!important}
-        html.jat-movil .modal:not(#verificadorModal) .modal-content{width:94vw!important;max-width:94vw!important;padding:20px!important;max-height:calc(var(--appH,100vh) * .84)}
-        html.jat-movil .modal-panel-large{width:96vw!important;padding:16px!important}
-        html.jat-movil .cierre-grid{grid-template-columns:1fr 1fr!important}
-        html.jat-movil #mNav{display:grid;position:fixed;left:0;right:0;bottom:0;height:68px;box-sizing:content-box;padding-bottom:env(safe-area-inset-bottom);grid-template-columns:1fr 1fr 84px 1fr 1fr;align-items:center;background:#fff;border-top:1px solid #dde3ea;z-index:9500;box-shadow:0 -4px 16px rgba(6,27,52,.08)}
-        html.jat-movil .mnav-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:56px;border:0;background:none;font:inherit;font-size:.68rem;font-weight:600;color:#4b5b70;cursor:pointer;-webkit-tap-highlight-color:transparent}
-        html.jat-movil .mnav-btn svg{width:22px;height:22px}
-        html.jat-movil .mnav-btn.active{color:#0a2e55;font-weight:800}
-        html.jat-movil .mnav-scan{width:66px;height:66px;margin:-30px auto 0;border-radius:50%;border:4px solid #f3f5f8;background:#c99a4a;color:#061b34;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(6,27,52,.25);cursor:pointer;-webkit-tap-highlight-color:transparent}
-        html.jat-movil .mnav-scan svg{width:30px;height:30px}
-        html.jat-movil body.cam-on .mnav-scan{background:#0a2e55;color:#fff}
-        html.jat-movil body:has(.modal:not(#verificadorModal)[style*="flex"]) #mNav,
-        html.jat-movil body:has(.modal:not(#verificadorModal)[style*="block"]) #mNav,
-        html.jat-movil body:has(.qty-modal-overlay[style*="flex"]) #mNav{display:none}
-        html.jat-movil #verificadorModal .modal-content{height:calc(var(--appH,100dvh) - 68px - env(safe-area-inset-bottom))!important;max-height:none!important}
-        html.jat-movil #verificadorModal .toolbar-topbar{display:none!important}
-        html.jat-movil #verificadorModal .verificador-header{padding:8px 8px 8px 14px!important;background:#061b34!important;border-bottom:3px solid #c99a4a!important}
-        html.jat-movil #verificadorModal .verificador-header .subtitle{color:#e3c48f!important;font-size:.82rem!important;font-weight:700}
-        html.jat-movil #mProgresoTxt{display:inline;color:#fff;font-size:.8rem;font-weight:700;white-space:nowrap}
-        html.jat-movil #verificadorModal .badge-status{display:none}
-        html.jat-movil #verificadorModal .verificador-header .close-modal{color:#fff!important;width:44px;height:44px;display:flex;align-items:center;justify-content:center}
-        html.jat-movil .cam-insecure-warning{font-size:.66rem!important;padding:6px 12px!important;max-height:3.4em;overflow:hidden}
-        html.jat-movil #camPanel{display:none}
-        html.jat-movil body.cam-on #camPanel{display:block;height:calc(var(--appH,100vh) * .38);min-height:200px}
-        html.jat-movil .cam-close-mobile{display:inline-flex}
-        html.jat-movil #verificadorModal .progress-bar-wrap{height:8px}
-        html.jat-movil #verificadorModal .scanner-section{padding:10px 12px!important}
-        html.jat-movil #verificadorModal .scanner-input{font-size:16px!important;font-family:inherit!important;min-height:48px}
-        html.jat-movil #verificadorModal .stats-row{display:grid!important;grid-template-columns:repeat(3,1fr);gap:6px!important;padding:8px 12px!important;position:static!important}
-        html.jat-movil #verificadorModal .stats-row .stat-item{padding:6px 10px!important;font-size:.7rem;display:flex;flex-direction:column;align-items:flex-start;gap:0;margin:0}
-        html.jat-movil #verificadorModal .stats-row .stat-number{font-size:1.2rem}
-        html.jat-movil #verificadorModal .stats-row .stat-item:nth-child(4),
-        html.jat-movil #voiceStatusPill,
-        html.jat-movil #verificadorModal .stats-row .spacer{display:none!important}
-        html.jat-movil #deshacerBtn{grid-column:1/-1;min-height:42px;width:100%}
-        html.jat-movil #verificadorModal .work-panels{grid-template-columns:1fr!important;padding:8px 12px!important;gap:8px!important}
-        html.jat-movil #verificadorModal.revision-mode .selected-panel,
-        html.jat-movil #verificadorModal.revision-mode .last-scan-panel{min-height:0!important}
-        html.jat-movil .quick-count-row{padding:4px 12px 12px!important;flex-wrap:nowrap!important;gap:6px!important}
-        html.jat-movil .qc-btn{flex:1 1 0;min-height:46px;padding-left:4px!important;padding-right:4px!important}
-        html.jat-movil .qc-custom{flex:1.6 1 0}
-        html.jat-movil .tabla-pantalla-completa{bottom:68px!important;bottom:calc(68px + env(safe-area-inset-bottom))!important}
-        html.jat-movil .tabla-pantalla-header{padding:8px 12px!important}
-        html.jat-movil .tpc-back-btn{padding:8px 12px!important;font-size:.78rem!important}
-        html.jat-movil .tabla-pantalla-completa .filtro-tabla{font-size:16px}
-        html.jat-movil .tabla-pantalla-completa .filter-chips .chip{min-height:38px;display:inline-flex;align-items:center}
-        html.jat-movil .tpc-table-container thead{display:none}
-        html.jat-movil .tpc-table-container .data-table,
-        html.jat-movil .tpc-table-container tbody{display:block;width:100%}
-        html.jat-movil .tpc-table-container tr{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:10px 12px;border-bottom:1px solid #eef1f5}
-        html.jat-movil .tpc-table-container td{padding:0!important;border:0!important;background:transparent!important}
-        html.jat-movil .tpc-table-container td:nth-child(4){grid-column:1;grid-row:1;font-weight:600;font-size:.88rem;color:#10203a}
-        html.jat-movil .tpc-table-container td:nth-child(2){grid-column:2;grid-row:1/span 2;font-size:1.05rem;font-weight:800;align-self:center;text-align:right}
-        html.jat-movil .tpc-table-container td:nth-child(1){grid-column:1;grid-row:2;font-size:.72rem;color:#4b5b70}
-        html.jat-movil .tpc-table-container td:nth-child(3){grid-column:1/-1;grid-row:3;margin-top:4px}
-        html.jat-movil .tpc-table-container td:nth-child(5){grid-column:1/-1;grid-row:4;margin-top:6px}
-        html.jat-movil .tpc-table-container td[colspan]{grid-column:1/-1!important;grid-row:auto!important}
-        html.jat-movil .tpc-table-container tr.verified{background:#eef8f1!important}
-        html.jat-movil .tpc-table-container tr.verified td:first-child,
-        html.jat-movil .tpc-table-container tr.selected-row td:first-child{border-left:0!important}
-        html.jat-movil #mSheetBg.show{display:block;position:fixed;inset:0;background:rgba(6,27,52,.45);z-index:9600}
-        html.jat-movil #mSheet.show{display:block;position:fixed;left:0;right:0;bottom:0;max-height:calc(var(--appH,100vh) * .82);overflow:auto;background:#fff;border-radius:18px 18px 0 0;z-index:9700;padding:8px 10px calc(14px + env(safe-area-inset-bottom));box-shadow:0 -10px 30px rgba(6,27,52,.25)}
-        html.jat-movil .msheet-grip{width:40px;height:4px;border-radius:2px;background:#b9c3cf;margin:4px auto 8px}
-        html.jat-movil .msheet-title{font-size:1rem;font-weight:800;color:#061b34;padding:4px 12px 8px}
-        html.jat-movil .msheet-estado{font-size:.72rem;color:#4b5b70;padding:0 12px 8px;line-height:1.5}
-        html.jat-movil .msheet-sep{height:1px;background:#e5e9ef;margin:6px 8px}
-        html.jat-movil .msheet-item{display:flex;align-items:center;gap:12px;width:100%;min-height:50px;padding:0 12px;border:0;background:none;border-radius:12px;font:inherit;font-size:.95rem;color:#10203a;text-align:left;cursor:pointer}
-        html.jat-movil .msheet-item:active{background:#f3f5f8}
-        html.jat-movil .msheet-item .ico{width:26px;text-align:center;font-size:1.1rem}
-        html.jat-movil .alert-toast{bottom:calc(84px + env(safe-area-inset-bottom))!important;left:12px!important;right:12px!important;max-width:none!important;z-index:9800!important}
-        html.jat-movil #verificadorModal .modal-content{width:100%!important;max-width:100%!important}
-        html.jat-movil .sidebar{display:none!important}
-        html.jat-movil .content-area{width:100%}
-        html.jat-movil /* ---- base app ---- */
-body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
-        html.jat-movil .top-bar{height:52px!important;border-bottom:3px solid #c99a4a!important}
-        html.jat-movil .content-area{padding:0!important;background:#f3f5f8}
-        html.jat-movil #mainContent > div{border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
-        html.jat-movil #mainContent > div > div:first-child{padding:16px 16px 8px!important;border-bottom:0!important;flex-wrap:wrap;gap:10px}
-        html.jat-movil #mainContent > div > div:first-child h3{font-size:1.15rem!important;color:#061b34!important;font-weight:800}
-        html.jat-movil #mainContent > div > div + div{padding:8px 16px 24px!important;max-width:none!important}
-        html.jat-movil #mainContent .btn{min-height:48px;padding:10px 16px;font-size:.92rem;font-weight:700;border-radius:14px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
-        html.jat-movil #mainContent > div > div + div .btn{width:100%}
-        html.jat-movil #mainContent > div > div:first-child .btn{width:auto}
-        html.jat-movil #mainContent input:not([type=file]),
-        html.jat-movil #mainContent select,
-        html.jat-movil #mainContent textarea{font-size:16px!important;border-radius:12px!important;min-height:46px;width:100%!important;box-sizing:border-box}
-        html.jat-movil #mainContent label{font-size:.85rem;font-weight:600;color:#10203a}
-        html.jat-movil #mainContent p{font-size:.88rem!important;line-height:1.5}
-        html.jat-movil .egreso-item{background:#fff!important;border:1px solid #dde3ea!important;border-radius:14px!important;padding:14px 16px!important;margin-bottom:10px!important;min-height:56px}
-        html.jat-movil .egreso-item strong{font-size:.95rem;color:#061b34}
-        html.jat-movil /* ---- inicio ---- */
-.mi-wrap{display:flex;flex-direction:column;gap:14px}
-        html.jat-movil .mi-saludo{font-size:1.25rem;font-weight:800;color:#061b34;margin:2px 0 0}
-        html.jat-movil .mi-sub{font-size:.85rem;color:#4b5b70;margin-top:-8px}
-        html.jat-movil .mi-card{background:#fff;border:1px solid #dde3ea;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px}
-        html.jat-movil .mi-activo{background:#061b34;border:0;color:#fff}
-        html.jat-movil .mi-activo .mi-kicker{color:#e3c48f}
-        html.jat-movil .mi-kicker{font-size:.72rem;font-weight:800;letter-spacing:.06em;color:#7a5a22;text-transform:uppercase}
-        html.jat-movil .mi-nombre{font-size:1.05rem;font-weight:700;word-break:break-word}
-        html.jat-movil .mi-barra{height:8px;border-radius:4px;background:#1d3d63;overflow:hidden}
-        html.jat-movil .mi-barra > div{height:8px;background:#c99a4a;border-radius:4px}
-        html.jat-movil .mi-cifras{font-size:.85rem;color:#cfd8e3}
-        html.jat-movil .mi-row{display:flex;gap:8px}
-        html.jat-movil .mi-row > button{flex:1}
-        html.jat-movil .mi-btn{min-height:50px;border-radius:14px;border:0;font:inherit;font-size:.95rem;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;padding:0 14px}
-        html.jat-movil .mi-btn-oro{background:#c99a4a;color:#061b34}
-        html.jat-movil .mi-btn-borde{background:transparent;color:#fff;border:1.5px solid #36557a}
-        html.jat-movil .mi-btn-azul{background:#0a2e55;color:#fff}
-        html.jat-movil .mi-btn-blanco{background:#fff;color:#0a2e55;border:1.5px solid #b9c3cf}
-        html.jat-movil .mi-tile{display:flex;align-items:center;gap:14px;width:100%;min-height:68px;padding:12px 14px;border-radius:16px;border:1px solid #dde3ea;background:#fff;font:inherit;text-align:left;cursor:pointer;color:#10203a}
-        html.jat-movil .mi-tile .mi-ico{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex:none;font-size:1.3rem;background:#f3ead9}
-        html.jat-movil .mi-tile b{display:block;font-size:.98rem}
-        html.jat-movil .mi-tile small{display:block;font-size:.78rem;color:#4b5b70;margin-top:2px}
-        html.jat-movil .mi-tile.principal{background:#0a2e55;border-color:#0a2e55;color:#fff}
-        html.jat-movil .mi-tile.principal small{color:#cfd8e3}
-        html.jat-movil .mi-tile.principal .mi-ico{background:#c99a4a}
-        html.jat-movil .mi-details{background:#fff;border:1px solid #dde3ea;border-radius:16px;padding:0 14px}
-        html.jat-movil .mi-details summary{min-height:52px;display:flex;align-items:center;font-weight:700;font-size:.92rem;color:#0a2e55;cursor:pointer;list-style:none}
-        html.jat-movil .mi-details summary::-webkit-details-marker{display:none}
-        html.jat-movil .mi-details[open]{padding-bottom:14px}
-        html.jat-movil .mi-details textarea{min-height:140px!important;font-family:monospace!important;font-size:14px!important}
-        html.jat-movil .mi-pie{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.78rem;color:#4b5b70;padding:4px 2px}
-        html.jat-movil .mi-pie .btn{width:auto!important;min-height:40px!important;font-size:.8rem!important}
-        html.jat-movil .mi-oculto{display:none!important}
-        html.jat-movil #tablaPreviewContainer{background:#fff;max-height:220px!important}
-        html.jat-movil #miResultado #abrirVerificadorDirectoBtn{display:none!important}
-        html.jat-movil #abrirVerificadorDirectoBtn{background:#c99a4a!important;color:#061b34!important;border:0!important;font-weight:800!important}
-        html.jat-movil #seleccionarPdfBtn,
-        html.jat-movil #procesarTablaBtn{width:100%}
-        html.jat-movil /* ---- verificador ---- */
-#verificadorModal .verificador-header .close-modal{font-size:0!important}
-        html.jat-movil #verificadorModal .verificador-header .close-modal::before{content:'';width:24px;height:24px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M6 6l12 12M18 6L6 18'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M6 6l12 12M18 6L6 18'/%3E%3C/svg%3E") center/contain no-repeat}
-        html.jat-movil #verifBottomPane{background:#f3f5f8!important}
-        html.jat-movil #verificadorModal .scanner-section{background:#fff!important}
-        html.jat-movil #verificadorModal .scanner-input{border-radius:14px!important;border:2px solid #c99a4a!important;background:#fffdf8!important}
-        html.jat-movil #verificadorModal .stats-row{background:transparent!important;border:0!important;padding:10px 12px 0!important}
-        html.jat-movil #verificadorModal .stats-row .stat-item{background:#fff!important;border:1px solid #dde3ea!important;border-radius:12px!important}
-        html.jat-movil #verificadorModal .stats-row #deshacerBtn{display:none}
-        html.jat-movil #verificadorModal .search-status{margin:8px 12px 0!important;border-radius:12px!important;padding:8px 12px!important;font-size:.78rem!important}
-        html.jat-movil #verificadorModal .work-panels{background:transparent!important}
-        html.jat-movil #verificadorModal .selected-panel,
-        html.jat-movil #verificadorModal .last-scan-panel{border-radius:16px!important;padding:12px 14px!important;background:#fff;border-width:2px!important}
-        html.jat-movil #verificadorModal .selected-code,
-        html.jat-movil #verificadorModal .last-scan-code{font-size:.85rem!important;font-family:inherit!important;font-weight:600!important;color:#4b5b70!important}
-        html.jat-movil #verificadorModal .selected-name,
-        html.jat-movil #verificadorModal .last-scan-name{font-size:1.05rem!important;font-weight:800!important;color:#10203a!important;margin:2px 0 4px}
-        html.jat-movil #verificadorModal .selected-qty,
-        html.jat-movil #verificadorModal .last-scan-qty{font-size:.95rem!important}
-        html.jat-movil #verificadorModal .selected-msg,
-        html.jat-movil #verificadorModal .last-scan-msg{font-size:.82rem!important}
-        html.jat-movil #verificadorModal .selected-title,
-        html.jat-movil #verificadorModal .last-scan-title{font-size:.7rem!important;letter-spacing:.05em}
-        html.jat-movil #verificadorModal .selected-panel.mi-duplicado{display:none!important}
-        html.jat-movil #mVerifHint{display:flex}
-        html.jat-movil #verifBottomPane:has(#lastScanPanel[style*="block"]) #mVerifHint,
-        html.jat-movil #verifBottomPane:has(#selectedProductPanel[style*="block"]) #mVerifHint{display:none}
-        html.jat-movil .quick-count-row{display:grid!important;grid-template-columns:repeat(4,1fr);gap:8px!important;padding:8px 12px 16px!important}
-        html.jat-movil .quick-count-row .qc-btn{min-height:50px;border-radius:12px;font-size:1rem}
-        html.jat-movil .quick-count-row .qc-custom,
-        html.jat-movil .quick-count-row #deshacerBtn{grid-column:span 2;min-height:48px;border-radius:12px;font-size:.9rem;width:auto}
-        html.jat-movil .quick-count-row #deshacerBtn{background:#fff;color:#0a2e55;border:1.5px solid #b9c3cf;font-weight:700}
-        html.jat-movil .quick-count-row #deshacerBtn:disabled{opacity:.45}
-        html.jat-movil /* ---- ventanas como hojas desde abajo ---- */
-.modal:not(#verificadorModal),
-        html.jat-movil .qty-modal-overlay{align-items:flex-end!important}
-        html.jat-movil .modal:not(#verificadorModal) .modal-content,
-        html.jat-movil .modal-panel-large,
-        html.jat-movil .qty-modal-card{width:100%!important;max-width:100%!important;border-radius:20px 20px 0 0!important;padding:18px 16px calc(20px + env(safe-area-inset-bottom))!important;max-height:calc(var(--appH,100vh) * .9)!important;overflow:auto;box-sizing:border-box;margin:0!important}
-        html.jat-movil .modal:not(#verificadorModal) .modal-content::before,
-        html.jat-movil .modal-panel-large::before{content:'';display:block;width:40px;height:4px;border-radius:2px;background:#b9c3cf;margin:-6px auto 12px}
-        html.jat-movil .modal .modal-header h3{font-size:1.1rem}
-        html.jat-movil .modal input,
-        html.jat-movil .modal textarea,
-        html.jat-movil .modal select,
-        html.jat-movil .qty-modal-card input{font-size:16px!important;min-height:46px;border-radius:12px!important}
-        html.jat-movil .modal div[style*="justify-content:flex-end"],
-        html.jat-movil .modal div[style*="justify-content: flex-end"],
-        html.jat-movil .qty-modal-card div[style*="justify-content:flex-end"]{flex-direction:column-reverse;gap:8px!important}
-        html.jat-movil .modal div[style*="justify-content:flex-end"] .btn,
-        html.jat-movil .modal div[style*="justify-content: flex-end"] .btn,
-        html.jat-movil .qty-modal-card .btn{width:100%;min-height:48px;font-size:.95rem;font-weight:700;border-radius:14px}
-        html.jat-movil .modal .close-modal{width:44px;height:44px;display:flex;align-items:center;justify-content:center}
-        #mVerifHint{display:none}
-
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script>
-    /* JAT MÓVIL — detecta celular aunque Chrome esté en "Sitio para computadoras" y ajusta el tamaño */
-    (function () {
-        var html = document.documentElement;
-        function aplicarModoMovil() {
-            var tactil = (navigator.maxTouchPoints || 0) > 0 || (window.matchMedia && matchMedia('(pointer:coarse)').matches);
-            var anchoPantalla = screen.width || window.innerWidth;
-            var movil = window.innerWidth <= 720 || (tactil && anchoPantalla <= 900);
-            html.classList.toggle('jat-movil', movil);
-            var z = 1;
-            if (movil && window.innerWidth > anchoPantalla * 1.2) z = window.innerWidth / anchoPantalla;
-            html.style.zoom = z > 1 ? String(z) : '';
-            html.style.setProperty('--appH', (window.innerHeight / z) + 'px');
-        }
-        aplicarModoMovil();
-        window.addEventListener('resize', aplicarModoMovil);
-        window.addEventListener('orientationchange', function () { setTimeout(aplicarModoMovil, 300); });
-    })();
-    </script>
 </head>
 <body>
     <div class="top-bar">
         <div class="logo-area">
             <div class="brand-block">
-                <img src="assets/JAT_logo_aprobado.png" class="brand-emblem" alt="JAT Jorge Andrés Toledo" onerror="this.style.display='none'">
+                <img src="assets/JAT_logo_aprobado.png" class="brand-emblem" alt="JAT Jorge Andrés Toledo">
                 <div class="brand-text">
                     <div class="brand-main">JAT</div>
                     <div class="brand-sub">Control Suite</div>
@@ -723,18 +486,6 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
         <span id="hatChangeStatus">Último cambio: sin cambios</span>
     </div>
 
-    <!-- ==== JAT MÓVIL — BARRA DE PESTAÑAS (Opción B) ==== -->
-    <nav id="mNav" aria-label="Navegación principal">
-        <button class="mnav-btn active" type="button" data-mnav="egreso"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"></path><path d="M5 10v10h14V10"></path><path d="M10 20v-6h4v6"></path></svg>Inicio</button>
-        <button class="mnav-btn" type="button" data-mnav="lista"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"></path></svg>Lista</button>
-        <div><button class="mnav-scan" type="button" id="mNavScan" aria-label="Escanear"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M3 7V4h3M18 4h3v3M21 17v3h-3M6 20H3v-3"></path><path d="M7 8v8M10 8v8M13 8v8M16 8v8"></path></svg></button></div>
-        <button class="mnav-btn" type="button" data-mnav="informe"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6"></path><path d="M6 18H4v-7h16v7h-2"></path><path d="M7 14h10v7H7z"></path></svg>Informe</button>
-        <button class="mnav-btn" type="button" data-mnav="mas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="19" cy="12" r="1.6"></circle></svg>Más</button>
-    </nav>
-    <button type="button" id="gatilloBtn" aria-label="Gatillo: mantener apretado para leer el código"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M3 7V4h3M18 4h3v3M21 17v3h-3M6 20H3v-3"></path><path d="M7 12h10"></path></svg><span>MANTENER PARA LEER</span></button>
-    <div id="mSheetBg"></div>
-    <div id="mSheet" role="dialog" aria-modal="true" aria-labelledby="mSheetTitle"><div class="msheet-grip"></div><div class="msheet-title" id="mSheetTitle"></div><div id="mSheetBody"></div></div>
-
     <!-- MODAL GUARDAR -->
     <div id="guardarComoModal" class="modal">
         <div class="modal-content">
@@ -790,7 +541,6 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
                     <span class="subtitle" id="verificadorNombreEgreso" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:0.72rem;color:#7f8c8d;"></span>
                 </div>
                 <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
-                    <span id="mProgresoTxt"></span>
                     <span class="badge-status" style="font-size:0.65rem;padding:3px 10px;">● Activo</span>
                     <span class="close-modal" onclick="cerrarVerificador()" style="font-size:1.4rem;">&times;</span>
                 </div>
@@ -813,10 +563,8 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
             <div id="camPanel" class="cam-panel">
                 <video id="camVideo" autoplay playsinline muted></video>
                 <div class="cam-reticle"><div class="box" id="camReticleBox"></div></div>
-                <div class="cam-laser" aria-hidden="true"></div>
                 <div class="cam-topbar">
                     <span class="cam-status-pill" id="camStatusPill">📷 Cámara apagada</span>
-                    <button class="cam-mini-btn cam-close-mobile" id="camCerrarMovilBtn" type="button">✕ Cerrar cámara</button>
                     <div class="cam-menu-wrap">
                         <button class="cam-mini-btn" id="camMasBtn" aria-haspopup="true" aria-expanded="false">⋮ Más</button>
                         <div class="cam-dropdown" id="camDropdown" style="display:none;">
@@ -849,8 +597,6 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
             <!-- ==== FIN CÁMARA — a partir de aquí, mitad inferior con scroll propio ==== -->
             <div class="verif-bottom-pane" id="verifBottomPane">
 
-            <div id="dupBanner" role="alert"></div>
-
             <!-- Banner de completado -->
             <div id="completadoBanner" class="completado-banner">
                 🎉 ¡EGRESO 100% VERIFICADO! Todos los productos han sido confirmados.
@@ -881,10 +627,6 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
 
             <div id="searchStatusVerif" class="search-status" style="display:none;"></div>
 
-            <div id="mVerifHint" style="margin:14px 12px 0;padding:20px 16px;border-radius:16px;border:1.5px dashed #b9c3cf;background:#fff;flex-direction:column;align-items:center;gap:6px;text-align:center;color:#4b5b70;font-size:.9rem;line-height:1.45">
-                <strong style="color:#061b34;font-size:1rem">Listo para verificar</strong>
-                Toque el botón dorado de abajo para escanear con la cámara, use el lector de barras, o escriba el código en el buscador.
-            </div>
             <div class="work-panels">
                 <div id="selectedProductPanel" class="selected-panel">
                     <div class="selected-title">Producto seleccionado</div>
@@ -1029,31 +771,14 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
         if (btn) { btn.innerText = voiceEnabled ? '🔊 Voz Nivel 3' : '🔇 Voz apagada'; btn.classList.toggle('off', !voiceEnabled); }
     }
 
-    // Chrome Android solo permite voz y sonido después de un toque en la pantalla: se "desbloquean" con el primer toque.
-    let vozDesbloqueada = false;
-    function desbloquearVozYSonido() {
-        if (vozDesbloqueada) return;
-        vozDesbloqueada = true;
-        try {
-            const AC = window.AudioContext || window.webkitAudioContext;
-            if (AC) { audioCtxHat = audioCtxHat || new AC(); if (audioCtxHat.state === 'suspended') audioCtxHat.resume(); }
-        } catch(_) {}
-        try {
-            if ('speechSynthesis' in window) {
-                const u0 = new SpeechSynthesisUtterance(' ');
-                u0.volume = 0;
-                window._hatFraseActual = u0;
-                window.speechSynthesis.speak(u0);
-            }
-        } catch(_) {}
-    }
-    ['pointerdown', 'touchstart', 'keydown', 'click'].forEach(ev => document.addEventListener(ev, desbloquearVozYSonido, { capture: true, passive: true }));
-
     function toggleVozHat() {
         voiceEnabled = !voiceEnabled;
         localStorage.setItem('hat_voice_enabled', voiceEnabled ? '1' : '0');
         actualizarEstadoVozUI();
-        if (voiceEnabled) hablarHat('Asistente de voz activado. Nivel tres.', 'info', {force:true});
+        if (voiceEnabled) {
+            hablarHat('Asistente de voz activado. Nivel tres.', 'info', {force:true});
+            if (!elegirVozEspanol()) showAlert('⚠️ No se detectó una voz en español en este teléfono. Ve a Ajustes → Sistema → Idioma → Salida de texto a voz y descarga el español.', 'warning');
+        }
     }
 
     function beepHat(tipo = 'ok') {
@@ -1062,6 +787,7 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
             if (!AC) return;
             audioCtxHat = audioCtxHat || new AC();
             const ctx = audioCtxHat;
+            if (ctx.state === 'suspended') { try { ctx.resume(); } catch(_) {} }
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
             const now = ctx.currentTime;
@@ -1076,6 +802,39 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
             osc.start(now); osc.stop(now + (tipo === 'error' ? 0.24 : 0.15));
         } catch(e) { console.warn('Audio no disponible:', e); }
     }
+
+    // ---- VOZ EN ESPAÑOL (Android) ----
+    function elegirVozEspanol() {
+        const voces = (window.speechSynthesis && window.speechSynthesis.getVoices) ? window.speechSynthesis.getVoices() : [];
+        if (!voces.length) return null;
+        const norm = v => (v.lang || '').replace('_', '-').toLowerCase();
+        const prefer = ['es-ec', 'es-mx', 'es-us', 'es-419', 'es-co', 'es-es'];
+        for (const code of prefer) {
+            const v = voces.find(x => norm(x) === code);
+            if (v) return v;
+        }
+        return voces.find(x => norm(x).startsWith('es')) || voces.find(x => /spanish|espa/i.test(x.name || '')) || null;
+    }
+
+    let vozConfirmada = false;      // true cuando el teléfono ya empezó a hablar al menos una vez
+    let vozAvisoError = false;
+    function desbloquearVoz() {
+        if (vozConfirmada || !('speechSynthesis' in window)) return;
+        try {
+            const u = new SpeechSynthesisUtterance('.');
+            const v = elegirVozEspanol();
+            if (v) { u.voice = v; u.lang = v.lang; }
+            u.volume = 0.01;
+            u.onstart = () => { vozConfirmada = true; };
+            window.speechSynthesis.speak(u);
+        } catch(_) {}
+        try {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (AC) { audioCtxHat = audioCtxHat || new AC(); if (audioCtxHat.state === 'suspended') audioCtxHat.resume(); }
+        } catch(_) {}
+    }
+    // Se repite en cada toque hasta confirmar que la voz arrancó (Android a veces ignora el primer intento).
+    ['pointerdown', 'touchend', 'click'].forEach(ev => document.addEventListener(ev, desbloquearVoz, { passive: true }));
 
     function hablarHat(texto, tipo = 'info', opts = {}) {
         try {
@@ -1094,30 +853,54 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
 
             if (!('speechSynthesis' in window)) return;
 
-            // Motor de voz compatible con Chrome Android:
-            // - cancel() seguido de speak() inmediato anula la voz nueva en Android → se espera un momento.
-            // - se guarda referencia a la frase para que el navegador no la descarte.
-            // - se elige una voz en español disponible y se usa su idioma real.
             const synth = window.speechSynthesis;
             const u = new SpeechSynthesisUtterance(limpio);
-            const voces = synth.getVoices ? synth.getVoices() : [];
-            const voz = voces.find(v => /^es[-_]?(EC|419|US|MX|CO|PE)/i.test(v.lang || ''))
-                     || voces.find(v => /^es/i.test(v.lang || ''))
-                     || voces.find(v => /Spanish|Español/i.test(v.name || ''));
-            if (voz) { u.voice = voz; u.lang = voz.lang; } else { u.lang = 'es-US'; }
-            u.rate = opts.rate || 1.12;
+            const voz = elegirVozEspanol();
+            if (voz) { u.voice = voz; u.lang = voz.lang; } else { u.lang = 'es-ES'; }
+            u.rate = Math.min(opts.rate || 1.1, 1.3);
             u.pitch = opts.pitch || 1.0;
-            u.volume = opts.volume || 1;
-            window._hatFraseActual = u;
-            const decir = () => {
-                try { if (synth.paused) synth.resume(); synth.speak(u); } catch(e) { console.warn('Voz no disponible:', e); }
+            u.volume = 1;
+            // Chrome puede descartar la frase si no hay referencia viva hasta que termine.
+            window.__hatUtterance = u;
+
+            // Android: cancel() seguido de speak() inmediato deja la voz muda.
+            // Solo se cancela si de verdad hay algo hablando, y se espera un instante.
+            let arranco = false;
+            u.onstart = () => { arranco = true; vozConfirmada = true; };
+            u.onerror = (ev) => {
+                const motivo = (ev && ev.error) || 'desconocido';
+                console.warn('Voz falló:', motivo);
+                if (motivo === 'interrupted' || motivo === 'canceled') return; // normal al encadenar frases
+                vozConfirmada = false; // volver a intentar el desbloqueo con el próximo toque
+                if (!vozAvisoError) {
+                    vozAvisoError = true;
+                    showAlert('🔇 Chrome bloqueó la voz (' + motivo + '). Toca la pantalla una vez y vuelve a escanear.', 'warning');
+                }
             };
-            if (synth.speaking || synth.pending) {
-                try { synth.cancel(); } catch(_) {}
-                setTimeout(decir, Math.max(150, opts.delay || 0));
-            } else {
-                setTimeout(decir, opts.delay || 0);
-            }
+            const hablando = synth.speaking || synth.pending;
+            if (hablando) { try { synth.cancel(); } catch(_) {} }
+            const intentar = (esReintento) => {
+                try {
+                    if (synth.paused) synth.resume();
+                    synth.speak(u);
+                } catch(e) { console.warn('Voz no disponible:', e); }
+                // Android: a veces la frase queda "en cola" sin sonar. Si no arrancó, se reintenta una vez.
+                if (!esReintento) {
+                    setTimeout(() => {
+                        if (arranco || synth.speaking) return;
+                        try {
+                            synth.cancel();
+                            const u2 = new SpeechSynthesisUtterance(limpio);
+                            if (voz) { u2.voice = voz; u2.lang = voz.lang; } else { u2.lang = 'es-ES'; }
+                            u2.rate = u.rate; u2.volume = 1;
+                            u2.onstart = () => { vozConfirmada = true; };
+                            window.__hatUtterance = u2;
+                            setTimeout(() => { try { synth.resume(); synth.speak(u2); } catch(_) {} }, 80);
+                        } catch(_) {}
+                    }, 700);
+                }
+            };
+            setTimeout(() => intentar(false), hablando ? 150 : (opts.delay || 0));
         } catch(e) { console.warn('Voz no disponible:', e); }
     }
 
@@ -1313,9 +1096,9 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
 
     function crearCSVTexto(egreso) {
         const productos = egreso?.productos || [];
-        let csv = 'Código de barras\tCantidad verificada\tCantidad total\tEstado\tProducto\tSeries / Observaciones\tHoras de marcado\n';
+        let csv = 'Código de barras\tCantidad verificada\tCantidad total\tEstado\tProducto\tSeries / Observaciones\n';
         productos.forEach(p => {
-            csv += `${p.barcode}\t${formatearQty(getVerifiedQty(p))}\t${formatearQty(getExpectedQty(p))}\t${isProductoVerificado(p) ? 'VERIFICADO' : 'PENDIENTE'}\t${p.productName}\t${(p.seriesTexto || p.observacion || '').replace(/\n/g, ' | ')}\t${marcasDeHora(p).map(m => horaCorta(m.fecha)).join(' ')}\n`;
+            csv += `${p.barcode}\t${formatearQty(getVerifiedQty(p))}\t${formatearQty(getExpectedQty(p))}\t${isProductoVerificado(p) ? 'VERIFICADO' : 'PENDIENTE'}\t${p.productName}\t${(p.seriesTexto || p.observacion || '').replace(/\n/g, ' | ')}\n`;
         });
         return '\uFEFF' + csv;
     }
@@ -1656,7 +1439,6 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
             const idx = (typeof ultima.data === 'object') ? ultima.data.idx : ultima.data;
             const prevQty = (typeof ultima.data === 'object') ? ultima.data.prevQty : 0;
             if (idx >= 0 && idx < currentProductos.length) {
-                if (prevQty < getVerifiedQty(currentProductos[idx])) quitarUltimaMarca(currentProductos[idx]);
                 setVerifiedQty(currentProductos[idx], prevQty);
                 renderVerificadorTabla();
                 actualizarStatsVerificador();
@@ -1927,27 +1709,11 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
         return productos;
     }
 
-    // Los archivos de OneDrive/Drive en Android no siempre informan su tipo:
-    // por eso el explorador no filtra y aquí se revisa el contenido real del archivo.
-    async function esArchivoPDF(file) {
-        try {
-            const cabecera = new Uint8Array(await file.slice(0, 1024).arrayBuffer());
-            return String.fromCharCode(...cabecera).includes('%PDF-');
-        } catch (e) { return false; }
-    }
-
-    let ultimoPdfElegido = null;
-    async function leerPDFSeleccionado(origen) {
+    async function leerPDFSeleccionado() {
         const input = document.getElementById('pdfEgresoInput');
         const status = document.getElementById('pdfStatus');
-        const file = (origen instanceof File) ? origen : (input?.files?.[0] || ultimoPdfElegido);
+        const file = input?.files?.[0];
         if (!file) { showAlert('Selecciona primero un PDF de egreso', 'warning'); return; }
-        if (!(await esArchivoPDF(file))) {
-            if (input) input.value = '';
-            showAlert('El archivo elegido no es un PDF. Elige el PDF del egreso.', 'error');
-            return;
-        }
-        ultimoPdfElegido = file;
         if (!window.pdfjsLib) { showAlert('No se pudo cargar el lector PDF. Revisa Internet o usa copiar/pegar.', 'error'); return; }
         try {
             status.innerText = 'Leyendo PDF...';
@@ -2191,7 +1957,7 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
         tr.classList.toggle('verified', completo);
         const cells = tr.children;
         if (cells[1]) cells[1].innerText = `${formatearQty(verified)}/${formatearQty(expected)}`;
-        if (cells[2]) cells[2].innerHTML = `<span class="status-badge ${estadoClass}">${estado}</span>${textoHorasEscaneo(currentProductos[idx]) ? `<div style="font-size:.66rem;color:#475569;margin-top:3px;">🕒 ${textoHorasEscaneo(currentProductos[idx])}</div>` : ''}`;
+        if (cells[2]) cells[2].innerHTML = `<span class="status-badge ${estadoClass}">${estado}</span>`;
         return true;
     }
 
@@ -2260,7 +2026,7 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
             <tr class="${extraClass}" data-index="${p.originalIdx}">
                 <td class="codigo-cell">${htmlSeguro(p.barcode)}</td>
                 <td class="cantidad-cell">${formatearQty(verified)}/${formatearQty(expected)}</td>
-                <td><span class="status-badge ${estadoClass}">${estado}</span>${textoHorasEscaneo(currentProductos[p.originalIdx]) ? `<div style="font-size:.66rem;color:#475569;margin-top:3px;">🕒 ${textoHorasEscaneo(currentProductos[p.originalIdx])}</div>` : ''}</td>
+                <td><span class="status-badge ${estadoClass}">${estado}</span></td>
                 <td>${htmlSeguro(p.productName || p.descripcion || p.nombre || '')}</td>
                 <td>
                     <textarea class="series-input" placeholder="Series del producto y observaciones..." data-idx="${p.originalIdx}">${htmlSeguro(p.seriesTexto || p.observacion || '')}</textarea>
@@ -2314,8 +2080,6 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
         document.getElementById('verifPendientes').innerText = formatearQty(pendientes);
         const pct = total > 0 ? (verificados / total * 100) : 0;
         document.getElementById('progressBarFill').style.width = pct + '%';
-        const mProg = document.getElementById('mProgresoTxt');
-        if (mProg) mProg.textContent = `${formatearQty(verificados)} de ${formatearQty(total)} listos`;
         // Banner de completado
         const banner = document.getElementById('completadoBanner');
         if (verificados >= total && total > 0) {
@@ -2363,46 +2127,6 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
         enfocarBuscador(false);
     }
 
-    // ---- REGISTRO DE HORA DE CADA ESCANEO ----
-    function horaCorta(iso) {
-        try { return new Date(iso).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', hour12: false }); } catch (e) { return ''; }
-    }
-    function marcasDeHora(p) {
-        return (p?.historialMovimientos || []).filter(m => (m.cantidadSumada || 0) > 0);
-    }
-    function textoHorasEscaneo(p) {
-        const m = marcasDeHora(p);
-        if (!m.length) return '';
-        const ultima = m[m.length - 1];
-        if (m.length === 1) return `Marcado a las ${horaCorta(ultima.fecha)}`;
-        return `Primera marca ${horaCorta(m[0].fecha)} · última ${horaCorta(ultima.fecha)} (${m.length} marcas)`;
-    }
-    function quitarUltimaMarca(p) {
-        const hm = p.historialMovimientos || [];
-        for (let k = hm.length - 1; k >= 0; k--) { if ((hm[k].cantidadSumada || 0) > 0) { hm.splice(k, 1); break; } }
-    }
-    function avisoRepetido(idx) {
-        const p = currentProductos[idx];
-        const m = marcasDeHora(p);
-        const hora = m.length ? horaCorta(m[m.length - 1].fecha) : '';
-        const texto = hora ? `🚫 YA FUE MARCADO A LAS ${hora} — REVISE` : '🚫 YA VERIFICADO / COMPLETO — REVISE';
-        mostrarUltimoEscaneo(idx, 'error', texto);
-        showAlert(`${texto}: ${p.productName.substring(0,40)}`, 'error');
-        hablarHat(hora ? `Producto repetido. Ya fue marcado a las ${hora}. Revise.` : 'Producto repetido. Ya está completo. Revise.', 'error', {force:true, interrupt:true});
-        try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) {}
-        const dupB = document.getElementById('dupBanner');
-        if (dupB) {
-            dupB.textContent = `${texto.replace('🚫 ', '⚠️ ')} · ${p.productName.substring(0, 40)}`;
-            dupB.classList.add('show');
-            clearTimeout(window._dupBannerT);
-            window._dupBannerT = setTimeout(() => dupB.classList.remove('show'), 7000);
-            try { document.getElementById('verifBottomPane')?.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {}
-        }
-        p.historialMovimientos = p.historialMovimientos || [];
-        p.historialMovimientos.push({ fecha: new Date().toISOString(), tipo: 'intento_repetido', cantidadSumada: 0 });
-        autoGuardarEgreso('Escaneo repetido ' + p.barcode);
-    }
-
     function mostrarUltimoEscaneo(idx, tipo = 'partial', mensaje = '') {
         const panel = document.getElementById('lastScanPanel');
         if (!panel) return;
@@ -2419,7 +2143,7 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
         const v = getVerifiedQty(p), e = getExpectedQty(p), faltan = Math.max(0, e - v);
         document.getElementById('lastScanCode').innerText = 'CÓDIGO: ' + p.barcode;
         document.getElementById('lastScanName').innerText = p.productName;
-        document.getElementById('lastScanQty').innerText = `CANTIDAD: ${formatearQty(v)} / ${formatearQty(e)}` + (textoHorasEscaneo(p) ? `  ·  🕒 ${textoHorasEscaneo(p)}` : '');
+        document.getElementById('lastScanQty').innerText = `CANTIDAD: ${formatearQty(v)} / ${formatearQty(e)}`;
         document.getElementById('lastScanMsg').innerText = mensaje || (faltan === 0 ? '✅ COMPLETO' : `⏳ FALTAN ${formatearQty(faltan)}`);
     }
 
@@ -2446,102 +2170,24 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
         });
     }
 
-    // ---- GATILLO ANTI-DUPLICADO ----
-    // Ventana en segundos: 0 = apagado, -1 = preguntar siempre que el producto ya tenga marcas.
-    const OPCIONES_ANTIDUP = [30, 60, -1, 10, 0];
-    function ventanaAntiDup() {
-        const v = parseInt(localStorage.getItem('jat_antidup_seg') ?? '30', 10);
-        return isNaN(v) ? 30 : v;
-    }
-    function textoVentanaAntiDup(v = ventanaAntiDup()) {
-        return v === 0 ? 'apagado' : (v === -1 ? 'siempre' : `${v} segundos`);
-    }
-    function cambiarVentanaAntiDup() {
-        const actual = ventanaAntiDup();
-        const i = OPCIONES_ANTIDUP.indexOf(actual);
-        const sig = OPCIONES_ANTIDUP[(i + 1) % OPCIONES_ANTIDUP.length];
-        localStorage.setItem('jat_antidup_seg', String(sig));
-        showAlert('🛡️ Confirmar producto repetido: ' + textoVentanaAntiDup(sig), 'info');
-        hablarHat('Confirmar repetidos: ' + textoVentanaAntiDup(sig) + '.', 'info', { force: true, beep: false });
-    }
-    let dupConfirmAbierto = false;
-    function horaConSegundos(iso) {
-        try { return new Date(iso).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }); } catch (e) { return ''; }
-    }
-    function confirmarPosibleDuplicado(idx) {
-        const p = currentProductos[idx];
-        const seg = ventanaAntiDup();
-        if (!seg) return Promise.resolve(true);
-        // Con el gatillo, cada apretón ya es una confirmación: soltar y volver a apretar = otra unidad.
-        if (window._jatLecturaGatilloT && (Date.now() - window._jatLecturaGatilloT) < 4000) { window._jatLecturaGatilloT = 0; return Promise.resolve(true); }
-        const marcas = marcasDeHora(p);
-        if (!marcas.length) return Promise.resolve(true);
-        const ultima = marcas[marcas.length - 1];
-        const hace = Math.max(0, Math.round((Date.now() - new Date(ultima.fecha).getTime()) / 1000));
-        if (seg > 0 && hace > seg) return Promise.resolve(true);
-        if (dupConfirmAbierto) return Promise.resolve(false);
-        dupConfirmAbierto = true;
-        try { if (navigator.vibrate) navigator.vibrate([250, 120, 250]); } catch (e) {}
-        hablarHat('Mismo producto otra vez. ¿Es otra unidad? Confirme.', 'error', { force: true });
-        const hora = horaConSegundos(ultima.fecha);
-        const haceTxt = hace < 2 ? 'hace un momento' : (hace < 60 ? `hace ${hace} segundos` : (Math.round(hace / 60) === 1 ? 'hace 1 minuto' : `hace ${Math.round(hace / 60)} minutos`));
-        return new Promise(resolve => {
-            const capa = document.createElement('div');
-            capa.id = 'dupConfirm';
-            capa.innerHTML = `<div class="dupc-card" role="alertdialog" aria-modal="true" aria-labelledby="dupcT">
-                <div class="dupc-ico">⚠️</div>
-                <div class="dupc-t" id="dupcT">¿Mismo producto otra vez?</div>
-                <div class="dupc-n">${htmlSeguro(p.productName || '')}</div>
-                <div class="dupc-d">Ya se marcó a las <b>${hora}</b> (${haceTxt}).<br>Lleva <b>${formatearQty(getVerifiedQty(p))} de ${formatearQty(getExpectedQty(p))}</b>.</div>
-                <button type="button" class="dupc-no" id="dupcNo">No, fue lectura repetida</button>
-                <button type="button" class="dupc-si" id="dupcSi">Sí, es otra unidad (+1)</button>
-            </div>`;
-            document.body.appendChild(capa);
-            const bloquearTeclas = (ev) => { ev.stopPropagation(); if (ev.key === 'Enter') ev.preventDefault(); };
-            document.addEventListener('keydown', bloquearTeclas, true);
-            const cerrar = (ok) => {
-                document.removeEventListener('keydown', bloquearTeclas, true);
-                capa.remove();
-                dupConfirmAbierto = false;
-                if (!ok) {
-                    p.historialMovimientos = p.historialMovimientos || [];
-                    p.historialMovimientos.push({ fecha: new Date().toISOString(), tipo: 'duplicado_evitado', cantidadSumada: 0 });
-                    mostrarUltimoEscaneo(idx, 'error', `🛡️ LECTURA REPETIDA EVITADA — ya marcado a las ${hora}`);
-                    hablarHat('Lectura repetida. No se sumó.', 'info', { force: true, beep: false });
-                    autoGuardarEgreso('Duplicado evitado ' + p.barcode);
-                }
-                resolve(ok);
-            };
-            capa.querySelector('#dupcNo').addEventListener('click', () => cerrar(false));
-            capa.querySelector('#dupcSi').addEventListener('click', () => cerrar(true));
-            setTimeout(() => capa.querySelector('#dupcNo')?.focus(), 50);
-        });
-    }
-
     async function sumarCantidadProducto(idx, cantidad, origen = 'scan') {
         if (idx < 0 || idx >= currentProductos.length) return false;
         const p = currentProductos[idx];
         const prev = getVerifiedQty(p);
         const esperado = getExpectedQty(p);
         if (prev >= esperado) {
-            avisoRepetido(idx);
+            mostrarUltimoEscaneo(idx, 'error', '🚫 YA ESTABA COMPLETO');
+            hablarHat('Cantidad excedida. Producto ya completo.', 'error', {force:true, interrupt:true});
             return false;
         }
-        // GATILLO ANTI-DUPLICADO: si el mismo producto ya se marcó hace poco, pide confirmación antes de sumar.
-        if (origen === 'scan' && prev > 0) {
-            const permitido = await confirmarPosibleDuplicado(idx);
-            if (!permitido) return false;
-        }
-        const nuevo = Math.min(esperado, getVerifiedQty(p) + cantidad);
-        const prevReal = getVerifiedQty(p);
-        if (nuevo <= prevReal) { avisoRepetido(idx); return false; }
+        const nuevo = Math.min(esperado, prev + cantidad);
         setVerifiedQty(p, nuevo);
         p.historialMovimientos = p.historialMovimientos || [];
-        p.historialMovimientos.push({ fecha: new Date().toISOString(), tipo: origen, anterior: prevReal, cantidadSumada: nuevo - prevReal, nuevo });
-        registrarAccion('verificar', { idx, prevQty: prevReal });
+        p.historialMovimientos.push({ fecha: new Date().toISOString(), tipo: origen, anterior: prev, cantidadSumada: nuevo - prev, nuevo });
+        registrarAccion('verificar', { idx, prevQty: prev });
         autoGuardarEgreso();
         mostrarUltimoEscaneo(idx, isProductoVerificado(p) ? 'ok' : 'partial');
-        hablarHat(mensajeConteoVoz(p, prev, nuevo, origen), isProductoVerificado(p) ? 'ok' : 'info', {force: origen.includes('conteo_rapido')});
+        hablarHat(mensajeConteoVoz(p, prev, nuevo, origen), isProductoVerificado(p) ? 'ok' : 'info', {force: true});
         actualizarStatsProgramado();
         if (!actualizarFilaVerificador(idx) || filtroChipActivo !== 'todos') {
             renderVerificadorTablaProgramado();
@@ -2562,7 +2208,6 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
         const nuevo = Math.max(0, prev - cantidad);
         setVerifiedQty(p, nuevo);
         p.historialMovimientos = p.historialMovimientos || [];
-        quitarUltimaMarca(p);
         p.historialMovimientos.push({ fecha: new Date().toISOString(), tipo: origen, anterior: prev, cantidadSumada: nuevo - prev, nuevo });
         registrarAccion('verificar', { idx, prevQty: prev });
         autoGuardarEgreso();
@@ -2656,7 +2301,7 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
             resaltarFilaVerificador(firstIdx);
             const div = document.getElementById('searchStatusVerif');
             div.style.display = 'flex';
-            div.innerHTML = `<span>✅ Ya verificado: <strong>${currentProductos[firstIdx].productName.substring(0,60)}</strong>${textoHorasEscaneo(currentProductos[firstIdx]) ? ' — 🕒 ' + textoHorasEscaneo(currentProductos[firstIdx]) : ''}</span>`;
+            div.innerHTML = `<span>✅ Ya verificado: <strong>${currentProductos[firstIdx].productName.substring(0,60)}</strong></span>`;
             setTimeout(() => { div.style.display = 'none'; }, 2500);
             // Shake input para indicar duplicado
             const input = document.getElementById('scannerInput');
@@ -2865,7 +2510,9 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
         if (isProductoVerificado(p)) {
             const input = document.getElementById('scannerInput');
             input.classList.add('duplicado');
-            avisoRepetido(idx);
+            mostrarUltimoEscaneo(idx, 'error', '🚫 YA VERIFICADO / COMPLETO');
+            hablarHat('Cantidad excedida. Producto ya completo.', 'error', {force:true, interrupt:true});
+            showAlert(`🚫 YA VERIFICADO: ${p.productName.substring(0,40)}`, 'error');
             setTimeout(() => input.classList.remove('duplicado'), 1000);
             return;
         }
@@ -2928,7 +2575,7 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
         if (pend.length === 0) { showAlert('Todos ya están verificados ✅', 'info'); return; }
         if (!confirm(`¿Marcar ${pend.length} códigos pendientes como verificados completamente? (Se completarán sus cantidades)`)) return;
         const indices = [];
-        pend.forEach(p => { const pr = currentProductos[p.idx]; const ant = getVerifiedQty(pr); setVerifiedQty(pr, getExpectedQty(pr)); pr.historialMovimientos = pr.historialMovimientos || []; pr.historialMovimientos.push({ fecha: new Date().toISOString(), tipo: 'marcar_todos', anterior: ant, cantidadSumada: getExpectedQty(pr) - ant, nuevo: getExpectedQty(pr) }); indices.push(p.idx); });
+        pend.forEach(p => { setVerifiedQty(currentProductos[p.idx], getExpectedQty(currentProductos[p.idx])); indices.push(p.idx); });
         registrarAccion('verificar_todos', indices);
         autoGuardarEgreso();
         renderVerificadorTabla();
@@ -2947,9 +2594,9 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
 
     // ---- EXPORTAR ----
     function exportarAExcel() {
-        let csv = "Código de barras\tCantidad\tEstado\tProducto\tSeries / Observaciones\tHoras de marcado\n";
+        let csv = "Código de barras\tCantidad\tEstado\tProducto\tSeries / Observaciones\n";
         currentProductos.forEach(p => {
-            csv += `${p.barcode}\t${formatearQty(getVerifiedQty(p))}/${formatearQty(getExpectedQty(p))}\t${p.verified ? "VERIFICADO" : "PENDIENTE"}\t${p.productName}\t${(p.seriesTexto || p.observacion || '').replace(/\n/g, ' | ')}\t${marcasDeHora(p).map(m => horaCorta(m.fecha)).join(' ')}\n`;
+            csv += `${p.barcode}\t${formatearQty(getVerifiedQty(p))}/${formatearQty(getExpectedQty(p))}\t${p.verified ? "VERIFICADO" : "PENDIENTE"}\t${p.productName}\t${(p.seriesTexto || p.observacion || '').replace(/\n/g, ' | ')}\n`;
         });
         const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
         const link = document.createElement("a");
@@ -3002,8 +2649,8 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
             <strong>Progreso:</strong> ${verificados} / ${formatearQty(totalEsperado())} unidades (${currentProductos.length > 0 ? Math.round(verificados/totalEsperado()*100) : 0}%)
             <div class="prog"><div class="prog-fill" style="width:${currentProductos.length > 0 ? Math.round(verificados/totalEsperado()*100) : 0}%"></div></div>
         </div>
-        <table><tr><th>#</th><th>Código</th><th>Cant.</th><th>Estado</th><th>Producto</th><th>Observaciones</th><th>Hora marcado</th></tr>
-        ${currentProductos.map((p,i) => `<tr class="${p.verified?'verified':''}"><td>${i+1}</td><td style="font-family:monospace;font-size:0.75rem;">${p.barcode}</td><td style="text-align:center;">${formatearQty(getVerifiedQty(p))}/${formatearQty(getExpectedQty(p))}</td><td>${p.verified?'✅ VERIFICADO':'⏳ PENDIENTE'}</td><td>${p.productName}</td><td>${p.seriesTexto || p.observacion || ''}</td><td>${marcasDeHora(p).map(m => horaCorta(m.fecha)).join(' ')}</td></tr>`).join('')}
+        <table><tr><th>#</th><th>Código</th><th>Cant.</th><th>Estado</th><th>Producto</th><th>Observaciones</th></tr>
+        ${currentProductos.map((p,i) => `<tr class="${p.verified?'verified':''}"><td>${i+1}</td><td style="font-family:monospace;font-size:0.75rem;">${p.barcode}</td><td style="text-align:center;">${formatearQty(getVerifiedQty(p))}/${formatearQty(getExpectedQty(p))}</td><td>${p.verified?'✅ VERIFICADO':'⏳ PENDIENTE'}</td><td>${p.productName}</td><td>${p.seriesTexto || p.observacion || ''}</td></tr>`).join('')}
         </table>
         <div class="footer">JAT Control Suite — Sistema de Verificación de Egresos | ${new Date().toLocaleString()}</div>
         </body></html>`);
@@ -3262,7 +2909,7 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
                         const p = currentProductos[exactIdx];
                         const faltan = getExpectedQty(p) - getVerifiedQty(p);
                         const sumar = Math.min(n, Math.max(0, faltan));
-                        if (sumar <= 0) { avisoRepetido(exactIdx); return; }
+                        if (sumar <= 0) { mostrarUltimoEscaneo(exactIdx, 'error', '🚫 YA ESTABA COMPLETO'); hablarHat('Cantidad excedida. Producto ya completo.', 'error', {force:true, interrupt:true}); return; }
                         if (n > faltan && !confirm(`La cantidad ingresada (${n}) supera lo pendiente (${faltan}). ¿Completar solo ${faltan}?`)) return;
                         await sumarCantidadProducto(exactIdx, sumar, 'conteo_rapido_escrito');
                         scanInput.value = (getExpectedQty(p) - getVerifiedQty(p)) > 0 ? code : '';
@@ -3379,10 +3026,10 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
         try {
             let file = null;
             if ('showOpenFilePicker' in window) {
-                const opts = { multiple: false };
-                if (!/Android/i.test(navigator.userAgent)) {
-                    opts.types = [{ description: 'Egresos PDF / HAT / JSON', accept: { 'application/pdf': ['.pdf'], 'application/json': ['.json', '.hat'], 'text/plain': ['.hat'] } }];
-                }
+                const opts = {
+                    multiple: false,
+                    types: [{ description: 'Egresos HAT / JSON', accept: { 'application/json': ['.json', '.hat'], 'text/plain': ['.hat'] } }]
+                };
                 if (oneDriveDirHandle) opts.startIn = oneDriveDirHandle;
                 const [fh] = await window.showOpenFilePicker(opts);
                 file = await fh.getFile();
@@ -3390,17 +3037,12 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
                 file = await new Promise(resolve => {
                     const input = document.createElement('input');
                     input.type = 'file';
+                    input.accept = '.json,.hat,application/json';
                     input.onchange = () => resolve(input.files?.[0] || null);
                     input.click();
                 });
             }
             if (!file) return;
-            if (await esArchivoPDF(file)) {
-                // Se eligió un PDF: se trata como egreso nuevo en vez de dar error.
-                window.cargarVistaNuevoEgreso?.(false);
-                await leerPDFSeleccionado(file);
-                return;
-            }
             const txt = await file.text();
             const data = JSON.parse(txt);
             let egreso = data;
@@ -3411,9 +3053,8 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
             }
             aplicarEgresoCargado(egreso);
         } catch (e) {
-            if (e && e.name === 'AbortError') return; // canceló el explorador
             console.error('No se pudo abrir egreso:', e);
-            showAlert('No se pudo abrir el archivo. Verifica que sea un PDF de egreso o un .json/.hat válido.', 'error');
+            showAlert('No se pudo abrir el archivo. Verifica que sea un egreso .json/.hat válido.', 'error');
         }
     }
 
@@ -3500,7 +3141,7 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
             <div style="padding:20px 28px;flex:1;display:flex;flex-direction:column;overflow:auto;">
                 <p style="font-size:0.78rem;color:#7f8c8d;margin-bottom:10px;">Presiona <strong>Nuevo Egreso</strong> y se abrirá el explorador para seleccionar el PDF. El sistema extrae cabecera, códigos, cantidades y descripciones sin mezclar datos. También puedes pegar la tabla manualmente si lo necesitas.</p>
                 <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px;background:#fff5f5;border:1px solid #ffd0d0;padding:12px;border-radius:14px;">
-                    <input type="file" id="pdfEgresoInput" style="display:none;">
+                    <input type="file" id="pdfEgresoInput" accept="application/pdf" style="display:none;">
                     <button id="seleccionarPdfBtn" class="btn btn-danger">📄 Seleccionar PDF de egreso</button>
                     <button id="leerPdfBtn" class="btn">🔁 Releer PDF</button>
                     <span id="pdfStatus" style="font-size:0.72rem;color:#7f8c8d;">Sin PDF cargado</span>
@@ -3770,7 +3411,6 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
             await video.play().catch(() => {});
             $('camOffLayer').style.display = 'none';
             camActiva = true;
-            document.body.classList.add('cam-on');
             setEstadoPill('🟢 Escaneando…', true);
 
             // Poblar selector de cámaras (solo la primera vez que hay permiso)
@@ -3791,12 +3431,11 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
 
         function detenerCamaraEscaner() {
             if (camLoopHandle) { clearInterval(camLoopHandle); camLoopHandle = null; }
-            if (camAutoOcrIntervalo) { clearInterval(camAutoOcrIntervalo); camAutoOcrIntervalo = null; camAutoOcrActivo = false; const b = $('camAutoOcrBtn'); if (b) b.textContent = '🔤 Auto-leer: OFF'; }
+            if (camAutoOcrIntervalo) { clearInterval(camAutoOcrIntervalo); camAutoOcrIntervalo = null; }
             if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; }
             const video = $('camVideo');
             if (video) video.srcObject = null;
             camActiva = false;
-            document.body.classList.remove('cam-on');
             const offLayer = $('camOffLayer');
             if (offLayer) offLayer.style.display = 'flex';
             setEstadoPill('📷 Cámara apagada', false);
@@ -3813,6 +3452,7 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
 
         // ---- DETECCIÓN (nativa BarcodeDetector, con fallback a ZXing por CDN) ----
         function iniciarDeteccion(video) {
+            setTimeout(arrancarAutoOCR, 1200);
             if ('BarcodeDetector' in window) {
                 (async () => {
                     try {
@@ -3849,47 +3489,10 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
             return null;
         }
 
-        // ---- GATILLO: la cámara solo lee mientras se mantiene apretado el botón, y una sola lectura por apretón ----
-        let gatilloModo = localStorage.getItem('jat_gatillo') !== '0';
-        let gatilloApretado = false;
-        let gatilloYaLeyo = false;
-        function actualizarGatilloUI() {
-            const b = $('gatilloBtn');
-            document.body.classList.toggle('gatillo-modo', gatilloModo);
-            document.body.classList.toggle('gatillo-on', gatilloModo && gatilloApretado && !gatilloYaLeyo);
-            document.body.classList.toggle('gatillo-leido', gatilloModo && gatilloApretado && gatilloYaLeyo);
-            if (b) b.querySelector('span').textContent = !gatilloApretado ? 'MANTENER PARA LEER' : (gatilloYaLeyo ? 'LEÍDO — SUELTE' : 'LEYENDO…');
-        }
-        function apretarGatillo(ev) {
-            if (ev) { ev.preventDefault(); try { ev.currentTarget.setPointerCapture(ev.pointerId); } catch (_) {} }
-            if (gatilloApretado) return;
-            gatilloApretado = true; gatilloYaLeyo = false;
-            camUltimoCodigo = ''; camUltimoTiempo = 0;
-            try { if (navigator.vibrate) navigator.vibrate(15); } catch (_) {}
-            actualizarGatilloUI();
-        }
-        function soltarGatillo() {
-            if (!gatilloApretado) return;
-            gatilloApretado = false; gatilloYaLeyo = false;
-            actualizarGatilloUI();
-        }
-        function alternarModoGatillo() {
-            gatilloModo = !gatilloModo;
-            localStorage.setItem('jat_gatillo', gatilloModo ? '1' : '0');
-            soltarGatillo(); actualizarGatilloUI();
-            showAlert(gatilloModo ? '🔫 Gatillo activado: mantenga apretado para leer' : '📷 Lectura continua: la cámara lee sola', 'info');
-        }
-        window.jatGatillo = { modo: () => gatilloModo, alternar: alternarModoGatillo };
-
-        function manejarLecturaCamara(codigosCrudos, forzar = false) {
+        function manejarLecturaCamara(codigosCrudos) {
             const codigos = (codigosCrudos || []).map(c => (c || '').trim()).filter(Boolean);
             if (!codigos.length) return;
-            if (!forzar && gatilloModo && camActiva) {
-                if (!gatilloApretado || gatilloYaLeyo) return;
-                gatilloYaLeyo = true;
-                window._jatLecturaGatilloT = Date.now();
-                actualizarGatilloUI();
-            }
+            camUltimaLecturaBarcode = Date.now();
             const exacto = elegirCodigoExactoEnEgreso(codigos);
             if (exacto) { manejarCodigoDetectado(exacto); return; }
             // Ninguno de los códigos vistos en el cuadro coincide EXACTO con este egreso.
@@ -3903,9 +3506,8 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
             if (navigator.vibrate) navigator.vibrate([40, 40, 40]);
             const linea = $('camLastLine');
             if (linea) { linea.style.display = 'block'; linea.textContent = '📦 Leído: ' + primero + ' (no coincide con este egreso)'; }
-            try { lastSearchTerm = primero; } catch (_) {}
             mostrarUltimoEscaneo(-1, 'error', '❌ PRODUCTO NO ENCONTRADO — código leído: ' + primero);
-            hablarHat('Producto no encontrado en este egreso. Verifique.', 'error', { force: true });
+            hablarHat('Producto no encontrado.', 'error', {force:true, interrupt:true});
         }
 
         // ---- PANTALLA COMPLETA — oculta la barra de direcciones de Chrome sin instalar nada ----
@@ -3951,36 +3553,64 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
                 .filter(t => t.length >= 3); // ignora palabras muy cortas (DE, EL, CM, cantidades sueltas...)
         }
 
+        // Distancia de edición (tolera 1 letra mal leída por el OCR: "BEAM" vs "BEAN")
+        function distanciaEdicionOCR(a, b) {
+            const m = a.length, n = b.length;
+            if (!m) return n; if (!n) return m;
+            let prev = Array.from({length: n + 1}, (_, k) => k);
+            for (let x = 1; x <= m; x++) {
+                const cur = [x];
+                for (let y = 1; y <= n; y++) {
+                    cur[y] = Math.min(prev[y] + 1, cur[y - 1] + 1, prev[y - 1] + (a[x - 1] === b[y - 1] ? 0 : 1));
+                }
+                prev = cur;
+            }
+            return prev[n];
+        }
+
+        function tokenCoincideOCR(tp, tl) {
+            if (tp === tl) return true;
+            if (tp.length >= 4 && tl.length >= 4 && (tp.includes(tl) || tl.includes(tp))) return true;
+            if (tp.length >= 5 && tl.length >= 5 && Math.abs(tp.length - tl.length) <= 1 && distanciaEdicionOCR(tp, tl) <= 1) return true;
+            return false;
+        }
+
+        // Devuelve { producto } si hay UN ganador claro, { ambiguo:true } si varios empatan, o {} si nada coincide.
         function buscarProductoPorTextoOCR(textoCrudo) {
             const textoPlano = normalizarParaOCR(textoCrudo);
             const tokensLeidos = tokensOCR(textoCrudo);
-            if (!textoPlano && !tokensLeidos.length) return null;
+            if (!textoPlano && !tokensLeidos.length) return {};
 
-            // 1) Si el código de barras completo aparece en el texto leído, es la coincidencia más confiable.
+            // 1) Si el código de barras completo aparece impreso en el texto leído, es lo más confiable.
             for (const p of currentProductos) {
                 const bNorm = normalizarParaOCR(p.barcode);
-                if (bNorm.length >= 6 && textoPlano.includes(bNorm)) return p;
+                if (bNorm.length >= 6 && textoPlano.includes(bNorm)) return { producto: p };
             }
 
-            // 2) Coincidencia por nombre/descripción: como la cámara suele ver solo PARTE de la
-            // etiqueta (no el texto completo), se compara por palabras en común en vez de exigir
-            // que el texto leído contenga el nombre entero. Se admite coincidencia parcial entre
-            // palabras (ej. "BEAM2" del catálogo vs "BEAM" leído) porque el OCR y el catálogo no
-            // siempre separan las palabras igual.
-            let mejor = null, mejorPuntaje = 0;
+            // 2) Coincidencia por palabras del nombre (la cámara casi nunca ve la etiqueta completa).
+            const candidatos = [];
             for (const p of currentProductos) {
                 const nombreProducto = p.productName || p.descripcion || p.nombre || '';
-                const tokensProducto = tokensOCR(nombreProducto);
-                if (!tokensProducto.length) continue;
-                let coincidencias = 0;
-                for (const tp of tokensProducto) {
-                    const hay = tokensLeidos.some(tl => tp.includes(tl) || tl.includes(tp));
-                    if (hay) coincidencias++;
+                const tokensProd = [...new Set(tokensOCR(nombreProducto))];
+                if (!tokensProd.length) continue;
+                let n = 0, chars = 0;
+                for (const tp of tokensProd) {
+                    if (tokensLeidos.some(tl => tokenCoincideOCR(tp, tl))) { n++; chars += tp.length; }
                 }
-                const suficiente = coincidencias >= 2 || (tokensProducto.length <= 2 && coincidencias === tokensProducto.length && coincidencias >= 1);
-                if (suficiente && coincidencias > mejorPuntaje) { mejor = p; mejorPuntaje = coincidencias; }
+                const suficiente = (n >= 2 && chars >= 7) || (tokensProd.length <= 2 && n === tokensProd.length && chars >= 4);
+                if (suficiente) candidatos.push({ p, n, chars });
             }
-            return mejor;
+            if (!candidatos.length) return {};
+            candidatos.sort((a, b) => (b.chars - a.chars) || (b.n - a.n));
+            const mejorChars = candidatos[0].chars;
+            let empatados = candidatos.filter(c => c.chars === mejorChars).map(c => c.p);
+            if (empatados.length > 1) {
+                // Variantes del mismo modelo (ej. colores): si solo una sigue pendiente, es esa.
+                const pendientes = empatados.filter(p => !isProductoVerificado(p));
+                if (pendientes.length === 1) return { producto: pendientes[0] };
+                return { ambiguo: true, cantidad: empatados.length };
+            }
+            return { producto: empatados[0] };
         }
 
         async function cargarTesseract() {
@@ -3994,37 +3624,113 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
             });
         }
 
+        // Un solo "worker" que se queda cargado: antes se creaba uno nuevo en cada lectura
+        // (descargando el idioma otra vez), por eso casi nunca alcanzaba a leer.
+        let ocrWorker = null, ocrWorkerPromesa = null;
+        async function obtenerOCRWorker() {
+            if (ocrWorker) return ocrWorker;
+            if (!ocrWorkerPromesa) {
+                ocrWorkerPromesa = (async () => {
+                    await cargarTesseract();
+                    const w = await window.Tesseract.createWorker(['eng', 'spa']);
+                    try { await w.setParameters({ tessedit_pageseg_mode: '11', preserve_interword_spaces: '1' }); } catch (_) {}
+                    ocrWorker = w;
+                    return w;
+                })().catch(e => { ocrWorkerPromesa = null; throw e; });
+            }
+            return ocrWorkerPromesa;
+        }
+
+        // Recorte central del video, en gris y con más contraste, reducido a un tamaño que el OCR lee rápido.
+        function capturarRecorteParaOCR(video, fw = 0.92, fh = 0.72, maxW = 1100) {
+            if (!(video && video.readyState >= 2 && video.videoWidth)) return null;
+            const vw = video.videoWidth, vh = video.videoHeight;
+            const sw = Math.round(vw * fw), sh = Math.round(vh * fh);
+            const sx = Math.round((vw - sw) / 2), sy = Math.round((vh - sh) / 2);
+            const escala = Math.min(1, maxW / sw);
+            const c = document.createElement('canvas');
+            c.width = Math.max(1, Math.round(sw * escala));
+            c.height = Math.max(1, Math.round(sh * escala));
+            const ctx = c.getContext('2d', { willReadFrequently: true });
+            try { ctx.filter = 'grayscale(1) contrast(1.35)'; } catch (_) {}
+            ctx.drawImage(video, sx, sy, sw, sh, 0, 0, c.width, c.height);
+            try { ctx.filter = 'none'; } catch (_) {}
+            return c;
+        }
+
+        // Mide qué tan "enfocada/con detalle" está la imagen (promedio de cambios entre píxeles vecinos).
+        function nitidezCanvasOCR(c) {
+            const w = 160, h = Math.max(2, Math.round(160 * c.height / c.width));
+            const t = document.createElement('canvas'); t.width = w; t.height = h;
+            const tc = t.getContext('2d', { willReadFrequently: true });
+            tc.drawImage(c, 0, 0, w, h);
+            const d = tc.getImageData(0, 0, w, h).data;
+            let suma = 0, cuenta = 0;
+            for (let y = 0; y < h - 1; y++) {
+                for (let x = 0; x < w - 1; x++) {
+                    const i = (y * w + x) * 4;
+                    suma += Math.abs(d[i] - d[i + 4]) + Math.abs(d[i] - d[i + w * 4]);
+                    cuenta++;
+                }
+            }
+            return cuenta ? suma / cuenta : 0;
+        }
+
+        async function blobACanvasOCR(blob, maxW = 1400) {
+            const bmp = await createImageBitmap(blob);
+            const escala = Math.min(1, maxW / bmp.width);
+            const c = document.createElement('canvas');
+            c.width = Math.round(bmp.width * escala); c.height = Math.round(bmp.height * escala);
+            c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+            return c;
+        }
+
+        let camOcrOcupado = false;
+        let camAutoOcrIntervalo = null;
+        let camAutoOcrActivo = localStorage.getItem('jat_auto_ocr') !== '0'; // ENCENDIDO por defecto
+        let camUltimaLecturaBarcode = 0;
+        let camOcrBloqueado = null; // producto ya contado por texto: hay que alejar la cámara antes de contarlo otra vez
+
         async function procesarTextoOCR(fuente, modo = 'manual') {
             if (!fuente) return;
             if (camOcrOcupado) return; // evita solapar lecturas si la anterior sigue en curso
             camOcrOcupado = true;
             if (modo === 'manual') setEstadoPill('🟡 Leyendo texto (puede tardar unos segundos)…', false);
             try {
-                await cargarTesseract();
-                const { data } = await window.Tesseract.recognize(fuente, 'spa+eng');
+                if (fuente instanceof Blob) fuente = await blobACanvasOCR(fuente);
+                const worker = await obtenerOCRWorker();
+                const { data } = await worker.recognize(fuente);
                 const texto = (data && data.text) || '';
                 const textoNorm = normalizarParaOCR(texto);
-                const producto = buscarProductoPorTextoOCR(texto);
-                if (producto && producto.barcode) {
+                const resumen = texto.trim().replace(/\s+/g, ' ').slice(0, 70);
+                const linea = $('camLastLine');
+                const res = buscarProductoPorTextoOCR(texto);
+                if (res.producto && res.producto.barcode) {
+                    const bc = res.producto.barcode;
+                    if (modo === 'auto') {
+                        if (camOcrBloqueado === bc) return; // sigue el mismo ítem en cuadro: no recontar
+                        camOcrBloqueado = bc;
+                    }
                     setEstadoPill('🟢 Texto reconocido — producto encontrado', true);
-                    manejarLecturaCamara([producto.barcode], modo === 'manual');
+                    if (linea) { linea.style.display = 'block'; linea.textContent = '🔤 Texto: "' + resumen + '"'; }
+                    manejarLecturaCamara([bc]);
+                    return;
+                }
+                if (modo === 'auto') camOcrBloqueado = null;
+                if (res.ambiguo) {
+                    if (linea) { linea.style.display = 'block'; linea.textContent = '🔤 "' + resumen + '" — coinciden ' + res.cantidad + ' productos (enfoca el color o código)'; }
+                    if (modo === 'manual') {
+                        mostrarUltimoEscaneo(-1, 'error', '⚠️ VARIOS PRODUCTOS COINCIDEN — enfoca el color o el código');
+                        hablarHat('Varios productos coinciden.', 'warn', {force:true});
+                    }
                 } else if (modo === 'manual') {
-                    const resumen = texto.trim().replace(/\s+/g, ' ').slice(0, 70) || '(sin texto legible)';
                     setEstadoPill('🔤 Texto leído, sin coincidencia', false);
-                    const linea = $('camLastLine');
-                    if (linea) { linea.style.display = 'block'; linea.textContent = '🔤 Leído: "' + resumen + '" (no coincide)'; }
+                    if (linea) { linea.style.display = 'block'; linea.textContent = '🔤 Leído: "' + (resumen || '(sin texto legible)') + '" (no coincide)'; }
                     mostrarUltimoEscaneo(-1, 'error', '❌ PRODUCTO NO ENCONTRADO por texto leído');
-                    hablarHat('No encontré ese producto por el texto. Verifique.', 'error', { force: true });
-                } else if (textoNorm.length >= 4) {
-                    // Modo automático: si de verdad se leyó texto pero no coincide, avisa sin ser
-                    // intrusivo (sin alerta fuerte cada pocos segundos) — solo actualiza la línea.
-                    const resumen = texto.trim().replace(/\s+/g, ' ').slice(0, 70);
-                    const linea = $('camLastLine');
-                    if (linea) { linea.style.display = 'block'; linea.textContent = '🔤 Auto-leído: "' + resumen + '" (sin coincidencia)'; }
-                    setEstadoPill('🟠 Auto-leyendo texto…', true);
+                    hablarHat('Producto no encontrado.', 'error', {force:true, interrupt:true});
                 } else {
-                    // Sin texto claro en el cuadro (ej. apuntando a una superficie vacía): no molesta.
-                    setEstadoPill('🟠 Auto-leyendo texto…', true);
+                    if (textoNorm.length >= 4 && linea) { linea.style.display = 'block'; linea.textContent = '🔤 Auto-leído: "' + resumen + '" (sin coincidencia)'; }
+                    setEstadoPill('🟢 Escaneando código y texto…', true);
                 }
             } catch (e) {
                 console.warn('OCR falló:', e);
@@ -4037,41 +3743,41 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
             }
         }
 
-        let camOcrOcupado = false;
-        let camAutoOcrIntervalo = null;
-        let camAutoOcrActivo = false;
+        function actualizarBotonAutoOCR() {
+            const btn = $('camAutoOcrBtn');
+            if (btn) btn.textContent = camAutoOcrActivo ? '🔤 Auto-leer texto: ON 🟢' : '🔤 Auto-leer texto: OFF';
+        }
 
-        async function tomarFotogramaVideoActual() {
-            const video = $('camVideo');
-            if (!(video && video.readyState >= 2 && video.videoWidth)) return null;
-            const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            canvas.getContext('2d').drawImage(video, 0, 0);
-            return await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.92));
+        // Ciclo automático: si no hay código de barras a la vista y la imagen está enfocada, lee el texto.
+        async function cicloAutoOCR() {
+            if (!camAutoOcrActivo || !camActiva || camOcrOcupado || document.hidden) return;
+            if (Date.now() - camUltimaLecturaBarcode < 2500) return; // el código de barras tiene prioridad
+            const c = capturarRecorteParaOCR($('camVideo'));
+            if (!c) return;
+            if (nitidezCanvasOCR(c) < 5) { camOcrBloqueado = null; return; } // borroso o sin detalle: se movió la cámara
+            procesarTextoOCR(c, 'auto');
+        }
+
+        function arrancarAutoOCR() {
+            if (camAutoOcrIntervalo) { clearInterval(camAutoOcrIntervalo); camAutoOcrIntervalo = null; }
+            actualizarBotonAutoOCR();
+            if (!camAutoOcrActivo || !camActiva) return;
+            obtenerOCRWorker().catch(e => console.warn('OCR no pudo precargarse:', e)); // deja listo el lector
+            camAutoOcrIntervalo = setInterval(cicloAutoOCR, 1300);
         }
 
         function alternarAutoOCR() {
             camAutoOcrActivo = !camAutoOcrActivo;
-            const btn = $('camAutoOcrBtn');
-            if (camAutoOcrActivo) {
-                if (btn) btn.textContent = '🔤 Auto-leer: ON 🟢';
-                if (camAutoOcrIntervalo) clearInterval(camAutoOcrIntervalo);
-                camAutoOcrIntervalo = setInterval(async () => {
-                    if (!camAutoOcrActivo) return;
-                    const frame = await tomarFotogramaVideoActual();
-                    if (frame) procesarTextoOCR(frame, 'auto');
-                }, 3500);
-            } else {
-                if (btn) btn.textContent = '🔤 Auto-leer: OFF';
-                if (camAutoOcrIntervalo) { clearInterval(camAutoOcrIntervalo); camAutoOcrIntervalo = null; }
-                setEstadoPill('🟢 Escaneando…', true);
-            }
+            try { localStorage.setItem('jat_auto_ocr', camAutoOcrActivo ? '1' : '0'); } catch (_) {}
+            camOcrBloqueado = null;
+            arrancarAutoOCR();
+            if (!camAutoOcrActivo) setEstadoPill('🟢 Escaneando (solo código de barras)…', true);
+            showAlert(camAutoOcrActivo ? '🔤 Lectura automática de texto ACTIVADA' : '🔤 Lectura automática de texto apagada', 'info');
         }
 
         async function leerTextoDesdeCamara() {
-            const frame = await tomarFotogramaVideoActual();
-            if (frame) { await procesarTextoOCR(frame, 'manual'); return; }
+            const c = capturarRecorteParaOCR($('camVideo'), 1, 1, 1400);
+            if (c) { await procesarTextoOCR(c, 'manual'); return; }
             // Cámara en vivo apagada/bloqueada (ej. content://) → usar la foto nativa como respaldo.
             camModoSiguienteFoto = 'ocr';
             $('camCaptureInput')?.click();
@@ -4152,7 +3858,7 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
                 }
                 if (codigosCandidatos.length) {
                     setEstadoPill('🟢 Foto analizada — ' + codigosCandidatos.length + ' código(s) visto(s)', true);
-                    manejarLecturaCamara(codigosCandidatos, true);
+                    manejarLecturaCamara(codigosCandidatos);
                 } else {
                     throw new Error('sin código detectado');
                 }
@@ -4168,9 +3874,7 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
             const codigo = (codigoCrudo || '').trim();
             if (!codigo) return;
             const ahora = Date.now();
-            // Mientras el MISMO código siga a la vista (lecturas con menos de 1,5 s de separación),
-            // no se vuelve a contar: hay que retirar el producto del cuadro para que cuente otra vez.
-            if (codigo === camUltimoCodigo && (ahora - camUltimoTiempo) < Math.max(CAM_DEBOUNCE_MS, 1500)) { camUltimoTiempo = ahora; return; }
+            if (codigo === camUltimoCodigo && (ahora - camUltimoTiempo) < CAM_DEBOUNCE_MS) return;
             camUltimoCodigo = codigo;
             camUltimoTiempo = ahora;
 
@@ -4234,6 +3938,7 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
             $('camFullscreenBtn')?.addEventListener('click', alternarPantallaCompleta);
             $('camLeerTextoBtn')?.addEventListener('click', leerTextoDesdeCamara);
             $('camAutoOcrBtn')?.addEventListener('click', alternarAutoOCR);
+            actualizarBotonAutoOCR();
             const camMasBtn = $('camMasBtn'), camDropdown = $('camDropdown');
             const cerrarCamDropdown = () => { if (camDropdown) camDropdown.style.display = 'none'; camMasBtn?.setAttribute('aria-expanded', 'false'); };
             camMasBtn?.addEventListener('click', (ev) => {
@@ -4274,26 +3979,6 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
         }
         // Este script corre al final del <body>, así que el DOM ya existe;
         // se enlaza directo y también por DOMContentLoaded por seguridad.
-        window.jatCam = {
-            activa: () => camActiva,
-            detener: detenerCamaraEscaner,
-            iniciar: () => {
-                const esOrigenLocal = (location.protocol === 'content:' || location.protocol === 'file:');
-                if (esOrigenLocal) { camModoSiguienteFoto = 'barcode'; $('camCaptureInput')?.click(); return; }
-                document.body.classList.add('cam-on');
-                iniciarCamaraEscaner();
-            }
-        };
-        $('camCerrarMovilBtn')?.addEventListener('click', detenerCamaraEscaner);
-        (function enlazarGatillo() {
-            const b = $('gatilloBtn');
-            if (!b) return;
-            b.addEventListener('pointerdown', apretarGatillo);
-            ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => b.addEventListener(ev, soltarGatillo));
-            b.addEventListener('contextmenu', ev => ev.preventDefault());
-            window.addEventListener('blur', soltarGatillo);
-            actualizarGatilloUI();
-        })();
         if (document.readyState !== 'loading') enlazarBotonesCamara();
         else document.addEventListener('DOMContentLoaded', enlazarBotonesCamara);
 
@@ -4303,198 +3988,6 @@ body{background:#f3f5f8;font-family:Inter,'Segoe UI',system-ui,sans-serif}
 
     })();
     </script>
-    <script>
-    /* ==== JAT MÓVIL — Navegación por pestañas (Opción B) ==== */
-    (function () {
-        const $ = id => document.getElementById(id);
-        const verifAbierto = () => $('verificadorModal')?.style.display === 'flex';
-        const tablaAbierta = () => $('tablaPantallaCompleta')?.classList.contains('abierta');
-        const setActivo = k => document.querySelectorAll('#mNav .mnav-btn').forEach(b => b.classList.toggle('active', b.dataset.mnav === k));
-        const hayEgreso = () => {
-            if (typeof currentProductos !== 'undefined' && currentProductos.length) return true;
-            showAlert('⚠️ Carga o abre un egreso primero', 'warning');
-            return false;
-        };
-        const clickId = id => () => $(id)?.click();
-        const menu = (accion, cerrarVerif) => () => {
-            if (cerrarVerif) { if (tablaAbierta()) cerrarTablaPantallaCompleta(); if (verifAbierto()) window.cerrarVerificador(); setActivo('egreso'); }
-            document.querySelector(`.menu-item[data-action="${accion}"]`)?.click();
-        };
-
-        function cerrarHoja() { $('mSheet').classList.remove('show'); $('mSheetBg').classList.remove('show'); }
-        function abrirHoja(titulo, items, estado) {
-            $('mSheetTitle').textContent = titulo;
-            const body = $('mSheetBody');
-            body.innerHTML = (estado ? `<div class="msheet-estado">${estado}</div>` : '') + items.map((it, i) =>
-                it === '-' ? '<div class="msheet-sep"></div>' :
-                `<button type="button" class="msheet-item" data-i="${i}"><span class="ico">${it[0]}</span>${it[1]}</button>`).join('');
-            body.querySelectorAll('.msheet-item').forEach(b => b.addEventListener('click', () => {
-                const it = items[+b.dataset.i]; cerrarHoja(); setTimeout(it[2], 60);
-            }));
-            $('mSheet').classList.add('show'); $('mSheetBg').classList.add('show');
-        }
-        $('mSheetBg')?.addEventListener('click', cerrarHoja);
-
-        function irEgreso() {
-            if (tablaAbierta()) cerrarTablaPantallaCompleta();
-            if (verifAbierto()) window.cerrarVerificador();
-            if (!$('miWrap')) cargarVistaNuevoEgreso(false);
-            else pintarTarjetaActivo();
-            setActivo('egreso');
-        }
-        function irLista() {
-            if (!hayEgreso()) return;
-            if (!verifAbierto()) abrirVerificador();
-            abrirTablaPantallaCompleta();
-            setActivo('lista');
-        }
-        function escanear() {
-            if (!hayEgreso()) return;
-            if (tablaAbierta()) cerrarTablaPantallaCompleta();
-            if (!verifAbierto()) abrirVerificador();
-            setActivo('');
-            if (window.jatCam?.activa()) { window.jatCam.detener(); return; }
-            window.jatCam?.iniciar();
-        }
-        function informe() {
-            if (!hayEgreso()) return;
-            abrirHoja('Informe del egreso', [
-                ['🧾', 'Cierre seguro (resumen)', clickId('cierreBtn')],
-                ['🖨️', 'Imprimir', clickId('imprimirBtn')],
-                ['📄', 'Descargar PDF', clickId('descargarPdfBtn')],
-                ['📊', 'Exportar CSV (Excel)', clickId('exportarExcelBtn')]
-            ]);
-        }
-        function mas() {
-            const items = [];
-            if (verifAbierto()) {
-                items.push(
-                    ['⌨️', 'Escribir código a mano', () => { window.jatCam?.detener(); if (tablaAbierta()) cerrarTablaPantallaCompleta(); const i = $('scannerInput'); if (i) { i.removeAttribute('inputmode'); i.focus(); } }],
-                    ['🔤', 'Leer texto de la etiqueta', () => { if (!window.jatCam?.activa()) window.jatCam?.iniciar(); setTimeout(() => $('camLeerTextoBtn')?.click(), window.jatCam?.activa() ? 0 : 1500); }],
-                    ['🔁', ($('camAutoOcrBtn')?.textContent || 'Auto-leer').replace('🔤 ', '') + ' (leer texto automático)', () => { if (!window.jatCam?.activa()) { showAlert('Primero toca el botón de escanear para abrir la cámara', 'info'); return; } $('camAutoOcrBtn')?.click(); }],
-                    [window.jatGatillo?.modo() ? '🔫' : '📷', window.jatGatillo?.modo() ? 'Gatillo activado — tocar para lectura continua' : 'Lectura continua — tocar para activar gatillo', () => window.jatGatillo?.alternar()],
-                    ['🛡️', 'Confirmar repetidos: ' + textoVentanaAntiDup() + ' — tocar para cambiar', cambiarVentanaAntiDup],
-                    ['🔢', 'Conteo rápido', clickId('conteoRapidoBtn')],
-                    ['✅', 'Marcar todos', clickId('marcarTodoBtn')],
-                    [voiceEnabled ? '🔊' : '🔇', voiceEnabled ? 'Voz encendida — tocar para apagar' : 'Voz apagada — tocar para encender', clickId('voiceToggleBtn')],
-                    '-');
-            }
-            items.push(
-                ['📄', 'Nuevo egreso desde PDF', menu('nuevoEgreso', true)],
-                ['📁', 'Abrir egreso guardado', menu('abrirEgreso', false)],
-                ['💾', 'Guardar', menu('guardarAhora', false)],
-                ['📂', 'Guardar como / Carpeta', menu('guardarComo', false)],
-                ['🗂️', 'Carpeta de trabajo', menu('carpetaTrabajo', true)],
-                ['🔍', 'Buscar egresos', menu('buscarEgresos', false)],
-                ['📋', 'Historial / avances', menu('historial', true)],
-                ['📝', 'Cartas de constancia', menu('constancias', true)]);
-            const t = id => ($(id)?.textContent || '').trim();
-            const estado = [t('hatFolderStatus'), t('hatEgresoStatus'), t('hatSaveStatus')].filter(Boolean).join('<br>');
-            abrirHoja('Más opciones', items, estado);
-        }
-
-
-        /* ---- Pantalla de inicio para celular (reorganiza la vista de Nuevo egreso) ---- */
-        const esMovil = () => document.documentElement.classList.contains('jat-movil');
-        function datosEgresoActivo() {
-            if (typeof currentProductos === 'undefined' || !currentProductos.length) return null;
-            const total = totalEsperado(), ver = totalVerificado();
-            return { nombre: (currentEgreso && (currentEgreso.nombre || currentEgreso.secuencial)) || 'Egreso sin guardar', total, ver, pct: total ? Math.round(ver / total * 100) : 0, productos: currentProductos.length };
-        }
-        function pintarTarjetaActivo() {
-            const cont = $('miActivo');
-            if (!cont) return;
-            const d = datosEgresoActivo();
-            if (!d) { cont.style.display = 'none'; return; }
-            cont.style.display = 'flex';
-            cont.innerHTML = `<span class="mi-kicker">Egreso en curso</span>
-                <span class="mi-nombre">${htmlSeguro(d.nombre)}</span>
-                <div class="mi-barra"><div style="width:${d.pct}%"></div></div>
-                <span class="mi-cifras">${formatearQty(d.ver)} de ${formatearQty(d.total)} unidades verificadas · ${d.productos} productos · ${d.pct}%</span>
-                <div class="mi-row"><button type="button" class="mi-btn mi-btn-oro" id="miContinuar">Continuar verificando</button><button type="button" class="mi-btn mi-btn-borde" id="miVerLista">Ver lista</button></div>`;
-            $('miContinuar').addEventListener('click', () => { abrirVerificador(); setActivo(''); });
-            $('miVerLista').addEventListener('click', irLista);
-        }
-        function mobilizarNuevoEgreso() {
-            if (!esMovil()) return;
-            const main = $('mainContent');
-            const tarjeta = main?.firstElementChild;
-            const area = $('tablaEgresoInput');
-            if (!tarjeta || !area || $('miWrap')) return;
-            const cuerpo = area.parentElement;
-            const cab = tarjeta.firstElementChild;
-            cab.classList.add('mi-oculto');
-            const wrap = document.createElement('div');
-            wrap.id = 'miWrap'; wrap.className = 'mi-wrap';
-            wrap.innerHTML = `<div class="mi-saludo">Inicio</div>
-                <div class="mi-card mi-activo" id="miActivo" style="display:none"></div>
-                <span class="mi-kicker">Cargar un egreso</span>
-                <button type="button" class="mi-tile principal" id="miPdf"><span class="mi-ico">📄</span><span><b>Nuevo egreso desde PDF</b><small>Elija el PDF y se cargan los productos solos</small></span></button>
-                <button type="button" class="mi-tile" id="miAbrir"><span class="mi-ico">📁</span><span><b>Abrir egreso guardado</b><small>Continúe un archivo .hat de su carpeta (o elija un PDF)</small></span></button>
-                <button type="button" class="mi-tile" id="miHist"><span class="mi-ico">📋</span><span><b>Historial / avances</b><small>Egresos guardados en este celular</small></span></button>
-                <div id="miPdfEstado"></div>
-                <details class="mi-details" id="miPegar"><summary>Pegar la tabla a mano</summary><div id="miPegarCuerpo" style="display:flex;flex-direction:column;gap:10px"></div></details>
-                <div id="miResultado" style="display:flex;flex-direction:column;gap:10px"></div>
-                <div class="mi-pie" id="miPie"></div>`;
-            cuerpo.innerHTML === '' ? null : null;
-            const p = cuerpo.querySelector('p'); if (p) p.classList.add('mi-oculto');
-            const cajaPdf = $('seleccionarPdfBtn')?.parentElement;
-            cuerpo.prepend(wrap);
-            // mover elementos existentes (conservan sus funciones)
-            $('miPdfEstado').append($('pdfStatus'), $('leerPdfBtn'));
-            $('pdfStatus').style.cssText = 'font-size:.8rem;color:#4b5b70;display:block;margin:-4px 2px 6px';
-            $('leerPdfBtn').classList.add('mi-oculto');
-            $('miPegarCuerpo').append(area, $('procesarTablaBtn'));
-            const res = $('miResultado');
-            res.append($('tablaPreviewContainer'), $('abrirVerificadorDirectoBtn'), $('guardarComoBtn'));
-            $('miPie').append($('oneDriveStatus'), $('limpiarTablaBtn'));
-            ['elegirCarpetaBtn', 'guardarCarpetaBtn', 'imprimirActualBtn'].forEach(id => $(id)?.classList.add('mi-oculto'));
-            if (cajaPdf) cajaPdf.classList.add('mi-oculto');
-            const filaBtns = $('elegirCarpetaBtn')?.parentElement; if (filaBtns) filaBtns.classList.add('mi-oculto');
-            area.style.minHeight = '140px';
-            $('miPdf').addEventListener('click', () => $('pdfEgresoInput')?.click());
-            $('miAbrir').addEventListener('click', () => abrirEgresoGuardado());
-            $('miHist').addEventListener('click', () => cargarVistaHistorial());
-            pintarTarjetaActivo();
-        }
-        const _cvne = window.cargarVistaNuevoEgreso;
-        window.cargarVistaNuevoEgreso = function (autoAbrirPDF) {
-            _cvne.call(this, esMovil() ? false : autoAbrirPDF);
-            mobilizarNuevoEgreso();
-            if (autoAbrirPDF) setTimeout(() => $('pdfEgresoInput')?.click(), 150);
-        };
-        const _ase = window.actualizarSidebarEgresoActivo;
-        if (typeof _ase === 'function') window.actualizarSidebarEgresoActivo = function () { const r = _ase.apply(this, arguments); pintarTarjetaActivo(); return r; };
-        mobilizarNuevoEgreso();
-
-        /* ---- Verificador: deshacer junto a los botones de cantidad, ocultar tarjeta repetida ---- */
-        function ordenarVerificadorMovil() {
-            const qc = $('quickCountRow'), dz = $('deshacerBtn');
-            if (esMovil() && qc && dz && dz.parentElement !== qc) qc.append(dz);
-            const inp = $('scannerInput');
-            if (esMovil() && inp) inp.placeholder = 'Escanee o escriba código o nombre';
-        }
-        ordenarVerificadorMovil();
-        window.addEventListener('resize', ordenarVerificadorMovil);
-        const panelSel = $('selectedProductPanel'), panelUlt = $('lastScanPanel');
-        function revisarDuplicado() {
-            if (!panelSel || !panelUlt) return;
-            const igual = panelUlt.style.display === 'block' && ($('selectedProductCode')?.innerText || '').trim() !== '' && $('selectedProductCode').innerText.replace(/\D/g, '') === ($('lastScanCode')?.innerText || '').replace(/\D/g, '');
-            panelSel.classList.toggle('mi-duplicado', igual);
-        }
-        if (panelSel && panelUlt) {
-            const obs = new MutationObserver(revisarDuplicado);
-            [panelSel, panelUlt].forEach(el => obs.observe(el, { attributes: true, childList: true, subtree: true, characterData: true }));
-        }
-        const acciones = { egreso: irEgreso, lista: irLista, informe, mas };
-        document.querySelectorAll('#mNav .mnav-btn').forEach(b => b.addEventListener('click', () => acciones[b.dataset.mnav]?.()));
-        $('mNavScan')?.addEventListener('click', escanear);
-        $('cerrarTablaPantallaBtn')?.addEventListener('click', () => setActivo(''));
-        const _cv = window.cerrarVerificador;
-        window.cerrarVerificador = function () { _cv.apply(this, arguments); setActivo('egreso'); pintarTarjetaActivo(); };
-    })();
-    </script>
-
     <!-- ====================================================================
          NOTAS DE AUDITORÍA — SEGUNDA PASADA (Jorge reportó: "cámara no funciona")
          Sin log de consola real del teléfono, se auditó el código en busca de
