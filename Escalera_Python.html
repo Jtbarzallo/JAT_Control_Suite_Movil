@@ -1,0 +1,898 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
+<title>Escalera de Python</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
+<style>
+/* Layout: riel de escalones a la izquierda, lección de una columna a la derecha; en teléfono el riel es una tira horizontal. */
+:root {
+  --bg: #eef3f4; --surface: #ffffff; --sunken: #e1e9eb; --fg: #13293a; --muted: #4d6271; --line: #c6d3d8;
+  --accent: #15598a; --on-accent: #ffffff; --mark: #f2c230; --on-mark: #2a2100;
+  --code-bg: #10222f; --code-fg: #e6eef2; --code-muted: #8ba3b1; --code-line: #27404f;
+  --t-kw: #7cc4f5; --t-str: #f4d06f; --t-num: #f0a58a; --t-com: #84a0ae; --t-fn: #93e0c3;
+  --ok: #17693f; --ok-bg: #dcf1e5; --bad: #a82d2d; --bad-bg: #fae5e2;
+  --display: "Bricolage Grotesque", "Trebuchet MS", sans-serif;
+  --body: "Atkinson Hyperlegible", Verdana, Arial, sans-serif;
+  --mono: "JetBrains Mono", Consolas, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0e1b25; --surface: #162733; --sunken: #0a151d; --fg: #e8eff2; --muted: #a2b5c0; --line: #2d4453;
+  --accent: #79c0f0; --on-accent: #06202f; --mark: #f2c230; --on-mark: #2a2100;
+  --code-bg: #0a151d; --code-line: #27404f;
+  --ok: #7fdcaa; --ok-bg: #123525; --bad: #ff9f94; --bad-bg: #421f1d; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0e1b25; --surface: #162733; --sunken: #0a151d; --fg: #e8eff2; --muted: #a2b5c0; --line: #2d4453;
+  --accent: #79c0f0; --on-accent: #06202f; --mark: #f2c230; --on-mark: #2a2100;
+  --code-bg: #0a151d; --code-line: #27404f;
+  --ok: #7fdcaa; --ok-bg: #123525; --bad: #ff9f94; --bad-bg: #421f1d; color-scheme: dark }
+
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--fg); font: 18px/1.6 var(--body); }
+h1, h2, h3 { font-family: var(--display); line-height: 1.12; text-wrap: balance; margin: 0 }
+button { font: inherit; cursor: pointer }
+:focus-visible { outline: 3px solid var(--mark); outline-offset: 2px }
+code { font-family: var(--mono); font-size: .86em; background: var(--sunken); padding: .08em .35em; border-radius: 4px; overflow-wrap: anywhere }
+
+.app { display: grid; grid-template-columns: 300px minmax(0, 1fr); min-height: 100vh }
+.rail { background: var(--surface); border-right: 1px solid var(--line); padding: 24px 18px; position: sticky; top: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; gap: 18px }
+.brand { font: 800 1.55rem/1.05 var(--display); letter-spacing: -.01em }
+.brand span { background: var(--mark); color: var(--on-mark); padding: 0 .2em }
+.meter { display: flex; flex-direction: column; gap: 6px; font-size: .88rem; color: var(--muted); font-variant-numeric: tabular-nums }
+.meter i { display: block; height: 8px; background: var(--sunken); border-radius: 4px; overflow: hidden }
+.meter b { display: block; height: 100%; background: var(--accent); width: 0; transition: width .3s }
+.tabs { display: flex; gap: 6px }
+.tabs button { flex: 1; background: none; border: 1px solid var(--line); color: var(--fg); padding: 6px 4px; border-radius: 6px; font-size: .86rem }
+.tabs button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg) }
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px }
+.step { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: none; border: 0; color: var(--fg); padding: 7px 8px; border-radius: 6px; font-size: .95rem; line-height: 1.25 }
+.step:hover:not(:disabled) { background: var(--sunken) }
+.step:disabled { color: var(--muted); cursor: not-allowed }
+.step .n { flex: none; width: 28px; height: 28px; display: grid; place-items: center; border: 2px solid var(--line); border-radius: 50%; font: 600 .78rem var(--mono) }
+.step.done .n { background: var(--accent); border-color: var(--accent); color: var(--on-accent) }
+.step.now { background: var(--sunken); font-weight: 700 }
+.step.now .n { border-color: var(--mark); box-shadow: 0 0 0 2px var(--mark) }
+.railfoot { margin-top: auto; display: flex; flex-direction: column; gap: 6px; font-size: .85rem }
+.linkbtn { background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; text-align: left; font-size: .85rem }
+
+main { padding-block: 36px 90px; padding-left: max(28px, env(safe-area-inset-left, 0px)); padding-right: max(28px, env(safe-area-inset-right, 0px)); min-width: 0 }
+.page { max-width: 780px; margin: 0 auto; display: flex; flex-direction: column; gap: 26px }
+.eyebrow { font: 600 .8rem var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted) }
+h1 { font-size: clamp(2.1rem, 5vw, 3.2rem); font-weight: 800; letter-spacing: -.02em }
+.head { display: flex; flex-direction: column; gap: 10px }
+.why { font-size: 1.14rem; color: var(--muted); margin: 0 }
+.prose { display: flex; flex-direction: column; gap: 14px }
+.prose p, .prose ul { margin: 0 }
+.prose ul { padding-left: 1.2em; display: flex; flex-direction: column; gap: 6px }
+pre.show { margin: 0; background: var(--code-bg); color: var(--code-fg); padding: 14px 16px; border-radius: 8px; font: 15px/1.55 var(--mono); overflow-x: auto }
+.note { background: var(--sunken); padding: 12px 16px; border-radius: 8px; font-size: .97rem }
+.note strong { font-family: var(--display) }
+
+section.block { display: flex; flex-direction: column; gap: 12px }
+h2 { font-size: 1.55rem; font-weight: 800 }
+.sub { margin: 0; color: var(--muted) }
+
+.lab { background: var(--code-bg); border-radius: 10px; overflow: hidden; color: var(--code-fg) }
+.ed { position: relative; font: 15.5px/1.55 var(--mono); min-height: 7em }
+.ed pre, .ed textarea { margin: 0; padding: 14px 16px; font: inherit; white-space: pre; tab-size: 4; border: 0; width: 100%; overflow: auto; letter-spacing: 0 }
+.ed pre { position: absolute; inset: 0; pointer-events: none; overflow: hidden; color: var(--code-fg) }
+.ed textarea { position: relative; display: block; background: transparent; color: transparent; caret-color: var(--mark); resize: vertical; outline: none; font-size: 15.5px }
+.ed textarea::selection { background: #3f6a85; color: transparent }
+.ed:focus-within { box-shadow: inset 0 0 0 2px var(--mark) }
+.t-kw { color: var(--t-kw) } .t-str { color: var(--t-str) } .t-num { color: var(--t-num) } .t-com { color: var(--t-com); font-style: italic } .t-fn { color: var(--t-fn) }
+.bar { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--code-line) }
+.btn { border: 1px solid var(--code-muted); background: transparent; color: var(--code-fg); padding: 7px 14px; border-radius: 6px; font-size: .95rem }
+.btn:hover:not(:disabled) { background: var(--code-line) }
+.btn.go { background: var(--mark); border-color: var(--mark); color: var(--on-mark); font-weight: 700 }
+.btn.go:hover:not(:disabled) { background: var(--mark); filter: brightness(1.08) }
+.btn:disabled { opacity: .5; cursor: wait }
+.con { border-top: 1px solid var(--code-line); padding: 12px 16px; font: 15px/1.5 var(--mono); min-height: 3em; display: flex; flex-direction: column; gap: 8px }
+.con .lbl { font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--code-muted) }
+.con output { white-space: pre-wrap; overflow-wrap: anywhere; display: block }
+.con .ask { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+.con .ask input { flex: 1 1 140px; min-width: 0; background: var(--code-line); border: 1px solid var(--code-muted); color: var(--code-fg); font: 16px var(--mono); padding: 6px 10px; border-radius: 6px }
+.err { background: var(--bad-bg); color: var(--fg); border-radius: 6px; padding: 10px 12px; font: 16px/1.45 var(--body) }
+.err b { color: var(--bad); font-family: var(--display) }
+.err small { display: block; margin-top: 6px; font: 13px/1.4 var(--mono); color: var(--muted); overflow-wrap: anywhere }
+
+.quiz { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 12px }
+.opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px }
+.opt { background: var(--bg); color: var(--fg); border: 2px solid var(--line); border-radius: 8px; padding: 10px 12px; text-align: left; font: 15.5px/1.4 var(--mono); white-space: pre-wrap; min-width: 0; overflow-wrap: anywhere }
+.opt:hover:not(:disabled) { border-color: var(--accent) }
+.opt.right { border-color: var(--ok); background: var(--ok-bg) }
+.opt.wrong { border-color: var(--bad); background: var(--bad-bg) }
+.say { border-radius: 8px; padding: 10px 14px; font-size: .98rem }
+.say.ok { background: var(--ok-bg) } .say.ok b { color: var(--ok) }
+.say.no { background: var(--bad-bg) } .say.no b { color: var(--bad) }
+.say.tip { background: var(--sunken) }
+.cmp { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 8px }
+.cmp div { min-width: 0 }
+.cmp span { font-size: .8rem; color: var(--muted); display: block }
+.cmp pre { margin: 0; background: var(--code-bg); color: var(--code-fg); padding: 8px 10px; border-radius: 6px; font: 14px/1.45 var(--mono); overflow-x: auto; min-height: 2.4em }
+.task { font-size: 1.05rem; margin: 0 }
+.feedback { display: flex; flex-direction: column; gap: 8px }
+.feedback:empty { display: none }
+.next { align-self: flex-start; background: var(--accent); color: var(--on-accent); border: 0; padding: 12px 22px; border-radius: 8px; font: 800 1.08rem var(--display) }
+.next:disabled { background: var(--sunken); color: var(--muted); cursor: not-allowed }
+.gate { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; border-top: 1px solid var(--line); padding-top: 20px }
+.gate p { margin: 0; color: var(--muted); font-size: .95rem; flex: 1 1 240px }
+
+.tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px }
+table { border-collapse: collapse; width: 100%; font-size: .97rem }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top }
+th { font: 600 .78rem var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted) }
+tr:last-child td { border-bottom: 0 }
+td code { white-space: nowrap }
+
+@media (max-width: 860px) {
+  body { font-size: 17px }
+  .app { display: block }
+  .rail { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); padding-block: 16px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); gap: 12px; overflow: visible }
+  .steps { flex-direction: row; overflow-x: auto; gap: 4px; padding-bottom: 4px }
+  .steps li { flex: none }
+  .step { width: auto }
+  .step .t { display: none }
+  .step.now .t { display: inline; white-space: nowrap }
+  .railfoot { flex-direction: row; flex-wrap: wrap; gap: 14px; margin: 0 }
+  main { padding-block: 24px 70px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important } }
+</style>
+
+</head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div class="brand">Escalera de <span>Python</span></div>
+    <div class="meter"><span id="meterText"></span><i><b id="meterBar"></b></i></div>
+    <div class="tabs" role="group" aria-label="Secciones">
+      <button id="tabRuta" type="button">Ruta</button>
+      <button id="tabLibre" type="button">Taller</button>
+      <button id="tabChuleta" type="button">Chuleta</button>
+    </div>
+    <ol class="steps" id="steps"></ol>
+    <div class="railfoot" id="railfoot"></div>
+  </aside>
+  <main><div class="page" id="page"></div></main>
+</div>
+
+<script>
+/* ======================= CONTENIDO ======================= */
+const LESSONS = [
+{
+  id: "print", title: "Tu primer programa",
+  why: "Un programa es una lista de órdenes que la computadora cumple de arriba hacia abajo.",
+  body: `
+  <p><code>print()</code> muestra algo en pantalla. Es la orden que más vas a usar al comenzar, porque te deja ver qué está pasando dentro del programa.</p>
+  <pre class="show" data-py>print("Hola")
+print(2 + 3)</pre>
+  <ul>
+    <li>Lo que va entre comillas es <strong>texto</strong>: Python lo muestra tal cual.</li>
+    <li>Lo que va sin comillas se <strong>calcula</strong>: <code>2 + 3</code> da <code>5</code>.</li>
+    <li>Una línea que empieza con <code>#</code> es un <strong>comentario</strong>: es una nota para ti y Python la ignora.</li>
+  </ul>`,
+  example: `# Cambia los textos y pulsa Ejecutar\nprint("Guía 1001")\nprint("Estado: despachada")\nprint(12 * 4)`,
+  quiz: { q: "¿Qué muestra este programa?", code: `print("2 + 3")\nprint(2 + 3)`, opts: ["5\n5", "2 + 3\n5", "2 + 3\n2 + 3"], correct: 1,
+    why: "La primera línea tiene comillas, así que es texto. La segunda no tiene comillas, así que se calcula." },
+  ex: { task: "Haz que el programa muestre exactamente estas dos líneas: <code>Hola, soy Jorge</code> y debajo <code>Estoy aprendiendo Python</code>.",
+    start: `# Escribe tu programa aquí\n`,
+    tests: [{ expect: "Hola, soy Jorge\nEstoy aprendiendo Python" }],
+    hints: ["Necesitas dos órdenes print, una en cada línea.", "El texto va entre comillas: print(\"Hola, soy Jorge\")"],
+    solution: `print("Hola, soy Jorge")\nprint("Estoy aprendiendo Python")` }
+},
+{
+  id: "vars", title: "Variables",
+  why: "Una variable es un nombre que le pones a un dato para poder usarlo después.",
+  body: `
+  <p>Piensa en una caja de la bodega con una etiqueta. La etiqueta es el nombre y lo de adentro es el valor. El signo <code>=</code> significa "guarda esto aquí".</p>
+  <pre class="show" data-py>producto = "Parlante"
+cantidad = 12
+print(producto, cantidad)</pre>
+  <p>Puedes cambiar el contenido cuando quieras. Python lee primero la parte derecha del <code>=</code> y guarda el resultado en la izquierda:</p>
+  <pre class="show" data-py>cantidad = cantidad + 3   # ahora vale 15</pre>
+  <ul>
+    <li>Los nombres no llevan espacios ni tildes: usa <code>precio_unitario</code>.</li>
+    <li>No pueden empezar con número.</li>
+    <li>Mayúsculas y minúsculas cuentan: <code>Total</code> y <code>total</code> son dos variables distintas.</li>
+  </ul>`,
+  example: `cliente = "Comercial Andina"\ncajas = 8\nprint(cliente)\nprint(cajas)\n\ncajas = cajas + 2\nprint("Ahora son", cajas, "cajas")`,
+  quiz: { q: "¿Qué número se muestra?", code: `x = 5\nx = x + 2\nprint(x)`, opts: ["5", "7", "x + 2"], correct: 1,
+    why: "Python calcula x + 2 usando el valor actual (5) y guarda 7 otra vez en x." },
+  ex: { task: "Crea la variable <code>producto</code> con el texto <code>Guitarra</code> y la variable <code>cantidad</code> con el número <code>7</code>. Muéstralas en una sola línea con <code>print(producto, cantidad)</code>.",
+    start: ``,
+    tests: [{ expect: "Guitarra 7" }], must: [[/producto\s*=/, "Falta crear la variable producto."], [/cantidad\s*=/, "Falta crear la variable cantidad."], [/print\s*\(\s*producto\s*,\s*cantidad\s*\)/, "Muestra las variables con print(producto, cantidad), sin comillas."]],
+    hints: ["El texto lleva comillas y el número no.", "producto = \"Guitarra\""],
+    solution: `producto = "Guitarra"\ncantidad = 7\nprint(producto, cantidad)` }
+},
+{
+  id: "nums", title: "Números y cuentas",
+  why: "Python funciona como una calculadora que recuerda los resultados.",
+  body: `
+  <p>Hay números enteros como <code>12</code> y decimales como <code>12.5</code>. Los decimales se escriben con <strong>punto</strong>, nunca con coma.</p>
+  <div class="tablewrap"><table>
+    <tr><th>Signo</th><th>Qué hace</th><th>Ejemplo</th><th>Resultado</th></tr>
+    <tr><td><code>+ - *</code></td><td>suma, resta, multiplica</td><td><code>3 * 4</code></td><td><code>12</code></td></tr>
+    <tr><td><code>/</code></td><td>divide, siempre con decimal</td><td><code>10 / 4</code></td><td><code>2.5</code></td></tr>
+    <tr><td><code>//</code></td><td>división entera</td><td><code>17 // 5</code></td><td><code>3</code></td></tr>
+    <tr><td><code>%</code></td><td>lo que sobra de la división</td><td><code>17 % 5</code></td><td><code>2</code></td></tr>
+    <tr><td><code>**</code></td><td>potencia</td><td><code>2 ** 3</code></td><td><code>8</code></td></tr>
+  </table></div>
+  <p><code>//</code> y <code>%</code> sirven mucho en bodega: con 17 parlantes y cajas de 5, llenas <code>17 // 5</code> = 3 cajas y sobran <code>17 % 5</code> = 2.</p>
+  <p><code>round(valor, 2)</code> redondea a dos decimales, como en una factura.</p>`,
+  example: `subtotal = 19.99\niva = subtotal * 0.15\nprint(iva)\nprint(round(iva, 2))`,
+  quiz: { q: "Tienes 17 parlantes y cajas de 5. ¿Qué muestra el programa?", code: `print(17 // 5)\nprint(17 % 5)`, opts: ["3.4\n2", "3\n2", "2\n3"], correct: 1,
+    why: "// da las cajas completas (3) y % da lo que sobra (2)." },
+  ex: { task: "Con <code>subtotal = 250</code>, calcula el IVA del 15 % en una variable <code>iva</code>, suma ambos en <code>total</code> y muestra solo <code>total</code>.",
+    start: `subtotal = 250\n`,
+    tests: [{ expect: "287.5" }], must: [[/iva\s*=/, "Guarda el impuesto en una variable llamada iva."], [/total\s*=/, "Guarda la suma en una variable llamada total."]],
+    hints: ["15 % se escribe 0.15.", "iva = subtotal * 0.15"],
+    solution: `subtotal = 250\niva = subtotal * 0.15\ntotal = subtotal + iva\nprint(total)` }
+},
+{
+  id: "text", title: "Trabajar con texto",
+  why: "Nombres, códigos y direcciones casi nunca llegan limpios. Python los arregla en una línea.",
+  body: `
+  <p>Un texto se llama <em>string</em>. Se le pueden aplicar acciones con un punto:</p>
+  <div class="tablewrap"><table>
+    <tr><th>Código</th><th>Resultado</th></tr>
+    <tr><td><code>"cuenca".upper()</code></td><td><code>CUENCA</code></td></tr>
+    <tr><td><code>"CUENCA".lower()</code></td><td><code>cuenca</code></td></tr>
+    <tr><td><code>"  hola  ".strip()</code></td><td><code>hola</code> (quita espacios de los extremos)</td></tr>
+    <tr><td><code>"12-34".replace("-", "/")</code></td><td><code>12/34</code></td></tr>
+    <tr><td><code>len("Cuenca")</code></td><td><code>6</code> (cuenta los caracteres)</td></tr>
+  </table></div>
+  <p>Para mezclar texto y variables usa un <strong>f-string</strong>: pones una <code>f</code> antes de las comillas y las variables entre llaves.</p>
+  <pre class="show" data-py>cliente = "Andina"
+total = 57.5
+print(f"Factura de {cliente}: \${total:.2f}")</pre>
+  <p><code>:.2f</code> muestra siempre dos decimales: <code>$57.50</code>.</p>`,
+  example: `codigo = "  abc-123 "\nlimpio = codigo.strip().upper()\nprint(limpio)\nprint(f"El código {limpio} tiene {len(limpio)} caracteres")`,
+  quiz: { q: "¿Qué muestra?", code: `ciudad = "Cuenca"\nprint(len(ciudad))`, opts: ["5", "6", "Cuenca"], correct: 1,
+    why: "len cuenta los caracteres: C-u-e-n-c-a son 6." },
+  ex: { task: "La variable <code>cliente</code> viene con espacios y en minúsculas. Límpiala y muestra exactamente <code>Factura para: TECNODIGI</code> usando un f-string.",
+    start: `cliente = "  tecnodigi "\n`,
+    tests: [{ expect: "Factura para: TECNODIGI" }], must: [[/strip\s*\(/, "Usa strip() para quitar los espacios."], [/upper\s*\(/, "Usa upper() para pasar a mayúsculas."], [/f["']/, "Usa un f-string: f\"...\"."]],
+    hints: ["Puedes encadenar: cliente.strip().upper()", "print(f\"Factura para: {limpio}\")"],
+    solution: `cliente = "  tecnodigi "\nlimpio = cliente.strip().upper()\nprint(f"Factura para: {limpio}")` }
+},
+{
+  id: "input", title: "Pedir datos",
+  why: "Con input() el programa deja de hacer siempre lo mismo y empieza a responder a quien lo usa.",
+  body: `
+  <p><code>input()</code> detiene el programa, espera que escribas algo y te lo entrega.</p>
+  <pre class="show" data-py>nombre = input("¿Cómo te llamas? ")
+print(f"Hola, {nombre}")</pre>
+  <p>Aquí está la trampa más común: <strong><code>input()</code> siempre entrega texto</strong>, aunque escribas un número. Y <code>"5" + "3"</code> junta textos y da <code>"53"</code>. Para hacer cuentas, primero conviertes:</p>
+  <ul>
+    <li><code>int("5")</code> lo convierte en entero.</li>
+    <li><code>float("10.5")</code> lo convierte en decimal.</li>
+    <li><code>str(5)</code> lo convierte en texto.</li>
+  </ul>`,
+  example: `cajas = int(input("¿Cuántas cajas? "))\nprint(f"Son {cajas * 4} parlantes")`,
+  quiz: { q: "¿Qué muestra?", code: `a = "5"\nb = "3"\nprint(a + b)`, opts: ["8", "53", "Un error"], correct: 1,
+    why: "Con comillas son textos, y + junta textos. Por eso se usa int() antes de sumar lo que llega de input()." },
+  ex: { task: "Pide primero la cantidad y luego el precio. El precio puede tener decimales, así que conviértelo con <code>float()</code>. Muestra <code>Total: </code> seguido del resultado. Con 3 y 10.5 debe salir <code>Total: 31.5</code>.",
+    start: `cantidad = input("Cantidad: ")\n`,
+    tests: [{ inputs: ["3", "10.5"], expect: "Total: 31.5" }, { inputs: ["2", "4"], expect: "Total: 8.0" }],
+    must: [[/float\s*\(/, "Convierte el precio con float()."]],
+    hints: ["Convierte la cantidad con int() o float().", "total = int(cantidad) * float(precio)", "print(f\"Total: {total}\")"],
+    solution: `cantidad = int(input("Cantidad: "))\nprecio = float(input("Precio: "))\ntotal = cantidad * precio\nprint(f"Total: {total}")` }
+},
+{
+  id: "if", title: "Tomar decisiones",
+  why: "Aquí el programa empieza a pensar: hace una cosa u otra según los datos.",
+  body: `
+  <pre class="show" data-py>stock = 3
+if stock == 0:
+    print("Agotado")
+elif stock < 10:
+    print("Stock bajo")
+else:
+    print("Stock suficiente")</pre>
+  <ul>
+    <li>Python revisa de arriba hacia abajo y ejecuta <strong>solo el primer caso</strong> que se cumpla.</li>
+    <li>Cada condición termina en dos puntos <code>:</code>.</li>
+    <li>Las líneas de adentro van con <strong>sangría de 4 espacios</strong>. En Python, la sangría indica qué pertenece a qué.</li>
+  </ul>
+  <p>Para comparar: <code>==</code> igual, <code>!=</code> distinto, <code>&lt;</code> menor, <code>&gt;</code> mayor, <code>&lt;=</code> menor o igual, <code>&gt;=</code> mayor o igual. Para combinar condiciones: <code>and</code>, <code>or</code>, <code>not</code>.</p>
+  <div class="note"><strong>Cuidado:</strong> <code>=</code> guarda un valor y <code>==</code> pregunta si dos valores son iguales.</div>`,
+  example: `total = 1200\npagada = False\n\nif pagada:\n    print("Sin pendientes")\nelif total > 1000:\n    print("Cobrar con prioridad")\nelse:\n    print("Cobro normal")`,
+  quiz: { q: "¿Qué muestra?", code: `nota = 7\nif nota > 7:\n    print("Excelente")\nelif nota >= 7:\n    print("Aprobado")\nelse:\n    print("Reprobado")`, opts: ["Excelente", "Aprobado", "Reprobado"], correct: 1,
+    why: "7 no es mayor que 7, pero sí es mayor o igual. Se ejecuta el segundo caso." },
+  ex: { task: "Pide el stock como entero. Si es 0, muestra <code>Agotado</code>. Si es menor que 10, muestra <code>Stock bajo</code>. En otro caso, muestra <code>Stock suficiente</code>.",
+    start: `stock = int(input("Stock: "))\n`,
+    tests: [{ inputs: ["0"], expect: "Agotado" }, { inputs: ["4"], expect: "Stock bajo" }, { inputs: ["10"], expect: "Stock suficiente" }, { inputs: ["50"], expect: "Stock suficiente" }],
+    must: [[/\bif\b/, "Usa if."], [/\belse\b/, "Usa else para el último caso."]],
+    hints: ["Empieza con: if stock == 0:", "Recuerda los dos puntos y los 4 espacios de sangría."],
+    solution: `stock = int(input("Stock: "))\nif stock == 0:\n    print("Agotado")\nelif stock < 10:\n    print("Stock bajo")\nelse:\n    print("Stock suficiente")` }
+},
+{
+  id: "list", title: "Listas",
+  why: "Una lista guarda muchos datos bajo un solo nombre, como una columna de Excel.",
+  body: `
+  <pre class="show" data-py>ventas = [120, 80, 200]</pre>
+  <p>Cada dato tiene una posición, y <strong>se empieza a contar desde 0</strong>. <code>ventas[0]</code> es 120 y <code>ventas[2]</code> es 200. <code>ventas[-1]</code> es el último.</p>
+  <div class="tablewrap"><table>
+    <tr><th>Código</th><th>Qué hace</th></tr>
+    <tr><td><code>ventas.append(50)</code></td><td>agrega al final</td></tr>
+    <tr><td><code>ventas.remove(80)</code></td><td>quita ese valor</td></tr>
+    <tr><td><code>len(ventas)</code></td><td>cuenta los elementos</td></tr>
+    <tr><td><code>sum(ventas)</code></td><td>suma todo</td></tr>
+    <tr><td><code>max(ventas)</code>, <code>min(ventas)</code></td><td>mayor y menor</td></tr>
+    <tr><td><code>sorted(ventas)</code></td><td>entrega una copia ordenada</td></tr>
+    <tr><td><code>80 in ventas</code></td><td>pregunta si está (<code>True</code> o <code>False</code>)</td></tr>
+  </table></div>`,
+  example: `colores = ["negro", "rojo", "azul"]\nprint(colores[0])\ncolores.append("blanco")\nprint(colores)\nprint(len(colores), "colores")\nprint("rojo" in colores)`,
+  quiz: { q: "¿Qué muestra?", code: `colores = ["negro", "verde", "azul"]\nprint(colores[1])`, opts: ["negro", "verde", "azul"], correct: 1,
+    why: "Las posiciones empiezan en 0, así que la posición 1 es el segundo elemento." },
+  ex: { task: "Agrega <code>50</code> a la lista con <code>append</code>. Luego muestra la suma total en una línea y el valor mayor en la siguiente.",
+    start: `ventas = [120, 80, 200]\n`,
+    tests: [{ expect: "450\n200" }], must: [[/append\s*\(/, "Usa append para agregar el 50."], [/sum\s*\(/, "Usa sum() para la suma."], [/max\s*\(/, "Usa max() para el mayor."]],
+    hints: ["ventas.append(50)", "print(sum(ventas))"],
+    solution: `ventas = [120, 80, 200]\nventas.append(50)\nprint(sum(ventas))\nprint(max(ventas))` }
+},
+{
+  id: "for", title: "Repetir con for",
+  why: "Lo que a mano toma una tarde con 2000 filas, un for lo hace en un segundo.",
+  body: `
+  <p><code>for</code> recorre una lista y ejecuta el bloque una vez por cada elemento.</p>
+  <pre class="show" data-py>for precio in [10, 25, 15]:
+    print(precio)</pre>
+  <p>Para repetir un número de veces usa <code>range</code>. <code>range(3)</code> entrega 0, 1 y 2: empieza en 0 y no incluye el 3.</p>
+  <p>El patrón más útil es el <strong>acumulador</strong>: una variable que empieza en 0 y va creciendo en cada vuelta.</p>
+  <pre class="show" data-py>total = 0
+for precio in [10, 25, 15]:
+    total = total + precio
+print(total)</pre>
+  <div class="note"><strong>Fíjate en la sangría:</strong> el último <code>print</code> está pegado a la izquierda, así que corre una sola vez, al terminar el ciclo.</div>`,
+  example: `guias = ["G-101", "G-102", "G-103"]\nfor guia in guias:\n    print(f"Revisando {guia}")\nprint("Listo")`,
+  quiz: { q: "¿Qué muestra?", code: `for i in range(3):\n    print(i)`, opts: ["1\n2\n3", "0\n1\n2", "0\n1\n2\n3"], correct: 1,
+    why: "range(3) empieza en 0 y se detiene antes de llegar a 3." },
+  ex: { task: "Con un <code>for</code>, muestra cada precio en su propia línea. Al final muestra <code>Total: 50</code>, calculado con un acumulador y sin usar <code>sum</code>.",
+    start: `precios = [10, 25, 15]\ntotal = 0\n`,
+    tests: [{ expect: "10\n25\n15\nTotal: 50" }], must: [[/\bfor\b/, "Usa un ciclo for."], [/^(?![\s\S]*\bsum\s*\()/, "Esta vez no uses sum(): acumula dentro del for."]],
+    hints: ["for precio in precios:", "Dentro del for: print(precio) y total = total + precio", "El print del total va sin sangría."],
+    solution: `precios = [10, 25, 15]\ntotal = 0\nfor precio in precios:\n    print(precio)\n    total = total + precio\nprint(f"Total: {total}")` }
+},
+{
+  id: "while", title: "Repetir con while",
+  why: "Usa while cuando no sabes cuántas vueltas harán falta, solo cuándo debes parar.",
+  body: `
+  <p><code>while</code> repite mientras la condición sea verdadera.</p>
+  <pre class="show" data-py>stock = 20
+while stock >= 6:
+    stock = stock - 6
+print(stock)</pre>
+  <p><code>break</code> sale del ciclo en ese momento. Es muy útil para seguir pidiendo datos hasta que la persona escriba "salir".</p>
+  <div class="note"><strong>El error clásico:</strong> si la condición nunca deja de cumplirse, el programa no termina. Eso se llama ciclo infinito. Aquí se detiene solo a los 5 segundos; en tu computadora se corta con <code>Ctrl + C</code>.</div>`,
+  example: `total = 0\nwhile True:\n    dato = input("Monto (escribe salir para terminar): ")\n    if dato == "salir":\n        break\n    total = total + float(dato)\nprint(f"Suma: {total}")`,
+  quiz: { q: "¿Qué muestra?", code: `n = 3\nwhile n > 0:\n    print(n)\n    n = n - 1`, opts: ["3\n2\n1", "3\n2\n1\n0", "0\n1\n2"], correct: 0,
+    why: "Cuando n llega a 0, la condición n > 0 ya no se cumple y el ciclo termina sin mostrarlo." },
+  ex: { task: "Hay 20 unidades y cada despacho lleva 6. Con <code>while</code>, despacha mientras alcance. Muestra <code>Despachos: 3</code> y debajo <code>Sobran: 2</code>.",
+    start: `stock = 20\ndespachos = 0\n`,
+    tests: [{ expect: "Despachos: 3\nSobran: 2" }], must: [[/\bwhile\b/, "Usa un ciclo while."]],
+    hints: ["while stock >= 6:", "Dentro: resta 6 a stock y suma 1 a despachos."],
+    solution: `stock = 20\ndespachos = 0\nwhile stock >= 6:\n    stock = stock - 6\n    despachos = despachos + 1\nprint(f"Despachos: {despachos}")\nprint(f"Sobran: {stock}")` }
+},
+{
+  id: "def", title: "Funciones",
+  why: "Una función es una receta con nombre: la escribes una vez y la usas todas las veces que quieras.",
+  body: `
+  <pre class="show" data-py>def con_iva(precio):
+    return round(precio * 1.15, 2)
+
+print(con_iva(100))
+print(con_iva(20))</pre>
+  <ul>
+    <li><code>def</code> crea la función. Solo la define: no corre hasta que la llamas.</li>
+    <li><code>precio</code> es el <strong>parámetro</strong>, el dato que recibe.</li>
+    <li><code>return</code> <strong>devuelve</strong> un resultado para que lo sigas usando.</li>
+  </ul>
+  <div class="note"><strong>print o return:</strong> <code>print</code> muestra un valor en pantalla y nada más. <code>return</code> te lo entrega para guardarlo o hacer más cuentas con él. Dentro de una función, casi siempre quieres <code>return</code>.</div>`,
+  example: `def cajas_necesarias(unidades, por_caja):\n    completas = unidades // por_caja\n    if unidades % por_caja > 0:\n        completas = completas + 1\n    return completas\n\nprint(cajas_necesarias(17, 5))\nprint(cajas_necesarias(20, 5))`,
+  quiz: { q: "¿Qué muestra?", code: `def doble(n):\n    return n * 2\n\nprint(doble(4) + 1)`, opts: ["8", "9", "10"], correct: 1,
+    why: "doble(4) devuelve 8, y a ese resultado se le suma 1." },
+  ex: { task: "Escribe la función <code>con_iva(precio)</code>. Debe devolver con <code>return</code> el precio más 15 % de IVA, redondeado a 2 decimales. No necesitas llamarla: el comprobador la prueba con varios valores.",
+    start: `def con_iva(precio):\n    `,
+    tests: [{ append: "print(con_iva(100))", expect: "115.0" }, { append: "print(con_iva(19.99))", expect: "22.99" }, { append: "print(con_iva(50) + 1)", expect: "58.5" }],
+    must: [[/\breturn\b/, "La función debe usar return, no print."]],
+    hints: ["Multiplicar por 1.15 es sumar el 15 %.", "return round(precio * 1.15, 2)"],
+    solution: `def con_iva(precio):\n    return round(precio * 1.15, 2)` }
+},
+{
+  id: "dict", title: "Diccionarios",
+  why: "Un diccionario busca por nombre en lugar de por posición, como un BUSCARV.",
+  body: `
+  <pre class="show" data-py>stock = {"parlante": 12, "guitarra": 5}
+print(stock["guitarra"])     # 5
+stock["micrófono"] = 8       # agrega uno nuevo
+stock["guitarra"] = 6        # cambia el valor</pre>
+  <p>A la izquierda de los dos puntos está la <strong>clave</strong> y a la derecha, el <strong>valor</strong>.</p>
+  <p>Para recorrerlo usa <code>.items()</code>, que entrega la clave y el valor en cada vuelta:</p>
+  <pre class="show" data-py>for producto, cantidad in stock.items():
+    print(producto, cantidad)</pre>
+  <p>Si pides una clave que no existe, Python da un error <code>KeyError</code>. Con <code>stock.get("piano", 0)</code> obtienes <code>0</code> en lugar del error.</p>`,
+  example: `factura = {"numero": "001-245", "cliente": "Andina", "total": 115.0}\nprint(factura["cliente"])\nfactura["pagada"] = True\nprint(factura.get("descuento", 0))\nprint(len(factura), "datos")`,
+  quiz: { q: "¿Qué muestra?", code: `stock = {"parlante": 12, "guitarra": 5}\nprint(stock["guitarra"])`, opts: ["12", "5", "guitarra"], correct: 1,
+    why: "Entre corchetes va la clave, y Python entrega su valor." },
+  ex: { task: "Agrega <code>\"microfono\"</code> con valor <code>8</code>. Luego recorre <code>sorted(stock)</code>, que entrega las claves en orden alfabético, y muestra cada línea como <code>guitarra: 5</code>.",
+    start: `stock = {"parlante": 12, "guitarra": 5}\n`,
+    tests: [{ expect: "guitarra: 5\nmicrofono: 8\nparlante: 12" }], must: [[/\bfor\b/, "Usa un for para recorrerlo."]],
+    hints: ["stock[\"microfono\"] = 8", "for producto in sorted(stock):", "print(f\"{producto}: {stock[producto]}\")"],
+    solution: `stock = {"parlante": 12, "guitarra": 5}\nstock["microfono"] = 8\nfor producto in sorted(stock):\n    print(f"{producto}: {stock[producto]}")` }
+},
+{
+  id: "err", title: "Entender los errores",
+  why: "Un error no significa que lo hiciste mal: es Python diciéndote dónde mirar.",
+  body: `
+  <p>Lee siempre dos cosas: la <strong>línea</strong> que indica y el <strong>tipo</strong> de error.</p>
+  <div class="tablewrap"><table>
+    <tr><th>Error</th><th>Qué suele significar</th></tr>
+    <tr><td><code>SyntaxError</code></td><td>Falta algo al escribir: dos puntos, comillas o un paréntesis.</td></tr>
+    <tr><td><code>IndentationError</code></td><td>La sangría está mal.</td></tr>
+    <tr><td><code>NameError</code></td><td>Usaste un nombre que no existe o está mal escrito.</td></tr>
+    <tr><td><code>TypeError</code></td><td>Mezclaste tipos, como sumar texto y número.</td></tr>
+    <tr><td><code>ValueError</code></td><td>El dato no sirve, como <code>int("abc")</code>.</td></tr>
+    <tr><td><code>IndexError</code></td><td>Pediste una posición que la lista no tiene.</td></tr>
+    <tr><td><code>KeyError</code></td><td>Pediste una clave que el diccionario no tiene.</td></tr>
+    <tr><td><code>ZeroDivisionError</code></td><td>Dividiste para cero.</td></tr>
+  </table></div>
+  <p>Cuando sabes que algo puede fallar, como un dato escrito por una persona, usa <code>try</code> y <code>except</code> para responder sin que el programa se caiga:</p>
+  <pre class="show" data-py>try:
+    n = int(input("Cantidad: "))
+    print(n * 2)
+except ValueError:
+    print("Eso no es un número")</pre>`,
+  example: `# Este programa tiene un error a propósito.\n# Ejecútalo, lee el mensaje y corrígelo.\ncantidad = 5\nprint("Cantidad: " + cantidad)`,
+  quiz: { q: "¿Qué error produce este programa?", code: `print(10 / 0)`, opts: ["NameError", "ZeroDivisionError", "SyntaxError"], correct: 1, noRun: true,
+    why: "No se puede dividir para cero, y el nombre del error lo dice directamente." },
+  ex: { task: "Pide una cantidad. Si es un entero válido, muestra <code>Cantidad: 5</code> (con el número ingresado). Si no, muestra <code>Eso no es un número</code>.",
+    start: `dato = input("Cantidad: ")\n`,
+    tests: [{ inputs: ["5"], expect: "Cantidad: 5" }, { inputs: ["abc"], expect: "Eso no es un número" }, { inputs: ["12"], expect: "Cantidad: 12" }],
+    must: [[/\btry\b/, "Usa try."], [/\bexcept\b/, "Usa except."]],
+    hints: ["Dentro de try: n = int(dato)", "except ValueError:"],
+    solution: `dato = input("Cantidad: ")\ntry:\n    n = int(dato)\n    print(f"Cantidad: {n}")\nexcept ValueError:\n    print("Eso no es un número")` }
+},
+{
+  id: "final", title: "Proyecto: cartera de facturas",
+  why: "Un programa pequeño y real que une todo lo que aprendiste.",
+  body: `
+  <p>Tienes una lista de facturas, y cada factura es un diccionario. Debes producir un reporte de cobranza. Esta es la forma en que se ve la automatización de verdad: leer filas, calcular, decidir y resumir.</p>
+  <p>Para cada factura, muestra una línea con número, cliente, total con IVA y estado. Al final, muestra cuánto falta cobrar.</p>
+  <pre class="show">001 Andina 115.0 pagada
+002 Litoral 230.0 pendiente
+003 Austro 57.5 pendiente
+Por cobrar: 287.5</pre>`,
+  example: `# Calentamiento: recorrer una lista de diccionarios\nfacturas = [\n    {"numero": "001", "subtotal": 100},\n    {"numero": "002", "subtotal": 200},\n]\nfor f in facturas:\n    print(f["numero"], f["subtotal"])`,
+  quiz: { q: "¿Qué muestra?", code: `f = {"pagada": False}\nif f["pagada"]:\n    print("pagada")\nelse:\n    print("pendiente")`, opts: ["pagada", "pendiente", "False"], correct: 1,
+    why: "El valor es False, así que se ejecuta el else." },
+  ex: { task: "Completa el programa para que produzca exactamente el reporte de arriba. Usa la función <code>con_iva</code> dentro del ciclo.",
+    start: `def con_iva(precio):\n    return round(precio * 1.15, 2)\n\nfacturas = [\n    {"numero": "001", "cliente": "Andina", "subtotal": 100, "pagada": True},\n    {"numero": "002", "cliente": "Litoral", "subtotal": 200, "pagada": False},\n    {"numero": "003", "cliente": "Austro", "subtotal": 50, "pagada": False},\n]\n\npor_cobrar = 0\n\n# Escribe aquí tu ciclo for\n`,
+    tests: [{ expect: "001 Andina 115.0 pagada\n002 Litoral 230.0 pendiente\n003 Austro 57.5 pendiente\nPor cobrar: 287.5" }], must: [[/\bfor\b/, "Usa un for para recorrer las facturas."], [/con_iva\s*\(\s*f|con_iva\s*\(\s*\w+\s*\[/, "Llama a con_iva con el subtotal de cada factura."]],
+    hints: ["for f in facturas:", "total = con_iva(f[\"subtotal\"])", "Con un if decides el estado. Si está pendiente, suma total a por_cobrar.", "print(f[\"numero\"], f[\"cliente\"], total, estado)"],
+    solution: `def con_iva(precio):\n    return round(precio * 1.15, 2)\n\nfacturas = [\n    {"numero": "001", "cliente": "Andina", "subtotal": 100, "pagada": True},\n    {"numero": "002", "cliente": "Litoral", "subtotal": 200, "pagada": False},\n    {"numero": "003", "cliente": "Austro", "subtotal": 50, "pagada": False},\n]\n\npor_cobrar = 0\n\nfor f in facturas:\n    total = con_iva(f["subtotal"])\n    if f["pagada"]:\n        estado = "pagada"\n    else:\n        estado = "pendiente"\n        por_cobrar = por_cobrar + total\n    print(f["numero"], f["cliente"], total, estado)\n\nprint(f"Por cobrar: {por_cobrar}")` }
+}
+];
+
+const CHULETA = [
+  ["Mostrar", "print(\"hola\", x)", "Muestra datos en pantalla"],
+  ["Comentario", "# nota", "Python lo ignora"],
+  ["Variable", "total = 10", "Guarda un valor"],
+  ["Pedir dato", "input(\"¿Dato? \")", "Siempre entrega texto"],
+  ["Convertir", "int(x)  float(x)  str(x)", "Cambia el tipo"],
+  ["Redondear", "round(x, 2)", "Dos decimales"],
+  ["F-string", "f\"Total: {x:.2f}\"", "Mezcla texto y variables"],
+  ["Texto", ".upper() .lower() .strip() .replace(a, b)", "Limpia y transforma"],
+  ["Largo", "len(x)", "Cuenta caracteres o elementos"],
+  ["Decidir", "if … : / elif … : / else:", "Ejecuta solo un caso"],
+  ["Comparar", "== != < > <= >=", "Da True o False"],
+  ["Combinar", "and  or  not", "Une condiciones"],
+  ["Lista", "x = [1, 2, 3]", "Posiciones desde 0"],
+  ["Lista", ".append(v) .remove(v) sum() max() min() sorted()", "Operaciones comunes"],
+  ["Ciclo", "for v in lista:", "Una vuelta por elemento"],
+  ["Contar", "range(5)", "De 0 a 4"],
+  ["Ciclo", "while condición:", "Repite mientras se cumpla"],
+  ["Salir", "break", "Termina el ciclo"],
+  ["Función", "def nombre(dato): return dato", "Receta reutilizable"],
+  ["Diccionario", "d = {\"clave\": 1}", "Busca por nombre"],
+  ["Diccionario", "d[\"clave\"]  d.get(k, 0)  d.items()", "Leer y recorrer"],
+  ["Errores", "try: … except ValueError: …", "Responde sin caerse"],
+];
+
+/* ======================= MOTOR DE PYTHON ======================= */
+const ERRORES = {
+  SyntaxError: ["Algo está mal escrito", "Revisa esa línea o la anterior: dos puntos al final de if, for o def, comillas sin cerrar o paréntesis sin cerrar."],
+  IndentationError: ["La sangría está mal", "Las líneas dentro de if, for, while o def van con 4 espacios, y las del mismo bloque deben quedar alineadas."],
+  TabError: ["La sangría está mal", "Usa siempre 4 espacios para la sangría."],
+  NameError: ["Python no conoce ese nombre", "Puede estar mal escrito, no haberse creado todavía o faltarle comillas si era un texto."],
+  TypeError: ["Mezclaste tipos que no combinan", "Por ejemplo texto + número. Convierte con str(), int() o float(), o usa un f-string."],
+  ValueError: ["El dato no sirve para esa operación", "Por ejemplo int(\"abc\"), o int(\"10.5\"), que necesita float()."],
+  IndexError: ["Esa posición no existe en la lista", "Recuerda que se cuenta desde 0. Una lista de 3 elementos llega hasta la posición 2."],
+  KeyError: ["Esa clave no está en el diccionario", "Revisa cómo está escrita, incluidas las mayúsculas y tildes."],
+  ZeroDivisionError: ["División para cero", "El divisor vale 0. Revísalo antes de dividir."],
+  AttributeError: ["Ese dato no tiene esa acción", "Por ejemplo .upper() solo existe en textos y .append() solo en listas."],
+  TimeLimitError: ["El programa tardó demasiado", "Lo detuve a los 5 segundos. Probablemente hay un ciclo infinito: revisa que la condición del while llegue a ser falsa."],
+  ImportError: ["Ese módulo no está disponible aquí", "En esta página solo funciona la biblioteca básica. En tu computadora podrás instalar más."],
+};
+const LIMITE_MS = 5000;
+let running = false;
+
+function pyReady() { return typeof Sk !== "undefined" && Sk.misceval; }
+
+function parseError(e) {
+  if (!e || !e.tp$name) return { type: "Error", line: null, raw: String(e) };
+  let msg = "";
+  try { msg = e.args && e.args.v[0] ? e.args.v[0].v : ""; } catch (_) {}
+  const line = e.traceback && e.traceback[0] ? e.traceback[0].lineno : null;
+  return { type: e.tp$name, line, raw: msg };
+}
+
+/* opts.inputs: respuestas automáticas; opts.ask(prompt) => Promise<string>; opts.out(texto) */
+function runPython(code, opts) {
+  opts = opts || {};
+  const queue = opts.inputs ? opts.inputs.slice() : null;
+  let out = "";
+  Sk.configure({
+    __future__: Sk.python3,
+    output: t => { out += t; if (opts.out) opts.out(t); },
+    read: f => { if (!Sk.builtinFiles || !Sk.builtinFiles.files[f]) throw "No existe: " + f; return Sk.builtinFiles.files[f]; },
+    inputfunTakesPrompt: true,
+    inputfun: prompt => {
+      if (queue) return queue.length ? queue.shift() : "";
+      return opts.ask(prompt == null ? "" : String(prompt)).then(v => { Sk.execStart = new Date(); return v; });
+    },
+    execLimit: LIMITE_MS,
+    yieldLimit: 200,
+  });
+  Sk.execStart = new Date();
+  return Sk.misceval.asyncToPromise(() => Sk.importMainWithBody("<stdin>", false, code, true))
+    .then(() => ({ out, error: null }), e => ({ out, error: parseError(e) }));
+}
+
+function errorBox(err) {
+  const d = el("div", "err");
+  const info = ERRORES[err.type] || ["Ocurrió un error", "Lee el mensaje y revisa esa línea."];
+  const b = el("b"); b.textContent = info[0] + (err.line ? ` (línea ${err.line})` : "");
+  d.append(b, document.createTextNode(". " + info[1]));
+  const s = el("small"); s.textContent = `${err.type}${err.raw ? ": " + err.raw : ""}`;
+  d.append(s);
+  return d;
+}
+
+function norm(s) { return String(s).replace(/\r/g, "").split("\n").map(l => l.trimEnd()).join("\n").trim(); }
+
+/* Devuelve {ok, reason, expected, got, error, inputs} */
+async function checkExercise(ex, code) {
+  for (const m of ex.must || []) if (!m[0].test(code)) return { ok: false, reason: m[1] };
+  for (const t of ex.tests) {
+    const full = t.append ? code.replace(/\s+$/, "") + "\n\n" + t.append + "\n" : code;
+    const r = await runPython(full, { inputs: t.inputs || [] });
+    if (r.error) return { ok: false, error: r.error, inputs: t.inputs };
+    if (norm(r.out) !== norm(t.expect)) return { ok: false, expected: t.expect, got: r.out, inputs: t.inputs, call: t.append };
+  }
+  return { ok: true };
+}
+
+/* ======================= UTILIDADES DE INTERFAZ ======================= */
+function el(tag, cls, html) { const n = document.createElement(tag); if (cls) n.className = cls; if (html != null) n.innerHTML = html; return n; }
+function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+const KW = /^(def|return|if|elif|else|for|while|in|not|and|or|try|except|finally|break|continue|import|from|as|pass|class|True|False|None|lambda|with|raise)$/;
+const FN = /^(print|input|int|float|str|len|range|sum|max|min|round|sorted|list|dict|abs|type)$/;
+function highlight(src) {
+  const re = /(#[^\n]*)|([fFrR]?"(?:[^"\\\n]|\\.)*"?|[fFrR]?'(?:[^'\\\n]|\\.)*'?)|\b(\d+(?:\.\d+)?)\b|\b([A-Za-z_áéíóúñÁÉÍÓÚÑ][\wáéíóúñÁÉÍÓÚÑ]*)\b/g;
+  let out = "", last = 0, m;
+  while ((m = re.exec(src))) {
+    out += esc(src.slice(last, m.index));
+    const t = esc(m[0]);
+    if (m[1]) out += `<span class="t-com">${t}</span>`;
+    else if (m[2]) out += `<span class="t-str">${t}</span>`;
+    else if (m[3]) out += `<span class="t-num">${t}</span>`;
+    else if (KW.test(m[4])) out += `<span class="t-kw">${t}</span>`;
+    else if (FN.test(m[4])) out += `<span class="t-fn">${t}</span>`;
+    else out += t;
+    last = m.index + m[0].length;
+  }
+  return out + esc(src.slice(last));
+}
+
+function makeEditor(id, value, onChange) {
+  const wrap = el("div", "ed");
+  const pre = el("pre"); pre.setAttribute("aria-hidden", "true");
+  const ta = el("textarea");
+  ta.id = id; ta.spellcheck = false; ta.setAttribute("autocapitalize", "off"); ta.setAttribute("autocomplete", "off"); ta.setAttribute("autocorrect", "off"); ta.setAttribute("aria-label", "Editor de código"); ta.wrap = "off";
+  wrap.append(pre, ta);
+  const paint = () => {
+    pre.innerHTML = highlight(ta.value) + "\n";
+    ta.style.height = "auto";
+    ta.rows = Math.max(ta.value.split("\n").length + 1, 5);
+  };
+  ta.value = value; paint();
+  ta.addEventListener("input", () => { paint(); if (onChange) onChange(ta.value); });
+  ta.addEventListener("scroll", () => { pre.scrollLeft = ta.scrollLeft; pre.scrollTop = ta.scrollTop; });
+  ta.addEventListener("keydown", e => {
+    const s = ta.selectionStart, end = ta.selectionEnd, v = ta.value;
+    const put = t => { ta.setRangeText(t, s, end, "end"); ta.dispatchEvent(new Event("input")); };
+    if (e.key === "Tab" && !e.shiftKey) { e.preventDefault(); put("    "); }
+    else if (e.key === "Enter" && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      const line = v.slice(v.lastIndexOf("\n", s - 1) + 1, s);
+      let ind = (line.match(/^ */) || [""])[0];
+      if (/:\s*$/.test(line)) ind += "    ";
+      put("\n" + ind);
+    } else if (e.key === "Backspace" && s === end && s >= 4 && v.slice(s - 4, s) === "    ") {
+      const before = v.slice(v.lastIndexOf("\n", s - 1) + 1, s);
+      if (/^ +$/.test(before)) { e.preventDefault(); ta.setRangeText("", s - 4, s, "end"); ta.dispatchEvent(new Event("input")); }
+    }
+  });
+  return { el: wrap, get: () => ta.value, set: v => { ta.value = v; paint(); if (onChange) onChange(v); }, focus: () => ta.focus() };
+}
+
+function makeConsole() {
+  const con = el("div", "con");
+  con.hidden = true;
+  const lbl = el("div", "lbl"); lbl.textContent = "Resultado";
+  const out = el("output");
+  const extra = el("div");
+  con.append(lbl, out, extra);
+  return {
+    el: con,
+    clear() { out.textContent = ""; extra.innerHTML = ""; con.hidden = false; },
+    write(t) { out.textContent += t; },
+    error(err) { extra.innerHTML = ""; extra.append(errorBox(err)); },
+    empty() { if (!out.textContent && !extra.children.length) out.textContent = "(el programa no mostró nada)"; },
+    ask(prompt) {
+      return new Promise(res => {
+        const row = el("form", "ask");
+        const lab = el("label"); lab.textContent = prompt || "Escribe un dato:";
+        const inp = el("input"); inp.type = "text"; inp.id = "ask" + Date.now(); lab.htmlFor = inp.id; inp.autocomplete = "off";
+        const b = el("button", "btn go"); b.type = "submit"; b.textContent = "Enviar";
+        row.append(lab, inp, b); extra.append(row);
+        row.addEventListener("submit", e => { e.preventDefault(); const v = inp.value; row.remove(); out.textContent += (prompt || "") + v + "\n"; res(v); });
+        inp.focus();
+      });
+    },
+  };
+}
+
+async function execInto(code, con, btns) {
+  if (!pyReady()) { con.clear(); con.write("No se pudo cargar Python. Revisa tu conexión a internet y recarga la página."); return; }
+  if (running) return;
+  running = true; btns.forEach(b => b.disabled = true);
+  con.clear();
+  const r = await runPython(code, { out: t => con.write(t), ask: p => con.ask(p) });
+  if (r.error) con.error(r.error);
+  con.empty();
+  running = false; btns.forEach(b => b.disabled = false);
+}
+
+function paintStatic(root) { root.querySelectorAll("pre[data-py]").forEach(p => { p.innerHTML = highlight(p.textContent); }); }
+
+/* ======================= ESTADO ======================= */
+const KEY = "escalera-python-v1";
+let S = { done: {}, code: {}, current: 0, open: false, view: "ruta", libre: null };
+try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(S, JSON.parse(raw)); } catch (_) {}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (_) {} }
+const rec = id => S.done[id] || (S.done[id] = {});
+const isDone = l => !!(S.done[l.id] && S.done[l.id].quiz && S.done[l.id].ex);
+const unlocked = i => S.open || i === 0 || isDone(LESSONS[i - 1]) || i <= S.current && isDone(LESSONS[i]);
+
+/* ======================= VISTAS ======================= */
+function renderRail() {
+  const count = LESSONS.filter(isDone).length;
+  document.getElementById("meterText").textContent = `${count} de ${LESSONS.length} escalones`;
+  document.getElementById("meterBar").style.width = (count / LESSONS.length * 100) + "%";
+  [["tabRuta", "ruta"], ["tabLibre", "libre"], ["tabChuleta", "chuleta"]].forEach(([id, v]) => document.getElementById(id).setAttribute("aria-pressed", S.view === v));
+  const ol = document.getElementById("steps"); ol.innerHTML = "";
+  LESSONS.forEach((l, i) => {
+    const li = el("li");
+    const b = el("button", "step" + (isDone(l) ? " done" : "") + (S.view === "ruta" && S.current === i ? " now" : ""));
+    b.type = "button"; b.disabled = !unlocked(i);
+    b.innerHTML = `<span class="n">${isDone(l) ? "✓" : i + 1}</span><span class="t">${l.title}</span>`;
+    b.setAttribute("aria-label", `Escalón ${i + 1}: ${l.title}${isDone(l) ? ", completado" : unlocked(i) ? "" : ", bloqueado"}`);
+    b.addEventListener("click", () => { S.current = i; S.view = "ruta"; save(); render(); scrollTo(0, 0); });
+    li.append(b); ol.append(li);
+  });
+  const foot = document.getElementById("railfoot"); foot.innerHTML = "";
+  if (!S.open) {
+    const o = el("button", "linkbtn"); o.type = "button"; o.textContent = "Abrir todos los escalones";
+    o.addEventListener("click", () => { S.open = true; save(); renderRail(); });
+    foot.append(o);
+  }
+  const r = el("button", "linkbtn"); r.type = "button"; r.textContent = "Borrar mi progreso";
+  r.addEventListener("click", () => {
+    if (r.dataset.armed) { S = { done: {}, code: {}, current: 0, open: false, view: "ruta", libre: null }; save(); render(); return; }
+    r.dataset.armed = "1"; r.textContent = "Pulsa otra vez para confirmar";
+    setTimeout(() => { if (r.isConnected) { delete r.dataset.armed; r.textContent = "Borrar mi progreso"; } }, 4000);
+  });
+  foot.append(r);
+}
+
+function renderLesson() {
+  const i = S.current, l = LESSONS[i], page = document.getElementById("page");
+  page.innerHTML = "";
+  const head = el("header", "head");
+  head.append(el("div", "eyebrow", `Escalón ${i + 1} de ${LESSONS.length}`), el("h1", "", l.title), el("p", "why", l.why));
+  page.append(head, el("div", "prose", l.body));
+
+  /* Laboratorio */
+  const labSec = el("section", "block");
+  labSec.append(el("h2", "", "Pruébalo"), el("p", "sub", "Puedes cambiar lo que quieras y ejecutarlo. Aquí no se daña nada."));
+  const edEx = makeEditor("ej-" + l.id, l.example);
+  const conEx = makeConsole();
+  const lab = el("div", "lab");
+  const run = el("button", "btn go"); run.type = "button"; run.textContent = "▶ Ejecutar";
+  const rst = el("button", "btn"); rst.type = "button"; rst.textContent = "Restaurar";
+  run.addEventListener("click", () => execInto(edEx.get(), conEx, [run]));
+  rst.addEventListener("click", () => edEx.set(l.example));
+  const bar = el("div", "bar"); bar.append(run, rst);
+  lab.append(edEx.el, bar, conEx.el);
+  labSec.append(lab); page.append(labSec);
+
+  /* Predice */
+  const qSec = el("section", "block");
+  qSec.append(el("h2", "", "Predice el resultado"));
+  const q = el("div", "quiz");
+  q.append(el("p", "task", l.quiz.q));
+  q.lastChild.style.margin = "0";
+  const qc = el("pre", "show"); qc.innerHTML = highlight(l.quiz.code); q.append(qc);
+  const opts = el("div", "opts"), say = el("div", "feedback");
+  const showAnswer = () => {
+    opts.querySelectorAll(".opt").forEach((o, k) => { o.disabled = true; if (k === l.quiz.correct) o.classList.add("right"); });
+    say.innerHTML = ""; say.append(el("div", "say ok", `<b>Correcto.</b> ${l.quiz.why}`));
+  };
+  l.quiz.opts.forEach((t, k) => {
+    const o = el("button", "opt"); o.type = "button"; o.textContent = t;
+    o.addEventListener("click", () => {
+      if (k === l.quiz.correct) { rec(l.id).quiz = true; save(); showAnswer(); afterProgress(); }
+      else { o.classList.add("wrong"); o.disabled = true; say.innerHTML = ""; say.append(el("div", "say no", "<b>Todavía no.</b> Sigue el programa línea por línea, como si fueras la computadora, y prueba otra opción.")); }
+    });
+    opts.append(o);
+  });
+  q.append(opts, say); qSec.append(q); page.append(qSec);
+  if (S.done[l.id] && S.done[l.id].quiz) showAnswer();
+
+  /* Ejercicio */
+  const eSec = el("section", "block");
+  eSec.append(el("h2", "", "Tu turno"), el("p", "task", l.ex.task));
+  const stored = S.code[l.id];
+  const ed = makeEditor("ex-" + l.id, stored != null ? stored : l.ex.start, v => { S.code[l.id] = v; save(); });
+  const con = makeConsole(), fb = el("div", "feedback");
+  const labE = el("div", "lab"), barE = el("div", "bar");
+  const bCheck = el("button", "btn go"); bCheck.type = "button"; bCheck.textContent = "✓ Comprobar";
+  const bRun = el("button", "btn"); bRun.type = "button"; bRun.textContent = "▶ Ejecutar";
+  const bHint = el("button", "btn"); bHint.type = "button"; bHint.textContent = "Pista";
+  const bSol = el("button", "btn"); bSol.type = "button"; bSol.textContent = "Ver solución"; bSol.hidden = true;
+  barE.append(bCheck, bRun, bHint, bSol); labE.append(ed.el, barE, con.el);
+  eSec.append(labE, fb); page.append(eSec);
+
+  let hintN = 0, fails = 0;
+  bRun.addEventListener("click", () => execInto(ed.get(), con, [bRun, bCheck]));
+  bHint.addEventListener("click", () => {
+    const h = l.ex.hints[Math.min(hintN, l.ex.hints.length - 1)];
+    const box = el("div", "say tip"); box.textContent = `Pista ${Math.min(hintN, l.ex.hints.length - 1) + 1}: ${h}`;
+    fb.innerHTML = ""; fb.append(box);
+    hintN++;
+    if (hintN >= l.ex.hints.length) bSol.hidden = false;
+  });
+  bSol.addEventListener("click", () => {
+    ed.set(l.ex.solution);
+    fb.innerHTML = ""; fb.append(el("div", "say tip", "Lee la solución línea por línea, ejecútala y cámbiale algo para confirmar que la entendiste. Después pulsa Comprobar."));
+  });
+  bCheck.addEventListener("click", async () => {
+    if (!pyReady()) { fb.innerHTML = ""; fb.append(el("div", "say no", "<b>No se pudo cargar Python.</b> Revisa tu conexión a internet y recarga la página.")); return; }
+    if (running) return;
+    running = true; bCheck.disabled = bRun.disabled = true;
+    const r = await checkExercise(l.ex, ed.get());
+    running = false; bCheck.disabled = bRun.disabled = false;
+    fb.innerHTML = "";
+    if (r.ok) {
+      rec(l.id).ex = true; save();
+      fb.append(el("div", "say ok", "<b>¡Funciona!</b> Pasó todas las pruebas."));
+      afterProgress();
+      return;
+    }
+    fails++; if (fails >= 2) bSol.hidden = false;
+    if (r.reason) { const d = el("div", "say no"); d.innerHTML = "<b>Falta algo.</b> "; d.append(document.createTextNode(r.reason)); fb.append(d); return; }
+    if (r.error) { fb.append(errorBox(r.error)); return; }
+    const d = el("div", "say no");
+    let ctx = "";
+    if (r.inputs && r.inputs.length) ctx = ` Probé escribiendo: ${r.inputs.join(", ")}.`;
+    if (r.call) ctx = ` Probé con: ${r.call}.`;
+    d.innerHTML = "<b>El resultado no coincide.</b>";
+    d.append(document.createTextNode(ctx));
+    const cmp = el("div", "cmp");
+    const col = (t, v) => { const c = el("div"), s = el("span"), p = el("pre"); s.textContent = t; p.textContent = v || "(nada)"; c.append(s, p); return c; };
+    cmp.append(col("Se esperaba", r.expected), col("Tu programa mostró", r.got));
+    d.append(cmp); fb.append(d);
+  });
+  if (S.done[l.id] && S.done[l.id].ex) fb.append(el("div", "say ok", "<b>Ya resolviste este ejercicio.</b> Puedes seguir practicando aquí."));
+
+  /* Avance */
+  const gate = el("div", "gate");
+  const next = el("button", "next"); next.type = "button";
+  const msg = el("p");
+  const updateGate = () => {
+    const d = S.done[l.id] || {};
+    const ready = (d.quiz && d.ex) || S.open;
+    const last = i === LESSONS.length - 1;
+    next.disabled = !ready;
+    next.textContent = last ? "Ver qué sigue" : "Siguiente escalón →";
+    msg.textContent = (d.quiz && d.ex) ? "Escalón completo." :
+      S.open ? "Puedes avanzar, aunque este escalón sigue pendiente." :
+      !d.quiz && !d.ex ? "Para subir, acierta la predicción y resuelve el ejercicio." :
+      !d.quiz ? "Solo falta acertar la predicción." : "Solo falta resolver el ejercicio.";
+  };
+  function afterProgress() { updateGate(); renderRail(); }
+  next.addEventListener("click", () => {
+    if (i === LESSONS.length - 1) S.view = "fin"; else S.current = i + 1;
+    save(); render(); scrollTo(0, 0);
+  });
+  updateGate();
+  gate.append(next, msg); page.append(gate);
+  paintStatic(page);
+}
+
+function renderLibre() {
+  const page = document.getElementById("page"); page.innerHTML = "";
+  const head = el("header", "head");
+  head.append(el("div", "eyebrow", "Práctica libre"), el("h1", "", "Taller"), el("p", "why", "Escribe lo que quieras. Tu código queda guardado en este navegador."));
+  page.append(head);
+  const sample = `# Calculadora de cajas\nunidades = int(input("¿Cuántas unidades? "))\npor_caja = int(input("¿Cuántas van por caja? "))\n\nprint(f"Cajas completas: {unidades // por_caja}")\nprint(f"Sueltas: {unidades % por_caja}")\n`;
+  const ed = makeEditor("taller", S.libre != null ? S.libre : sample, v => { S.libre = v; save(); });
+  const con = makeConsole(), lab = el("div", "lab"), bar = el("div", "bar");
+  const run = el("button", "btn go"); run.type = "button"; run.textContent = "▶ Ejecutar";
+  const clr = el("button", "btn"); clr.type = "button"; clr.textContent = "Vaciar";
+  run.addEventListener("click", () => execInto(ed.get(), con, [run]));
+  clr.addEventListener("click", () => { ed.set(""); ed.focus(); });
+  bar.append(run, clr); lab.append(ed.el, bar, con.el); page.append(lab);
+}
+
+function renderChuleta() {
+  const page = document.getElementById("page"); page.innerHTML = "";
+  const head = el("header", "head");
+  head.append(el("div", "eyebrow", "Consulta rápida"), el("h1", "", "Chuleta"), el("p", "why", "Lo esencial de toda la escalera en una tabla."));
+  const wrap = el("div", "tablewrap"), t = el("table");
+  t.innerHTML = "<tr><th>Para</th><th>Código</th><th>Nota</th></tr>" + CHULETA.map(r => `<tr><td>${r[0]}</td><td><code style="white-space:normal">${esc(r[1])}</code></td><td>${r[2]}</td></tr>`).join("");
+  wrap.append(t); page.append(head, wrap);
+}
+
+function renderFin() {
+  const page = document.getElementById("page"); page.innerHTML = "";
+  const head = el("header", "head");
+  head.append(el("div", "eyebrow", "Fin de la escalera"), el("h1", "", "Qué sigue"), el("p", "why", "Ya sabes leer y escribir programas pequeños. El siguiente paso es usar Python en tu propia computadora."));
+  const body = el("div", "prose", `
+    <p><strong>1. Instala Python.</strong> Descárgalo de <a href="https://www.python.org/downloads/" target="_blank" rel="noopener">python.org</a>. En Windows, marca la casilla <em>Add Python to PATH</em> durante la instalación.</p>
+    <p><strong>2. Instala un editor.</strong> <a href="https://code.visualstudio.com/" target="_blank" rel="noopener">Visual Studio Code</a> es gratuito y tiene una extensión de Python.</p>
+    <p><strong>3. Conecta Python con Excel.</strong> Esto es lo que más te sirve en facturación y logística. Se instala con <code>pip install openpyxl</code>, y este programa suma una columna. Corre en tu computadora, no en esta página.</p>
+    <pre class="show" data-py>from openpyxl import load_workbook
+
+libro = load_workbook("ventas.xlsx")
+hoja = libro.active
+
+total = 0
+for fila in hoja.iter_rows(min_row=2, values_only=True):
+    total = total + fila[2]   # tercera columna
+
+print(f"Total vendido: {total:.2f}")</pre>
+    <p><strong>4. Sigue estudiando.</strong> El libro <a href="https://openstax.org/details/books/introduction-python-programming" target="_blank" rel="noopener">Introduction to Python Programming</a> de OpenStax es gratuito y profundiza en estos mismos temas, además de archivos, módulos y clases.</p>
+    <div class="note"><strong>Sobre esta página:</strong> ejecuta Python con Skulpt, una versión que corre dentro del navegador. Sirve para aprender, pero no lee archivos de tu computadora ni instala paquetes.</div>`);
+  page.append(head, body); paintStatic(page);
+}
+
+function render() {
+  if (S.current >= LESSONS.length) S.current = 0;
+  ({ ruta: renderLesson, libre: renderLibre, chuleta: renderChuleta, fin: renderFin })[S.view]?.() ?? 0;
+  renderRail();
+}
+[["tabRuta", "ruta"], ["tabLibre", "libre"], ["tabChuleta", "chuleta"]].forEach(([id, v]) =>
+  document.getElementById(id).addEventListener("click", () => { S.view = v; save(); render(); scrollTo(0, 0); }));
+render();
+</script>
+</body>
+</html>
