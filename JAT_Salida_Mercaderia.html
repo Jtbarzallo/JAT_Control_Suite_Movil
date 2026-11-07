@@ -48,12 +48,13 @@ input[type=text],input[type=number],select{width:100%;padding:13px;border:1.5px 
   <h1>📤 Salida de Mercadería</h1>
   <div class="bar">
     <button class="btn small" id="bEgreso">📂 Egreso</button>
+    <button class="btn small pri" id="bRegistrar">📍 Registrar</button>
     <button class="btn small" id="bZonas">🏬 Zonas</button>
     <button class="btn small warn" id="bGuardar">💾 Guardar ubicaciones</button>
     <button class="btn small" id="bCargar">📥 Cargar</button>
   </div>
 </header>
-<div class="info" id="info">Toca <b>📂 Egreso</b> para elegir qué mercadería sacar.</div>
+<div class="info" id="info">Toca <b>📂 Egreso</b> para elegir qué mercadería sacar, o <b>📍 Registrar</b> para ir guardando la ubicación de cualquier producto.</div>
 <div class="tools" id="tools" style="display:none">
   <button class="btn pri" id="bEscanear" style="width:100%;margin-bottom:8px;font-size:1.05rem">📷 Escanear código de barras</button>
   <input type="text" id="q" placeholder="🔎 Buscar por nombre o código…" autocomplete="off">
@@ -96,6 +97,21 @@ input[type=text],input[type=number],select{width:100%;padding:13px;border:1.5px 
   <div id="zList" style="margin-top:10px"></div>
   <div class="row" style="margin-top:8px"><input type="text" id="zNueva" placeholder="Ej: Pasillo 1, Cuarto guitarras"><button class="btn pri" style="flex:0 0 auto" id="zAdd">➕</button></div>
   <button class="btn ghost" style="width:100%;margin-top:14px" data-close>Cerrar</button>
+</div></div>
+
+<!-- Hoja: registrar ubicaciones -->
+<div class="sheet-bg" id="shReg"><div class="sheet">
+  <h3>📍 Registrar ubicaciones</h3>
+  <div style="font-size:.85rem;color:#475569">Elige dónde estás, coge cualquier producto y escanéalo. Su ubicación se guarda sola.</div>
+  <label>Zona donde estás (pasillo / cuarto)</label>
+  <select id="rZona"></select>
+  <label>Detalle (estante, nivel) — opcional</label>
+  <input type="text" id="rDet" placeholder="Ej: Estante 3, nivel 2" list="detList" autocomplete="off">
+  <button class="btn pri" style="width:100%;margin-top:14px;font-size:1.05rem" id="rEscanear">📷 Escanear productos</button>
+  <div class="row" style="margin-top:8px"><input type="text" id="rCod" inputmode="numeric" placeholder="o escribe el código" autocomplete="off"><button class="btn" style="flex:0 0 auto;background:#1a3a5c;color:#fff" id="rAdd">Guardar</button></div>
+  <div id="rCont" style="margin-top:12px;font-weight:700;color:#1a3a5c"></div>
+  <div id="rLista" style="margin-top:6px"></div>
+  <button class="btn ghost" style="width:100%;margin-top:10px" data-close>Cerrar</button>
 </div></div>
 
 <div class="scan" id="scan">
@@ -458,20 +474,78 @@ $('fArchivo').onchange = async e => {
 };
 
 
+// ---------- REGISTRAR UBICACIONES (sin egreso, con el kardex) ----------
+let modoReg = false, regHechos = [];
+function buscarKardex(cod) {
+  const b = String(cod || '').trim();
+  if (!KC || !b) return null;
+  for (const k of [b, b.replace(/^0+/, ''), b.padStart(12, '0'), b.padStart(13, '0')]) if (KC.m[k] !== undefined) return { cod: k, cat: KC.c[KC.m[k]] };
+  return null;
+}
+function renderReg() {
+  const total = KC ? Object.keys(KC.m).length : 0;
+  const conUb = KC ? Object.keys(ubic).filter(b => KC.m[b] !== undefined).length : Object.keys(ubic).length;
+  $('rCont').textContent = 'Productos con ubicación: ' + conUb + (total ? ' de ' + total.toLocaleString('es') + ' del kardex' : '') + ' · Hoy: ' + regHechos.length;
+  $('rLista').innerHTML = regHechos.slice(-30).reverse().map((r, k) => `<div class="li" style="padding:10px"><div class="row" style="justify-content:space-between"><span>${esc(r.cod)}</span><button class="btn ghost small" style="flex:0 0 auto" data-undo="${regHechos.length - 1 - k}">↩️ Deshacer</button></div>
+    <div style="font-weight:400;font-size:.82rem;color:#475569">${esc(r.cat || '⚠️ No está en el kardex')} · 📍 ${esc(r.z + (r.d ? ' · ' + r.d : ''))}${r.antes ? ' · antes: ' + esc(r.antes) : ''}</div></div>`).join('');
+  $('rLista').querySelectorAll('[data-undo]').forEach(b => b.onclick = () => {
+    const r = regHechos[+b.dataset.undo]; if (!r) return;
+    if (r.prev) ubic[r.cod] = r.prev; else delete ubic[r.cod];
+    LS.set('jat_ubicaciones', ubic); regHechos.splice(+b.dataset.undo, 1); renderReg(); render(); toast('Deshecho');
+  });
+}
+function abrirRegistro() {
+  llenarZonas($('rZona'), LS.get('jat_reg_zona', ''));
+  $('rDet').value = LS.get('jat_reg_det', '');
+  const dets = [...new Set(Object.values(ubic).map(x => x.d).filter(Boolean))].slice(0, 60);
+  $('detList').innerHTML = dets.map(d => `<option value="${esc(d)}">`).join('');
+  renderReg(); abrir('shReg');
+}
+function registrarCodigo(codigos, desdeCamara) {
+  const z = $('rZona').value, d = $('rDet').value.trim();
+  if (!z) { toast('Primero elige la zona donde estás'); if (desdeCamara) { sEstado('⚠️ Elige la zona primero'); decir('Elige la zona primero.'); } return; }
+  let k = null, cod = String(codigos[0] || '').trim();
+  for (const c of codigos) { k = buscarKardex(c); if (k) { cod = k.cod; break; } }
+  if (!cod) return;
+  const ahora = Date.now();
+  if (desdeCamara && cod === sUlt && ahora - sUltT < 3000) return;
+  sUlt = cod; sUltT = ahora;
+  const prev = ubic[cod] ? { ...ubic[cod] } : null;
+  const antesTxt = prev && prev.z ? prev.z + (prev.d ? ' · ' + prev.d : '') : '';
+  const nuevoTxt = z + (d ? ' · ' + d : '');
+  ubic[cod] = { z, d, t: ahora };
+  LS.set('jat_ubicaciones', ubic); LS.set('jat_reg_zona', z); LS.set('jat_reg_det', d);
+  regHechos.push({ cod, cat: k ? k.cat : '', z, d, prev, antes: antesTxt && antesTxt !== nuevoTxt ? antesTxt : '' });
+  if (navigator.vibrate) navigator.vibrate(k ? 70 : [40, 40, 40]);
+  pitido();
+  const msg = (k ? '✅ ' + k.cat : '⚠️ No está en el kardex (guardado igual)') + ' → ' + nuevoTxt + (antesTxt && antesTxt !== nuevoTxt ? ' (antes: ' + antesTxt + ')' : '');
+  if (desdeCamara) { sEstado(msg); decir(k ? 'Guardado. ' + k.cat : 'Guardado. No está en el kardex.'); }
+  else toast(msg);
+  renderReg(); render();
+}
+$('bRegistrar').onclick = abrirRegistro;
+$('rZona').onchange = () => LS.set('jat_reg_zona', $('rZona').value);
+$('rDet').oninput = () => LS.set('jat_reg_det', $('rDet').value.trim());
+$('rAdd').onclick = () => { const v = $('rCod').value.trim(); if (!v) return; registrarCodigo([v], false); $('rCod').value = ''; };
+$('rCod').onkeydown = e => { if (e.key === 'Enter') $('rAdd').click(); };
+$('rEscanear').onclick = () => { if (!$('rZona').value) { toast('Primero elige la zona donde estás'); return; } modoReg = true; cerrar('shReg'); abrirScanner(); };
+
 // ---------- ESCÁNER ----------
 let sStream = null, sDet = null, sTimer = null, sZX = null, sUlt = '', sUltT = 0;
 function decir(t) { try { if (!window.speechSynthesis) return; const u = new SpeechSynthesisUtterance(t); u.lang = 'es-ES'; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (_) {} }
 function pitido() { try { const a = new (window.AudioContext || window.webkitAudioContext)(); const o = a.createOscillator(); o.frequency.value = 880; o.connect(a.destination); o.start(); setTimeout(() => { o.stop(); a.close(); }, 120); } catch (_) {} }
 function sEstado(t) { $('sSt').textContent = t; }
 async function abrirScanner() {
-  if (!egreso) { toast('Primero elige un egreso'); return; }
+  if (!egreso && !modoReg) { toast('Primero elige un egreso'); return; }
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.isSecureContext) { toast('La cámara solo funciona abriendo el programa desde la dirección de GitHub (https)'); return; }
   $('scan').style.display = 'flex'; sEstado('Iniciando cámara…');
   try {
     sStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
     const v = $('sVideo'); v.srcObject = sStream; await v.play().catch(() => {});
     try { const tr = sStream.getVideoTracks()[0]; const cap = tr.getCapabilities ? tr.getCapabilities() : {}; if (cap.focusMode && cap.focusMode.includes('continuous')) await tr.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch (_) {}
-    sEstado('🟢 Apunta al código de barras o al nombre del producto'); iniciarAutoOCR();
+    if (modoReg) sEstado('🟢 ' + $('rZona').value + ' — escanea cualquier producto');
+    else { sEstado('🟢 Apunta al código de barras o al nombre del producto'); iniciarAutoOCR(); }
+    $('sTexto').style.display = modoReg ? 'none' : ''; $('sManual').textContent = modoReg ? '✔ Terminar' : '⌨️ A mano';
     if ('BarcodeDetector' in window) {
       try {
         const fm = await BarcodeDetector.getSupportedFormats();
@@ -494,6 +568,7 @@ function cerrarScanner() {
   try { sZX && sZX.reset(); } catch (_) {} sZX = null;
   if (sStream) { sStream.getTracks().forEach(t => t.stop()); sStream = null; }
   $('sVideo').srcObject = null; $('scan').style.display = 'none';
+  if (modoReg) { modoReg = false; abrirRegistro(); }
 }
 function buscarIdx(cod) {
   const limpio = c => String(c || '').trim().replace(/^0+/, '');
@@ -503,6 +578,7 @@ function buscarIdx(cod) {
 }
 function lectura(codigos) {
   sUltBarcode = Date.now();
+  if (modoReg) { registrarCodigo(codigos, true); return; }
   // De todos los códigos a la vista, se elige el que coincide COMPLETO con el egreso
   let idx = -1;
   for (const c of codigos) { const i = buscarIdx(String(c || '').trim()); if (i >= 0) { idx = i; break; } }
@@ -618,7 +694,7 @@ function iniciarAutoOCR() {
 $('bEscanear').onclick = abrirScanner;
 $('sCerrar').onclick = cerrarScanner;
 $('sTexto').onclick = () => leerTexto('manual');
-$('sManual').onclick = () => { cerrarScanner(); $('q').focus(); };
+$('sManual').onclick = () => { const r = modoReg; cerrarScanner(); if (!r) $('q').focus(); };
 
 // ---------- Eventos ----------
 function abrir(id) { $(id).style.display = 'flex'; }
