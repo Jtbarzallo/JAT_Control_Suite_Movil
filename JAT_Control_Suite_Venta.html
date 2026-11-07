@@ -422,6 +422,10 @@
         .jat-keypad.kp-compacto .kp-ok{grid-row:auto;height:46px;font-size:24px}
         #jatRegBanner{display:none;align-items:center;justify-content:space-between;gap:10px;background:#0b223d;color:#fff;padding:10px 14px;border-radius:14px;margin:6px 10px 0}
         #jatRegBanner button{flex:none;background:#1E7F4A;color:#fff;border:0;border-radius:10px;padding:10px 14px;font-weight:700;font-size:.9rem;cursor:pointer}
+        #jatKdxModal,#jatRegModal,#jatEgQtyModal,#jatKdxNuevoModal,#jatRegFinModal{align-items:flex-start;bottom:auto;height:var(--vvh,100%);padding-top:10px;box-sizing:border-box}
+        #jatKdxModal .qty-modal-card,#jatRegModal .qty-modal-card,#jatEgQtyModal .qty-modal-card{max-height:calc(var(--vvh,100vh) - 20px);overflow-y:auto;padding:18px 18px 20px;-webkit-overflow-scrolling:touch}
+        .mic-grande{flex:none;width:56px;height:52px;border-radius:14px;border:0;background:#0b223d;color:#fff;font-size:24px;cursor:pointer}
+        .mic-grande.escuchando{background:#e0362c;animation:jatPulso 1s ease-in-out infinite}
         .kdx-box{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;background:#eef4fb;border:1px solid #c9daef;padding:14px;border-radius:14px}
         .reg-box{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;background:#fff8e6;border:1px solid #f2d48a;padding:14px;border-radius:14px}
         .reg-box input{width:100%;padding:12px 14px;border:1.5px solid #e6d3a3;border-radius:12px;font-size:16px;box-sizing:border-box}
@@ -552,8 +556,8 @@
             <div style="font-family:monospace;font-size:.95rem;color:#2c3e50;" id="jatRegCodigoTxt"></div>
             <div id="jatRegYaLleva" style="font-size:.8rem;color:#6b7c8f;margin-top:4px;"></div>
             <div class="reg-nombre" style="margin-top:12px;">
-                <input id="jatRegNombre" type="text" placeholder="Nombre del producto" autocomplete="off" style="font-size:16px;padding:12px;">
-                <button type="button" class="scan-tool" id="jatRegVozBtn" aria-label="Dictar nombre">🎤</button>
+                <input id="jatRegNombre" type="text" placeholder="Nombre: escribe o dicta" autocomplete="off" style="font-size:16px;padding:12px;">
+                <button type="button" class="mic-grande" id="jatRegVozBtn" aria-label="Dictar nombre">🎤</button>
             </div>
             <input id="jatRegCategoria" type="text" placeholder="Categoría (opcional)" autocomplete="off" style="font-size:16px;padding:10px 12px;margin:8px 0 0;">
             <label for="jatRegQty" style="display:block;font-size:.85rem;color:#1a3a5c;margin-top:12px;font-weight:600;">Cantidad</label>
@@ -576,13 +580,13 @@
     <div id="jatKdxModal" class="qty-modal-overlay">
         <div class="qty-modal-card">
             <h3 id="jatKdxTitulo">📋 Producto</h3>
-            <div id="jatKdxAviso" style="display:none;background:#fff4e5;border:1px solid #f5c98a;color:#7a4a00;border-radius:12px;padding:10px 12px;font-size:.88rem;margin:6px 0 10px;"></div>
             <div style="font-family:monospace;font-size:.95rem;color:#2c3e50;" id="jatKdxCodigo"></div>
-            <label for="jatKdxNombre" style="display:block;font-size:.85rem;color:#1a3a5c;margin-top:12px;font-weight:600;">Nombre del producto</label>
+            <label for="jatKdxNombre" style="display:block;font-size:.85rem;color:#1a3a5c;margin-top:10px;font-weight:600;">Nombre del producto</label>
             <div class="reg-nombre" style="display:flex;gap:8px;align-items:center;">
-                <input id="jatKdxNombre" type="text" placeholder="Ej: TALADRO PERCUTOR 1/2" autocomplete="off" style="font-size:16px;padding:12px;margin:6px 0;">
-                <button type="button" class="scan-tool" id="jatKdxVozBtn" aria-label="Dictar nombre">🎤</button>
+                <input id="jatKdxNombre" type="text" placeholder="Nombre: escribe o dicta" autocomplete="off" style="font-size:16px;padding:12px;margin:6px 0;">
+                <button type="button" class="mic-grande" id="jatKdxVozBtn" aria-label="Dictar nombre">🎤</button>
             </div>
+            <div id="jatKdxAviso" style="display:none;background:#fff4e5;border:1px solid #f5c98a;color:#7a4a00;border-radius:12px;padding:8px 12px;font-size:.84rem;margin:6px 0 4px;"></div>
             <label for="jatKdxCategoria" style="display:block;font-size:.85rem;color:#1a3a5c;margin-top:6px;font-weight:600;">Categoría (opcional)</label>
             <input id="jatKdxCategoria" type="text" placeholder="Ej: Herramientas" autocomplete="off" style="font-size:16px;padding:12px;margin:6px 0;">
             <div style="display:flex;gap:10px;margin-top:12px;">
@@ -4475,6 +4479,7 @@
         const m = document.getElementById(id); if (!m) return;
         const host = document.fullscreenElement || document.webkitFullscreenElement || document.body;
         if (m.parentElement !== host) host.appendChild(m);
+        document.querySelectorAll('.alert-toast').forEach(t => t.remove());
         m.style.display = 'flex';
     }
     // ===== Registrar salida escaneando (sin egreso) =====
@@ -4547,7 +4552,6 @@
         document.getElementById('jatRegYaLleva').textContent = idx >= 0 ? `Ya registraste ${formatearQty(getExpectedQty(currentProductos[idx]))}. Lo que pongas se suma.` : (nombre ? '📋 Está en el kardex.' : 'Producto nuevo: se guardará en el kardex. Escribe o dicta su nombre una sola vez.');
         const q = document.getElementById('jatRegQty'); q.value = '1'; jatRegQtyNuevo = true;
         jatMostrarVentana('jatRegModal');
-        if (!ni.value) setTimeout(() => ni.focus(), 120);
     }
     function jatCerrarRegistroProducto() {
         document.getElementById('jatRegModal').style.display = 'none';
@@ -4699,7 +4703,6 @@
         document.getElementById('jatKdxNombre').value = d ? d.n : '';
         document.getElementById('jatKdxCategoria').value = d ? d.c : '';
         jatMostrarVentana('jatKdxModal');
-        if (!d) setTimeout(() => document.getElementById('jatKdxNombre').focus(), 120);
     }
     function jatGuardarKardexModal() {
         const m = document.getElementById('jatKdxModal');
@@ -5062,6 +5065,16 @@
         });
         document.getElementById('jatEgQtyOkBtn')?.addEventListener('click', jatEgGuardarCantidad);
         document.getElementById('jatEgQtyCancelarBtn')?.addEventListener('click', () => { document.getElementById('jatEgQtyModal').style.display = 'none'; });
+    })();
+
+    // alto de la parte visible de la pantalla (sin el teclado), para que las ventanas queden encima del teclado
+    (function jatAltoVisible() {
+        const vv = window.visualViewport; if (!vv) return;
+        const fijar = () => document.documentElement.style.setProperty('--vvh', Math.round(vv.height) + 'px');
+        vv.addEventListener('resize', fijar); fijar();
+        document.addEventListener('focusin', (e) => {
+            if (e.target && e.target.matches && e.target.matches('.qty-modal-card input[type="text"], .qty-modal-card input:not([type])')) setTimeout(() => e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }), 300);
+        });
     })();
     </script>
     <!-- ====================================================================
