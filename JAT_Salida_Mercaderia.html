@@ -49,6 +49,7 @@ input[type=text],input[type=number],select{width:100%;padding:13px;border:1.5px 
   <div class="bar">
     <button class="btn small" id="bEgreso">📂 Egreso</button>
     <button class="btn small pri" id="bRegistrar">📍 Registrar</button>
+    <button class="btn small" id="bKardex">📋 Kardex</button>
     <button class="btn small" id="bZonas">🏬 Zonas</button>
     <button class="btn small warn" id="bGuardar">💾 Guardar ubicaciones</button>
     <button class="btn small" id="bCargar">📥 Cargar</button>
@@ -115,6 +116,31 @@ input[type=text],input[type=number],select{width:100%;padding:13px;border:1.5px 
   <div id="rCont" style="margin-top:12px;font-weight:700;color:#1a3a5c"></div>
   <div id="rLista" style="margin-top:6px"></div>
   <button class="btn ghost" style="width:100%;margin-top:10px" data-close>Cerrar</button>
+</div></div>
+
+<!-- Hoja: kardex con ubicaciones -->
+<div class="sheet-bg" id="shKardex"><div class="sheet" style="max-height:96vh;height:96vh">
+  <div class="row" style="justify-content:space-between"><h3 style="margin:0">📋 Kardex y ubicaciones</h3><button class="btn ghost small" style="flex:0 0 auto" data-close>✖</button></div>
+  <input type="text" id="kBuscar" placeholder="🔎 Buscar por nombre o código…" autocomplete="off" style="margin-top:10px">
+  <div class="seg" id="kFiltro">
+    <span class="chip on" data-k="con">📍 Solo guardados</span>
+    <span class="chip" data-k="sin">Sin ubicación</span>
+    <span class="chip" data-k="todos">Todo el kardex</span>
+  </div>
+  <div class="row" style="margin-top:8px"><select id="kZona"></select><select id="kCat"></select></div>
+  <div id="kCont" style="margin:10px 0 4px;font-weight:700;color:#1a3a5c;font-size:.9rem"></div>
+  <div id="kLista"></div>
+</div></div>
+
+<!-- Hoja: cambiar ubicación de un producto -->
+<div class="sheet-bg" id="shUb"><div class="sheet">
+  <h3 id="uNom"></h3>
+  <div id="uSub" style="font-size:.85rem;color:#475569"></div>
+  <label>📍 Zona (pasillo / cuarto)</label>
+  <select id="uZona"></select>
+  <label>Detalle (estante, nivel)</label>
+  <input type="text" id="uDet" placeholder="Ej: Estante 3, nivel 2" list="detList" autocomplete="off">
+  <div class="row" style="margin-top:16px"><button class="btn ghost" data-close>Cancelar</button><button class="btn ghost" id="uBorrar">🗑️ Quitar</button><button class="btn pri" style="flex:2" id="uGuardar">💾 Guardar</button></div>
 </div></div>
 
 <!-- Hoja: producto que no está en el kardex -->
@@ -577,6 +603,68 @@ $('rBuscar').oninput = () => {
   if (!KN) { $('rRes').innerHTML = '<div class="empty" style="padding:14px">Cargando nombres del kardex…</div>'; return; }
   mostrarResultados(buscarNombres(v, 20));
 };
+
+// ---------- VER KARDEX CON UBICACIONES ----------
+let kFiltro = 'con', kMax = 60, kCod = '';
+function nomCod(c) { return (extra[c] && extra[c].n) || (KN && KN[c]) || ''; }
+function catCod(c) { return (extra[c] && (extra[c].cat || 'Agregado a mano')) || (KC && KC.m[c] !== undefined ? KC.c[KC.m[c]] : ''); }
+function abrirKardex() {
+  const zs = [...new Set([...zonas, ...Object.values(ubic).map(u => u.z).filter(Boolean)])];
+  const zSel = $('kZona').value, cSel = $('kCat').value;
+  $('kZona').innerHTML = '<option value="">Todas las zonas</option>' + zs.map(z => `<option ${z === zSel ? 'selected' : ''}>${esc(z)}</option>`).join('');
+  const cats = KC ? [...KC.c].sort((a, b) => a.localeCompare(b, 'es')) : [];
+  $('kCat').innerHTML = '<option value="">Todas las categorías</option>' + cats.map(c => `<option ${c === cSel ? 'selected' : ''}>${esc(c)}</option>`).join('');
+  kMax = 60; renderKardex(); abrir('shKardex');
+}
+function renderKardex() {
+  const q = norm($('kBuscar').value).split(/[^a-z0-9]+/).filter(Boolean), z = $('kZona').value, cat = $('kCat').value;
+  let cods;
+  if (kFiltro === 'con') cods = Object.keys(ubic).filter(c => ubic[c] && ubic[c].z);
+  else cods = [...new Set([...Object.keys(extra), ...(KC ? Object.keys(KC.m) : [])])];
+  if (kFiltro === 'sin') cods = cods.filter(c => !(ubic[c] && ubic[c].z));
+  if (z) cods = cods.filter(c => ubic[c] && ubic[c].z === z);
+  if (cat) cods = cods.filter(c => catCod(c) === cat);
+  if (q.length) cods = cods.filter(c => { const t = norm(nomCod(c) + ' ' + c); return q.every(w => t.includes(w)); });
+  if (kFiltro === 'con') {
+    const oz = x => { const i = zonas.indexOf(x); return i < 0 ? 1e6 : i; };
+    cods.sort((a, b) => oz(ubic[a].z) - oz(ubic[b].z) || ubic[a].z.localeCompare(ubic[b].z, 'es') || (ubic[a].d || '').localeCompare(ubic[b].d || '', 'es', { numeric: true }) || nomCod(a).localeCompare(nomCod(b), 'es'));
+  }
+  $('kCont').textContent = cods.length.toLocaleString('es') + ' productos' + (cods.length > kMax ? ' · mostrando ' + kMax : '');
+  let html = '', ult = null;
+  for (const c of cods.slice(0, kMax)) {
+    const u = ubic[c], ut = u && u.z ? u.z + (u.d ? ' · ' + u.d : '') : '';
+    if (kFiltro === 'con' && u.z !== ult) { ult = u.z; html += `<div class="gh" style="border-radius:8px">📍 ${esc(u.z)}</div>`; }
+    html += `<div class="card ${ut ? 'ok' : ''}" style="margin:6px 0" data-cod="${esc(c)}"><div class="n">${esc(nomCod(c) || c)}</div>
+      <div class="m"><span>${esc(c)}</span><span>${esc(catCod(c))}</span></div>
+      <div class="m"><span class="loc ${ut ? '' : 'none'}">${ut ? '📍 ' + esc(ut) : 'Sin ubicación'}</span>${u && u.t ? '<span>' + new Date(u.t).toLocaleDateString('es') + '</span>' : ''}</div></div>`;
+  }
+  if (cods.length > kMax) html += '<button class="btn ghost" style="width:100%;margin-top:6px" id="kMas">Ver más</button>';
+  if (!cods.length) html = '<div class="empty">' + (kFiltro === 'con' && !Object.keys(ubic).length ? 'Aún no has guardado ubicaciones.<br>Usa 📍 Registrar.' : 'Sin resultados') + '</div>';
+  $('kLista').innerHTML = html;
+  $('kLista').querySelectorAll('[data-cod]').forEach(el => el.onclick = () => abrirUb(el.dataset.cod));
+  if ($('kMas')) $('kMas').onclick = () => { kMax += 100; renderKardex(); };
+}
+function abrirUb(c) {
+  kCod = c; const u = ubic[c] || {};
+  $('uNom').textContent = nomCod(c) || c; $('uSub').textContent = c + ' · ' + catCod(c);
+  llenarZonas($('uZona'), u.z || ''); $('uDet').value = u.d || '';
+  abrir('shUb');
+}
+$('uGuardar').onclick = () => {
+  const z = $('uZona').value, d = $('uDet').value.trim();
+  if (!z) { toast('Elige la zona'); return; }
+  ubic[kCod] = { z, d, t: Date.now() }; LS.set('jat_ubicaciones', ubic);
+  cerrar('shUb'); renderKardex(); render(); toast('✅ Ubicación guardada');
+};
+$('uBorrar').onclick = () => {
+  if (!ubic[kCod]) { cerrar('shUb'); return; }
+  if (!confirm('¿Quitar la ubicación de este producto?')) return;
+  delete ubic[kCod]; LS.set('jat_ubicaciones', ubic); cerrar('shUb'); renderKardex(); render(); toast('Ubicación quitada');
+};
+$('bKardex').onclick = abrirKardex;
+$('kBuscar').oninput = () => { kMax = 60; renderKardex(); };
+$('kZona').onchange = $('kCat').onchange = () => { kMax = 60; renderKardex(); };
+document.querySelectorAll('#kFiltro .chip').forEach(c => c.onclick = () => { kFiltro = c.dataset.k; document.querySelectorAll('#kFiltro .chip').forEach(x => x.classList.toggle('on', x === c)); kMax = 60; renderKardex(); });
 
 function registrarCodigo(codigos, desdeCamara) {
   const z = $('rZona').value, d = $('rDet').value.trim();
