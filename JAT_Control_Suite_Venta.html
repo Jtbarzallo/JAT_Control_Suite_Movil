@@ -4378,7 +4378,7 @@
         document.getElementById('mapEncabezado').checked = g.tieneEnc;
         document.getElementById('mapeoArchivo').textContent = jatExcelNombre + ' · ' + jatExcelFilas.length + ' filas. Revisa que cada columna sea la correcta.';
         jatPreviewMapeo();
-        document.getElementById('mapeoExcelModal').style.display = 'flex';
+        jatMostrarVentana('mapeoExcelModal');
     }
     function jatNumero(v) {
         let t = String(v || '').trim().replace(/\s/g, '');
@@ -4423,6 +4423,14 @@
     ['mapCodigo', 'mapProducto', 'mapCantidad', 'mapEncabezado'].forEach(id => document.getElementById(id)?.addEventListener('change', jatPreviewMapeo));
     document.getElementById('mapConfirmarBtn')?.addEventListener('click', jatConfirmarMapeo);
 
+
+    // Muestra una ventana por encima de la pantalla completa (si está activa)
+    function jatMostrarVentana(id) {
+        const m = document.getElementById(id); if (!m) return;
+        const host = document.fullscreenElement || document.webkitFullscreenElement || document.body;
+        if (m.parentElement !== host) host.appendChild(m);
+        m.style.display = 'flex';
+    }
     // ===== Registrar salida escaneando (sin egreso) =====
     window.jatModoRegistro = false;
     let jatRegCodigo = '', jatRegQtyNuevo = true;
@@ -4451,7 +4459,7 @@
             sec.parentNode.insertBefore(b, sec);
             document.getElementById('jatRegTerminarBtn').addEventListener('click', () => {
                 if (!currentProductos.length) { jatSalirRegistro(); cerrarVerificador(); return; }
-                document.getElementById('jatRegFinModal').style.display = 'flex';
+                jatMostrarVentana('jatRegFinModal');
             });
         }
         return b;
@@ -4492,7 +4500,7 @@
         const kd = jatKardexDato(codigo); document.getElementById('jatRegCategoria').value = kd ? kd.c : '';
         document.getElementById('jatRegYaLleva').textContent = idx >= 0 ? `Ya registraste ${formatearQty(getExpectedQty(currentProductos[idx]))}. Lo que pongas se suma.` : (nombre ? '📋 Está en el kardex.' : 'Producto nuevo: se guardará en el kardex. Escribe o dicta su nombre una sola vez.');
         const q = document.getElementById('jatRegQty'); q.value = '1'; jatRegQtyNuevo = true;
-        document.getElementById('jatRegModal').style.display = 'flex';
+        jatMostrarVentana('jatRegModal');
         if (!ni.value) setTimeout(() => ni.focus(), 120);
     }
     function jatCerrarRegistroProducto() {
@@ -4546,6 +4554,8 @@
     const _jatCerrarVerifOriginal = cerrarVerificador;
     cerrarVerificador = function () {
         if (window.jatModoRegistro) jatSalirRegistro();
+        try { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); } catch (e) {}
+        ['jatRegModal', 'jatRegFinModal', 'jatKdxModal'].forEach(id => { const m = document.getElementById(id); if (m) { m.style.display = 'none'; if (m.parentElement !== document.body) document.body.appendChild(m); } });
         return _jatCerrarVerifOriginal.apply(this, arguments);
     };
     (function jatInitRegistro() {
@@ -4642,7 +4652,7 @@
         }
         document.getElementById('jatKdxNombre').value = d ? d.n : '';
         document.getElementById('jatKdxCategoria').value = d ? d.c : '';
-        m.style.display = 'flex';
+        jatMostrarVentana('jatKdxModal');
         if (!d) setTimeout(() => document.getElementById('jatKdxNombre').focus(), 120);
     }
     function jatGuardarKardexModal() {
@@ -4724,7 +4734,7 @@
         document.getElementById('jatKdxCodigo').innerHTML = '<input type="text" id="jatKdxCodigoInput" inputmode="numeric" placeholder="Código de barras" autocomplete="off" style="font-size:16px;padding:12px;margin:0;">';
         document.getElementById('jatKdxNombre').value = ''; document.getElementById('jatKdxCategoria').value = '';
         m.dataset.modo = 'nuevoManual'; m.dataset.codigo = '';
-        m.style.display = 'flex';
+        jatMostrarVentana('jatKdxModal');
         setTimeout(() => document.getElementById('jatKdxCodigoInput')?.focus(), 120);
     }
     function jatKardexDesdeEgresos() {
