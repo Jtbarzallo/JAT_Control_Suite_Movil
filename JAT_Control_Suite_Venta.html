@@ -497,6 +497,7 @@
                 <div class="submenu">
                     <div class="menu-item active" data-action="nuevoEgreso"><span class="icon">📄</span> Nuevo egreso</div>
                     <div class="menu-item" data-action="registrarSalida"><span class="icon">🛒</span> Registrar salida sin egreso</div>
+                    <div class="menu-item" data-action="kardex"><span class="icon">📋</span> Kardex de productos</div>
                     <div class="menu-item" data-action="abrirEgreso"><span class="icon">📁</span> Abrir egreso guardado</div>
                     <div class="menu-item" data-action="guardarAhora"><span class="icon">💾</span> Guardar</div>
                     <div class="menu-item" data-action="guardarComo"><span class="icon">📂</span> Guardar como / Carpeta</div>
@@ -552,6 +553,7 @@
                 <input id="jatRegNombre" type="text" placeholder="Nombre del producto" autocomplete="off" style="font-size:16px;padding:12px;">
                 <button type="button" class="scan-tool" id="jatRegVozBtn" aria-label="Dictar nombre">🎤</button>
             </div>
+            <input id="jatRegCategoria" type="text" placeholder="Categoría (opcional)" autocomplete="off" style="font-size:16px;padding:10px 12px;margin:8px 0 0;">
             <label for="jatRegQty" style="display:block;font-size:.85rem;color:#1a3a5c;margin-top:12px;font-weight:600;">Cantidad</label>
             <input id="jatRegQty" type="number" inputmode="none" min="1" value="1" style="margin:6px 0 4px;text-align:center;font-weight:700;">
             <div class="jat-keypad on" id="jatRegKeypad" style="grid-template-columns:repeat(3,1fr);">
@@ -563,6 +565,27 @@
             <div style="display:flex;gap:10px;margin-top:12px;">
                 <button class="btn" id="jatRegCancelarBtn" type="button" style="flex:1;min-height:52px;">Cancelar</button>
                 <button class="btn btn-success" id="jatRegGuardarBtn" type="button" style="flex:2;min-height:52px;font-size:1.05rem;">✅ Registrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL KARDEX -->
+    <input type="file" id="kdxExcelInput" accept=".xlsx,.xls,.csv,.ods,.txt,text/csv" style="display:none;">
+    <div id="jatKdxModal" class="qty-modal-overlay">
+        <div class="qty-modal-card">
+            <h3 id="jatKdxTitulo">📋 Producto</h3>
+            <div id="jatKdxAviso" style="display:none;background:#fff4e5;border:1px solid #f5c98a;color:#7a4a00;border-radius:12px;padding:10px 12px;font-size:.88rem;margin:6px 0 10px;"></div>
+            <div style="font-family:monospace;font-size:.95rem;color:#2c3e50;" id="jatKdxCodigo"></div>
+            <label for="jatKdxNombre" style="display:block;font-size:.85rem;color:#1a3a5c;margin-top:12px;font-weight:600;">Nombre del producto</label>
+            <div class="reg-nombre" style="display:flex;gap:8px;align-items:center;">
+                <input id="jatKdxNombre" type="text" placeholder="Ej: TALADRO PERCUTOR 1/2" autocomplete="off" style="font-size:16px;padding:12px;margin:6px 0;">
+                <button type="button" class="scan-tool" id="jatKdxVozBtn" aria-label="Dictar nombre">🎤</button>
+            </div>
+            <label for="jatKdxCategoria" style="display:block;font-size:.85rem;color:#1a3a5c;margin-top:6px;font-weight:600;">Categoría (opcional)</label>
+            <input id="jatKdxCategoria" type="text" placeholder="Ej: Herramientas" autocomplete="off" style="font-size:16px;padding:12px;margin:6px 0;">
+            <div style="display:flex;gap:10px;margin-top:12px;">
+                <button class="btn" id="jatKdxCerrarBtn" type="button" style="flex:1;min-height:52px;">Cerrar</button>
+                <button class="btn btn-success" id="jatKdxGuardarBtn" type="button" style="flex:2;min-height:52px;">💾 Guardar en kardex</button>
             </div>
         </div>
     </div>
@@ -3302,6 +3325,7 @@
                 item.classList.add('active');
                 const action = item.dataset.action;
                 if (action === 'nuevoEgreso') cargarVistaNuevoEgreso(true);
+                else if (action === 'kardex') cargarVistaKardex();
                 else if (action === 'registrarSalida') { cargarVistaNuevoEgreso(false); setTimeout(() => document.querySelector('.reg-box')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150); }
                 else if (action === 'abrirEgreso') abrirEgresoGuardado();
                 else if (action === 'guardarAhora') guardarActualSeguro();
@@ -3370,7 +3394,7 @@
         document.getElementById('procesarTablaBtn').addEventListener('click', procesarTablaPegada);
         document.getElementById('seleccionarPdfBtn').addEventListener('click', () => document.getElementById('pdfEgresoInput').click());
         document.getElementById('jatIniciarRegistroBtn')?.addEventListener('click', () => jatIniciarRegistro());
-        document.getElementById('cargarExcelBtn')?.addEventListener('click', () => document.getElementById('excelEgresoInput').click());
+        document.getElementById('cargarExcelBtn')?.addEventListener('click', () => { window.jatExcelDestino = ''; document.getElementById('excelEgresoInput').click(); });
         document.getElementById('excelEgresoInput')?.addEventListener('change', (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) jatLeerExcel(f); });
         document.getElementById('pdfEgresoInput').addEventListener('change', leerPDFSeleccionado);
         document.getElementById('leerPdfBtn').addEventListener('click', leerPDFSeleccionado);
@@ -3700,6 +3724,7 @@
             camUltimaLecturaBarcode = Date.now();
             const exacto = elegirCodigoExactoEnEgreso(codigos);
             if (exacto) { manejarCodigoDetectado(exacto); return; }
+            if (window.jatModoRegistro) { manejarCodigoDetectado(codigos[0]); return; }
             // Ninguno de los códigos vistos en el cuadro coincide EXACTO con este egreso.
             // No se intenta adivinar por últimos dígitos: se reporta como no encontrado,
             // usando el primer código leído solo para mostrarlo en pantalla.
@@ -3713,6 +3738,7 @@
             if (linea) { linea.style.display = 'block'; linea.textContent = '📦 Leído: ' + primero + ' (no coincide con este egreso)'; }
             mostrarUltimoEscaneo(-1, 'error', '❌ PRODUCTO NO ENCONTRADO — código leído: ' + primero);
             hablarHat('Producto no encontrado.', 'error', {force:true, interrupt:true});
+            if (typeof jatProductoFueraEgreso === 'function') jatProductoFueraEgreso(primero);
         }
 
         // ---- PANTALLA COMPLETA — oculta la barra de direcciones de Chrome sin instalar nada ----
@@ -4463,7 +4489,8 @@
         document.getElementById('jatRegCodigoTxt').textContent = codigo;
         const ni = document.getElementById('jatRegNombre');
         ni.value = nombre && nombre !== codigo ? nombre : '';
-        document.getElementById('jatRegYaLleva').textContent = idx >= 0 ? `Ya registraste ${formatearQty(getExpectedQty(currentProductos[idx]))}. Lo que pongas se suma.` : (nombre ? 'Producto conocido.' : 'Producto nuevo: escribe o dicta su nombre una sola vez.');
+        const kd = jatKardexDato(codigo); document.getElementById('jatRegCategoria').value = kd ? kd.c : '';
+        document.getElementById('jatRegYaLleva').textContent = idx >= 0 ? `Ya registraste ${formatearQty(getExpectedQty(currentProductos[idx]))}. Lo que pongas se suma.` : (nombre ? '📋 Está en el kardex.' : 'Producto nuevo: se guardará en el kardex. Escribe o dicta su nombre una sola vez.');
         const q = document.getElementById('jatRegQty'); q.value = '1'; jatRegQtyNuevo = true;
         document.getElementById('jatRegModal').style.display = 'flex';
         if (!ni.value) setTimeout(() => ni.focus(), 120);
@@ -4562,6 +4589,216 @@
         });
         document.getElementById('jatRegSeguirBtn')?.addEventListener('click', () => { document.getElementById('jatRegFinModal').style.display = 'none'; });
     })();
+
+    // ===== KARDEX: catálogo de productos que se arma solo =====
+    function jatKardex() {
+        let c = {};
+        try { c = JSON.parse(localStorage.getItem('jatv_catalogo') || '{}') || {}; } catch (e) {}
+        const out = {};
+        Object.keys(c).forEach(k => { const v = c[k]; out[k] = typeof v === 'string' ? { n: v, c: '' } : { n: v.n || '', c: v.c || '', f: v.f || '' }; });
+        return out;
+    }
+    function jatKardexEscribir(k) { try { localStorage.setItem('jatv_catalogo', JSON.stringify(k)); return true; } catch (e) { showAlert('No se pudo guardar el kardex en este celular', 'error'); return false; } }
+    function jatKardexGuardar(codigo, datos) {
+        const k = jatKardex();
+        k[codigo] = { n: datos.n || (k[codigo] && k[codigo].n) || '', c: datos.c ?? (k[codigo] && k[codigo].c) ?? '', f: new Date().toISOString().slice(0, 10) };
+        return jatKardexEscribir(k);
+    }
+    function jatKardexDato(codigo) { return jatKardex()[codigo] || null; }
+    // reemplaza los ayudantes del registro de salida para usar el kardex
+    jatCatalogo = function () { const k = jatKardex(), o = {}; Object.keys(k).forEach(x => o[x] = k[x].n); return o; };
+    jatGuardarEnCatalogo = function (codigo, nombre) { const cat = (document.getElementById('jatRegCategoria')?.value || '').trim(); jatKardexGuardar(codigo, { n: nombre, c: cat }); };
+
+    // ---- en modo registro: códigos que no están en la lista van a la ventana de registro ----
+    const _jatBuscarOriginal = buscarProductoEnVerificador;
+    buscarProductoEnVerificador = function (termino) {
+        if (window.jatModoRegistro && termino && termino.trim() && findAllProductsBySearchTerm(termino).length === 0) {
+            limpiarBusquedaMultiple();
+            const d = jatKardexDato(termino.trim());
+            const div = document.getElementById('searchStatusVerif');
+            if (div) { div.style.display = 'flex'; div.innerHTML = d ? `<span>📋 En el kardex: <strong>${jatEsc(d.n)}</strong> — toca ✓</span>` : `<span>🆕 Código nuevo — toca ✓ para guardarlo</span>`; }
+            return;
+        }
+        return _jatBuscarOriginal.apply(this, arguments);
+    };
+    // ---- modo verificación: producto que no está en el egreso ----
+    function jatProductoFueraEgreso(codigo) {
+        if (!codigo || window.jatModoRegistro) return;
+        const m = document.getElementById('jatKdxModal');
+        if (m.style.display === 'flex') return;
+        const d = jatKardexDato(codigo);
+        jatAbrirKardexModal(codigo, d, d ? 'conocido' : 'nuevo');
+    }
+    function jatAbrirKardexModal(codigo, d, modo) {
+        const m = document.getElementById('jatKdxModal');
+        m.dataset.codigo = codigo; m.dataset.modo = modo;
+        document.getElementById('jatKdxCodigo').textContent = codigo;
+        const aviso = document.getElementById('jatKdxAviso');
+        if (modo === 'editar') { document.getElementById('jatKdxTitulo').textContent = '✏️ Editar producto'; aviso.style.display = 'none'; }
+        else {
+            document.getElementById('jatKdxTitulo').textContent = '⚠️ No está en este egreso';
+            aviso.style.display = 'block';
+            aviso.innerHTML = d ? `Es <strong>${jatEsc(d.n)}</strong>${d.c ? ' (' + jatEsc(d.c) + ')' : ''}. No va en este despacho: apártalo.` : 'Este código no está en el egreso ni en el kardex. Guarda sus datos para reconocerlo la próxima vez.';
+        }
+        document.getElementById('jatKdxNombre').value = d ? d.n : '';
+        document.getElementById('jatKdxCategoria').value = d ? d.c : '';
+        m.style.display = 'flex';
+        if (!d) setTimeout(() => document.getElementById('jatKdxNombre').focus(), 120);
+    }
+    function jatGuardarKardexModal() {
+        const m = document.getElementById('jatKdxModal');
+        const n = document.getElementById('jatKdxNombre').value.replace(/\s+/g, ' ').trim();
+        if (!n) { showAlert('Escribe el nombre del producto', 'warning'); return; }
+        if (jatKardexGuardar(m.dataset.codigo, { n, c: document.getElementById('jatKdxCategoria').value.trim() })) showAlert('📋 Guardado en el kardex: ' + n.substring(0, 40), 'success');
+        m.style.display = 'none';
+        if (document.getElementById('kdxLista')) jatRenderKardex();
+    }
+    const _jatMarcarRegistro = marcarActualComoVerificado;
+    marcarActualComoVerificado = async function () {
+        if (!window.jatModoRegistro && document.getElementById('verificadorModal')?.style.display === 'flex') {
+            const t = (document.getElementById('scannerInput')?.value || '').trim();
+            if (t && /\d{4,}/.test(t) && !/\s/.test(t) && findAllProductsBySearchTerm(t).length === 0) { jatProductoFueraEgreso(t); return; }
+        }
+        return _jatMarcarRegistro.apply(this, arguments);
+    };
+
+    // ---- vista Kardex ----
+    let jatKdxBorrarPend = '';
+    function cargarVistaKardex() {
+        const main = document.getElementById('mainContent');
+        main.innerHTML = `
+        <div style="background:white;border-radius:20px;border:1px solid #e8ecf0;overflow:hidden;flex:1;display:flex;flex-direction:column;min-height:0;">
+            <div style="padding:18px 28px;border-bottom:1px solid #edf2f7;display:flex;justify-content:space-between;align-items:center;gap:10px;">
+                <h3 style="font-size:1rem;color:#1a3a5c;">📋 Kardex de productos</h3>
+                <span id="kdxTotal" style="background:#eaf2fb;color:#1a3a5c;padding:4px 14px;border-radius:40px;font-size:0.72rem;white-space:nowrap;"></span>
+            </div>
+            <div style="padding:16px 28px;display:flex;flex-direction:column;gap:12px;overflow:auto;">
+                <p style="font-size:.8rem;color:#6b7c8f;">Aquí quedan todos los productos con su código y nombre. Se llena solo cuando registras salidas o guardas un código nuevo, y sirve para reconocer cualquier producto al escanearlo.</p>
+                <input type="search" id="kdxBuscar" placeholder="Buscar por nombre, código o categoría" autocomplete="off" style="width:100%;padding:12px 14px;border:1.5px solid #dce3ea;border-radius:12px;font-size:16px;box-sizing:border-box;">
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <button class="btn btn-primary" id="kdxNuevoBtn" type="button">➕ Agregar producto</button>
+                    <button class="btn btn-success" id="kdxExcelBtn" type="button">📊 Importar Excel</button>
+                    <button class="btn" id="kdxEgresosBtn" type="button">📁 Traer de mis egresos</button>
+                    <button class="btn" id="kdxCsvBtn" type="button">⬇️ Exportar CSV</button>
+                </div>
+                <div id="kdxLista"></div>
+            </div>
+        </div>`;
+        document.getElementById('kdxBuscar').addEventListener('input', jatRenderKardex);
+        document.getElementById('kdxNuevoBtn').addEventListener('click', jatKardexNuevo);
+        document.getElementById('kdxExcelBtn').addEventListener('click', () => { window.jatExcelDestino = 'kardex'; document.getElementById('kdxExcelInput').click(); });
+        document.getElementById('kdxEgresosBtn').addEventListener('click', jatKardexDesdeEgresos);
+        document.getElementById('kdxCsvBtn').addEventListener('click', jatKardexCsv);
+        document.getElementById('kdxLista').addEventListener('click', (e) => {
+            const b = e.target.closest('button[data-kdx]'); if (!b) return;
+            const cod = b.dataset.cod;
+            if (b.dataset.kdx === 'edit') jatAbrirKardexModal(cod, jatKardexDato(cod), 'editar');
+            if (b.dataset.kdx === 'del') {
+                if (jatKdxBorrarPend !== cod) { jatKdxBorrarPend = cod; b.textContent = '¿Borrar?'; b.style.background = '#c0392b'; b.style.color = '#fff'; setTimeout(() => { if (jatKdxBorrarPend === cod) { jatKdxBorrarPend = ''; jatRenderKardex(); } }, 3000); return; }
+                const k = jatKardex(); delete k[cod]; jatKardexEscribir(k); jatKdxBorrarPend = ''; jatRenderKardex(); showAlert('Producto borrado del kardex', 'info');
+            }
+        });
+        jatRenderKardex();
+    }
+    function jatRenderKardex() {
+        const lista = document.getElementById('kdxLista'); if (!lista) return;
+        const k = jatKardex(); const cods = Object.keys(k);
+        const t = (document.getElementById('kdxBuscar')?.value || '').trim().toLowerCase();
+        const filtrados = cods.filter(c => !t || (c + ' ' + k[c].n + ' ' + k[c].c).toLowerCase().includes(t)).sort((a, b) => k[a].n.localeCompare(k[b].n, 'es'));
+        document.getElementById('kdxTotal').textContent = cods.length + ' productos';
+        if (!cods.length) { lista.innerHTML = '<p style="font-size:.85rem;color:#6b7c8f;padding:20px 0;text-align:center;">El kardex está vacío. Agrega productos, importa un Excel o registra una salida escaneando.</p>'; return; }
+        lista.innerHTML = filtrados.slice(0, 300).map(c => `
+            <div style="display:flex;gap:10px;align-items:center;border-bottom:1px solid #edf2f7;padding:10px 0;">
+                <div style="flex:1;min-width:0;">
+                    <div style="font-weight:600;font-size:.9rem;color:#1a2b3c;overflow-wrap:anywhere;">${jatEsc(k[c].n || '(sin nombre)')}</div>
+                    <div style="font-family:monospace;font-size:.78rem;color:#6b7c8f;overflow-wrap:anywhere;">${jatEsc(c)}${k[c].c ? ' · ' + jatEsc(k[c].c) : ''}</div>
+                </div>
+                <button type="button" class="scan-tool" data-kdx="edit" data-cod="${jatEsc(c)}" aria-label="Editar">✏️</button>
+                <button type="button" class="scan-tool" data-kdx="del" data-cod="${jatEsc(c)}" aria-label="Borrar" style="width:auto;padding:0 10px;">🗑️</button>
+            </div>`).join('') + (filtrados.length > 300 ? `<p style="font-size:.78rem;color:#6b7c8f;padding:10px 0;">Mostrando 300 de ${filtrados.length}. Usa el buscador.</p>` : '') + (!filtrados.length ? '<p style="font-size:.85rem;color:#6b7c8f;padding:14px 0;">Nada coincide con la búsqueda.</p>' : '');
+    }
+    function jatKardexNuevo() {
+        const m = document.getElementById('jatKdxModal');
+        document.getElementById('jatKdxTitulo').textContent = '➕ Producto nuevo';
+        document.getElementById('jatKdxAviso').style.display = 'none';
+        document.getElementById('jatKdxCodigo').innerHTML = '<input type="text" id="jatKdxCodigoInput" inputmode="numeric" placeholder="Código de barras" autocomplete="off" style="font-size:16px;padding:12px;margin:0;">';
+        document.getElementById('jatKdxNombre').value = ''; document.getElementById('jatKdxCategoria').value = '';
+        m.dataset.modo = 'nuevoManual'; m.dataset.codigo = '';
+        m.style.display = 'flex';
+        setTimeout(() => document.getElementById('jatKdxCodigoInput')?.focus(), 120);
+    }
+    function jatKardexDesdeEgresos() {
+        const k = jatKardex(); let n = 0;
+        const fuentes = [...(egresosGuardados || []).flatMap(e => e.productos || []), ...(currentProductos || [])];
+        fuentes.forEach(p => { const c = String(p.barcode || '').trim(); if (c && !k[c] && p.productName && p.productName !== c) { k[c] = { n: p.productName, c: '', f: new Date().toISOString().slice(0, 10) }; n++; } });
+        jatKardexEscribir(k); jatRenderKardex();
+        showAlert(n ? `📋 ${n} productos nuevos agregados desde tus egresos` : 'Tus egresos no tienen productos nuevos para el kardex', n ? 'success' : 'info');
+    }
+    function jatKardexCsv() {
+        const k = jatKardex(); const q = v => '"' + String(v || '').replace(/"/g, '""') + '"';
+        const csv = '﻿Codigo;Producto;Categoria\n' + Object.keys(k).map(c => [q(c), q(k[c].n), q(k[c].c)].join(';')).join('\n');
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+        a.download = 'kardex_' + new Date().toISOString().slice(0, 10) + '.csv';
+        document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+    }
+    // importar Excel al kardex (reusa la ventana de columnas)
+    const _jatConfirmarMapeoOriginal = jatConfirmarMapeo;
+    jatConfirmarMapeo = function () {
+        if (window.jatExcelDestino !== 'kardex') return _jatConfirmarMapeoOriginal.apply(this, arguments);
+        window.jatExcelDestino = '';
+        const ci = +document.getElementById('mapCodigo').value, pi = +document.getElementById('mapProducto').value;
+        const enc = document.getElementById('mapEncabezado').checked;
+        const k = jatKardex(); let n = 0;
+        jatExcelFilas.slice(enc ? 1 : 0).forEach(f => {
+            const c = String(f[ci] || '').trim(); if (!c) return;
+            const nom = (pi >= 0 ? String(f[pi] || '').replace(/\s+/g, ' ').trim() : '');
+            if (!nom) return;
+            k[c] = { n: nom.substring(0, 220), c: (k[c] && k[c].c) || '', f: new Date().toISOString().slice(0, 10) }; n++;
+        });
+        jatKardexEscribir(k);
+        closeModal('mapeoExcelModal');
+        jatRenderKardex();
+        showAlert(`📋 ${n} productos guardados en el kardex`, 'success');
+    };
+    (function jatInitKardex() {
+        const btnC = document.getElementById('mapConfirmarBtn');
+        if (btnC) { const nb = btnC.cloneNode(true); btnC.replaceWith(nb); nb.addEventListener('click', () => jatConfirmarMapeo()); }
+        document.getElementById('kdxExcelInput')?.addEventListener('change', (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) jatLeerExcel(f); });
+        document.getElementById('jatKdxGuardarBtn')?.addEventListener('click', () => {
+            const m = document.getElementById('jatKdxModal');
+            if (m.dataset.modo === 'nuevoManual') {
+                const c = (document.getElementById('jatKdxCodigoInput')?.value || '').trim();
+                if (!c) { showAlert('Escribe el código', 'warning'); return; }
+                m.dataset.codigo = c;
+            }
+            jatGuardarKardexModal();
+        });
+        document.getElementById('jatKdxCerrarBtn')?.addEventListener('click', () => { document.getElementById('jatKdxModal').style.display = 'none'; const i = document.getElementById('scannerInput'); if (i && document.getElementById('verificadorModal')?.style.display === 'flex') i.value = ''; });
+        document.getElementById('jatKdxVozBtn')?.addEventListener('click', () => {
+            const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SR) { showAlert('Este navegador no permite dictar. Ábrelo en Google Chrome.', 'warning'); return; }
+            const r = new SR(); r.lang = 'es-EC'; r.interimResults = false;
+            const btn = document.getElementById('jatKdxVozBtn'); btn.classList.add('escuchando');
+            r.onresult = (ev) => { document.getElementById('jatKdxNombre').value = (ev.results[0][0].transcript || '').trim().toUpperCase(); };
+            r.onerror = (ev) => showAlert(ev.error === 'not-allowed' ? 'Permite el micrófono para poder dictar' : 'No se entendió. Intenta de nuevo.', 'warning');
+            r.onend = () => btn.classList.remove('escuchando');
+            try { r.start(); } catch (e) { btn.classList.remove('escuchando'); }
+        });
+    })();
+
+    const _jatPreviewOriginal = jatPreviewMapeo;
+    jatPreviewMapeo = function () {
+        if (window.jatExcelDestino !== 'kardex') { document.getElementById('mapConfirmarBtn').textContent = '✅ Cargar egreso'; return _jatPreviewOriginal.apply(this, arguments); }
+        const ci = +document.getElementById('mapCodigo').value, pi = +document.getElementById('mapProducto').value;
+        const enc = document.getElementById('mapEncabezado').checked;
+        const filas = jatExcelFilas.slice(enc ? 1 : 0).filter(f => String(f[ci] || '').trim() && pi >= 0 && String(f[pi] || '').trim());
+        document.getElementById('mapPreview').innerHTML = filas.length
+            ? `<strong style="font-size:.85rem;">${filas.length} productos para el kardex</strong><table><tr><th>Código</th><th>Producto</th></tr>${filas.slice(0, 4).map(f => `<tr><td>${jatEsc(f[ci])}</td><td>${jatEsc(String(f[pi]).substring(0, 40))}</td></tr>`).join('')}</table><p style="font-size:.75rem;color:#6b7c8f;margin-top:6px;">La columna de cantidad no se usa en el kardex.</p>`
+            : '<p style="color:#c0392b;font-size:.85rem;">Con estas columnas no salen productos. Elige la columna de código y la de producto.</p>';
+        document.getElementById('mapConfirmarBtn').textContent = '📋 Guardar en kardex';
+    };
+    ['mapCodigo', 'mapProducto', 'mapCantidad', 'mapEncabezado'].forEach(id => document.getElementById(id)?.addEventListener('change', () => jatPreviewMapeo()));
     </script>
     <!-- ====================================================================
          NOTAS DE AUDITORÍA — SEGUNDA PASADA (Jorge reportó: "cámara no funciona")
