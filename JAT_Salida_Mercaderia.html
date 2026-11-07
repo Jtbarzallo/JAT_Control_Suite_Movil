@@ -440,7 +440,19 @@ function render() {
 
 // ---------- Producto ----------
 function llenarZonas(sel, actual) {
-  sel.innerHTML = '<option value="">(sin ubicación)</option>' + zonas.map(z => `<option ${z === actual ? 'selected' : ''}>${esc(z)}</option>`).join('');
+  sel.innerHTML = '<option value="">(sin ubicación)</option>' + zonas.map(z => `<option ${z === actual ? 'selected' : ''}>${esc(z)}</option>`).join('') + '<option value="__nueva">➕ Agregar zona nueva…</option>';
+  sel.dataset.prev = actual || '';
+  if (!sel.dataset.nz) {
+    sel.dataset.nz = '1';
+    sel.addEventListener('change', () => {
+      if (sel.value !== '__nueva') { sel.dataset.prev = sel.value; return; }
+      const v = (prompt('Nombre de la zona nueva (ej: Cuarto 5, Pasillo 8, Mezanine):') || '').trim();
+      if (v && !zonas.includes(v)) { zonas.push(v); LS.set('jat_zonas', zonas); }
+      llenarZonas(sel, v || sel.dataset.prev);
+      sel.dispatchEvent(new Event('change'));
+      if (v) toast('✅ Zona agregada: ' + v);
+    });
+  }
 }
 function abrirItem(i) {
   idxItem = i; const p = productos[i], u = ubic[String(p.barcode).trim()] || {};
