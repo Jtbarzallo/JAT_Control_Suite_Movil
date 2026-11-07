@@ -504,7 +504,8 @@
                     <div class="menu-item" data-action="registrarSalida"><span class="icon">🛒</span> Registrar salida sin egreso</div>
                     <div class="menu-item" data-action="kardex"><span class="icon">📋</span> Kardex de productos</div>
                     <div class="menu-item" data-action="egresoKardex"><span class="icon">🧾</span> Egreso desde el kardex</div>
-                    <div class="menu-item" data-action="abrirEgreso"><span class="icon">📁</span> Abrir egreso guardado</div>
+                    <div class="menu-item" data-action="misEgresos"><span class="icon">📁</span> Mis egresos guardados</div>
+                    <div class="menu-item" data-action="abrirEgreso"><span class="icon">📂</span> Abrir archivo de egreso</div>
                     <div class="menu-item" data-action="guardarAhora"><span class="icon">💾</span> Guardar</div>
                     <div class="menu-item" data-action="guardarComo"><span class="icon">📂</span> Guardar como / Carpeta</div>
                     <div class="menu-item" data-action="carpetaTrabajo"><span class="icon">🗂️</span> Carpeta de trabajo</div>
@@ -3367,6 +3368,7 @@
                 const action = item.dataset.action;
                 if (action === 'nuevoEgreso') cargarVistaNuevoEgreso(true);
                 else if (action === 'kardex') cargarVistaKardex();
+                else if (action === 'misEgresos') cargarVistaMisEgresos();
                 else if (action === 'egresoKardex') cargarVistaEgresoKardex();
                 else if (action === 'registrarSalida') { cargarVistaNuevoEgreso(false); setTimeout(() => document.querySelector('.reg-box')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150); }
                 else if (action === 'abrirEgreso') abrirEgresoGuardado();
@@ -3408,6 +3410,7 @@
                     <span style="font-size:.78rem;color:#4a5f78;">Arma tu lista de productos escaneándolos uno por uno. Con ella creas egresos eligiendo productos y cantidades.</span>
                     <button id="jatCrearKardexBtn" class="btn btn-primary" type="button">📋 Crear kardex nuevo</button>
                     <button id="jatEgresoKardexBtn" class="btn btn-success" type="button">🧾 Crear egreso desde el kardex</button>
+                    <button id="jatMisEgresosBtn" class="btn" type="button" style="background:#fff;border:1.5px solid #c9daef;color:#1a3a5c;">📁 Abrir mis egresos guardados</button>
                 </div>
                 <div class="reg-box">
                     <strong style="color:#7a5200;">🛒 ¿No tienes egreso? Registra la salida escaneando</strong>
@@ -3444,6 +3447,7 @@
         document.getElementById('jatIniciarRegistroBtn')?.addEventListener('click', () => jatIniciarRegistro());
         document.getElementById('jatCrearKardexBtn')?.addEventListener('click', () => jatPedirCrearKardex());
         document.getElementById('jatEgresoKardexBtn')?.addEventListener('click', () => cargarVistaEgresoKardex());
+        document.getElementById('jatMisEgresosBtn')?.addEventListener('click', () => cargarVistaMisEgresos());
         document.getElementById('cargarExcelBtn')?.addEventListener('click', () => { window.jatExcelDestino = ''; document.getElementById('excelEgresoInput').click(); });
         document.getElementById('excelEgresoInput')?.addEventListener('change', (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) jatLeerExcel(f); });
         document.getElementById('pdfEgresoInput').addEventListener('change', leerPDFSeleccionado);
@@ -5076,6 +5080,77 @@
             if (e.target && e.target.matches && e.target.matches('.qty-modal-card input[type="text"], .qty-modal-card input:not([type])')) setTimeout(() => e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }), 300);
         });
     })();
+
+    // ===== Mis egresos guardados (lista para celular) =====
+    let jatMisFiltro = 'todos';
+    function jatTipoEgreso(e) {
+        const f = (e.productos && e.productos[0] && e.productos[0].fuenteOrden) || '';
+        if (f === 'kardex') return { id: 'kardex', t: '🧾 Desde kardex', c: '#1E7F4A', bg: '#eafaf1' };
+        if (f === 'registro') return { id: 'salida', t: '🛒 Salida registrada', c: '#8a5a00', bg: '#fff4e0' };
+        if (f === 'excel-cliente') return { id: 'archivo', t: '📊 Excel', c: '#1a6392', bg: '#eaf2fb' };
+        return { id: 'archivo', t: '📄 PDF / tabla', c: '#1a6392', bg: '#eaf2fb' };
+    }
+    function cargarVistaMisEgresos() {
+        const main = document.getElementById('mainContent');
+        main.innerHTML = `
+        <div style="background:white;border-radius:20px;border:1px solid #e8ecf0;overflow:hidden;flex:1;display:flex;flex-direction:column;min-height:0;">
+            <div style="padding:18px 28px;border-bottom:1px solid #edf2f7;display:flex;justify-content:space-between;align-items:center;gap:10px;">
+                <h3 style="font-size:1rem;color:#1a3a5c;">📁 Mis egresos</h3>
+                <span id="misTotal" style="background:#eaf2fb;color:#1a3a5c;padding:4px 14px;border-radius:40px;font-size:0.72rem;white-space:nowrap;"></span>
+            </div>
+            <div style="padding:16px 28px;display:flex;flex-direction:column;gap:12px;overflow:auto;">
+                <input type="search" id="misBuscar" placeholder="Buscar por nombre o cliente" autocomplete="off" style="flex:none;width:100%;padding:12px 14px;border:1.5px solid #dce3ea;border-radius:12px;font-size:16px;box-sizing:border-box;">
+                <div id="misChips" style="display:flex;gap:8px;overflow-x:auto;flex:none;padding:2px 0 4px;">
+                    <button type="button" data-mf="todos">Todos</button><button type="button" data-mf="kardex">🧾 Desde kardex</button><button type="button" data-mf="salida">🛒 Salidas</button><button type="button" data-mf="archivo">📄 PDF / Excel</button><button type="button" data-mf="pendiente">⏳ Pendientes</button>
+                </div>
+                <div id="misLista"></div>
+                <button class="btn" id="misArchivoBtn" type="button">📂 Abrir un archivo de egreso</button>
+            </div>
+        </div>`;
+        document.getElementById('misBuscar').addEventListener('input', jatRenderMisEgresos);
+        document.getElementById('misChips').addEventListener('click', (e) => { const b = e.target.closest('[data-mf]'); if (!b) return; jatMisFiltro = b.dataset.mf; jatRenderMisEgresos(); });
+        document.getElementById('misArchivoBtn').addEventListener('click', () => abrirEgresoGuardado());
+        document.getElementById('misLista').addEventListener('click', (e) => {
+            const del = e.target.closest('[data-misdel]');
+            if (del) { eliminarEgreso(e, del.dataset.misdel); jatRenderMisEgresos(); return; }
+            const ab = e.target.closest('[data-misab]');
+            if (ab) cargarEgresoParaVerificar(ab.dataset.misab);
+        });
+        jatRenderMisEgresos();
+    }
+    function jatRenderMisEgresos() {
+        const box = document.getElementById('misLista'); if (!box) return;
+        document.querySelectorAll('#misChips [data-mf]').forEach(b => { const on = b.dataset.mf === jatMisFiltro; b.style.cssText = `flex:none;font-weight:600;font-size:13px;padding:9px 14px;white-space:nowrap;border-radius:999px;border:1.5px solid ${on ? '#0b223d' : '#dce3ea'};background:${on ? '#0b223d' : '#fff'};color:${on ? '#fff' : '#1a3a5c'};cursor:pointer;`; });
+        const t = (document.getElementById('misBuscar').value || '').trim().toLowerCase();
+        const lista = [...egresosGuardados].reverse().filter(e => {
+            const tipo = jatTipoEgreso(e).id;
+            const total = (e.productos || []).reduce((a, p) => a + getExpectedQty(p), 0), ver = (e.productos || []).reduce((a, p) => a + getVerifiedQty(p), 0);
+            if (jatMisFiltro === 'pendiente' && ver >= total) return false;
+            if (!['todos', 'pendiente'].includes(jatMisFiltro) && tipo !== jatMisFiltro) return false;
+            return !t || ((e.nombre || '') + ' ' + (e.bodegaDestino || '')).toLowerCase().includes(t);
+        });
+        document.getElementById('misTotal').textContent = egresosGuardados.length + ' guardados';
+        if (!lista.length) { box.innerHTML = `<p style="font-size:.85rem;color:#6b7c8f;padding:16px 0;text-align:center;">${egresosGuardados.length ? 'Ningún egreso coincide.' : 'Todavía no tienes egresos guardados. Crea uno desde el kardex, registra una salida o carga un PDF o Excel.'}</p>`; return; }
+        box.innerHTML = lista.map(e => {
+            const tp = jatTipoEgreso(e);
+            const total = (e.productos || []).reduce((a, p) => a + getExpectedQty(p), 0), ver = (e.productos || []).reduce((a, p) => a + getVerifiedQty(p), 0);
+            const pct = total ? Math.round(ver / total * 100) : 0;
+            const activo = currentEgreso && currentEgreso.id === e.id;
+            return `<div style="border:1.5px solid ${activo ? '#0b223d' : '#e3e9f0'};border-radius:14px;padding:12px 14px;margin-bottom:10px;display:flex;flex-direction:column;gap:6px;">
+                <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
+                    <div style="min-width:0;"><div style="font-weight:700;font-size:.92rem;color:#1a2b3c;overflow-wrap:anywhere;">${jatEsc(e.bodegaDestino || e.nombre)}</div>
+                    <div style="font-size:.74rem;color:#6b7c8f;overflow-wrap:anywhere;">${jatEsc(e.bodegaDestino ? e.nombre : '')}${e.bodegaDestino ? ' · ' : ''}${jatEsc(e.fechaModificacion || e.fechaCreacion || '')}</div></div>
+                    <span style="flex:none;font-size:.7rem;font-weight:600;color:${tp.c};background:${tp.bg};padding:3px 8px;border-radius:8px;white-space:nowrap;">${tp.t}</span>
+                </div>
+                <div style="height:8px;background:#edf2f7;border-radius:6px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${pct === 100 ? '#1E7F4A' : '#e0a24a'};"></div></div>
+                <div style="font-size:.78rem;color:#4a5f78;">${(e.productos || []).length} productos · ${formatearQty(ver)}/${formatearQty(total)} verificados (${pct}%)${pct === 100 ? ' ✅' : ''}</div>
+                <div style="display:flex;gap:8px;">
+                    <button type="button" class="btn btn-primary" data-misab="${jatEsc(e.id)}" style="flex:1;min-height:46px;">${pct === 100 ? '👁️ Ver' : '▶️ Abrir y verificar'}</button>
+                    <button type="button" class="btn" data-misdel="${jatEsc(e.id)}" style="flex:none;width:52px;min-height:46px;padding:0!important;" aria-label="Eliminar">🗑️</button>
+                </div>
+            </div>`;
+        }).join('');
+    }
     </script>
     <!-- ====================================================================
          NOTAS DE AUDITORÍA — SEGUNDA PASADA (Jorge reportó: "cámara no funciona")
