@@ -109,9 +109,24 @@ input[type=text],input[type=number],select{width:100%;padding:13px;border:1.5px 
   <input type="text" id="rDet" placeholder="Ej: Estante 3, nivel 2" list="detList" autocomplete="off">
   <button class="btn pri" style="width:100%;margin-top:14px;font-size:1.05rem" id="rEscanear">📷 Escanear productos</button>
   <div class="row" style="margin-top:8px"><input type="text" id="rCod" inputmode="numeric" placeholder="o escribe el código" autocomplete="off"><button class="btn" style="flex:0 0 auto;background:#1a3a5c;color:#fff" id="rAdd">Guardar</button></div>
+  <label>¿No tiene código de barras? Búscalo por nombre</label>
+  <input type="text" id="rBuscar" placeholder="🔎 Ej: plug canon, guitarra azul…" autocomplete="off">
+  <div id="rRes"></div>
   <div id="rCont" style="margin-top:12px;font-weight:700;color:#1a3a5c"></div>
   <div id="rLista" style="margin-top:6px"></div>
   <button class="btn ghost" style="width:100%;margin-top:10px" data-close>Cerrar</button>
+</div></div>
+
+<!-- Hoja: producto que no está en el kardex -->
+<div class="sheet-bg" id="shNuevo"><div class="sheet">
+  <h3>➕ Producto que no está en el kardex</h3>
+  <div style="font-size:.85rem;color:#475569">Código: <b id="nCod"></b></div>
+  <label>Nombre del producto</label>
+  <input type="text" id="nNom" placeholder="Ej: Guitarra acústica negra" autocomplete="off">
+  <label>Categoría (opcional)</label>
+  <input type="text" id="nCat" placeholder="Elige o escribe" list="catList" autocomplete="off">
+  <datalist id="catList"></datalist>
+  <div class="row" style="margin-top:16px"><button class="btn ghost" id="nCancelar">Cancelar</button><button class="btn pri" style="flex:2" id="nGuardar">💾 Agregar y guardar ubicación</button></div>
 </div></div>
 
 <div class="scan" id="scan">
@@ -442,7 +457,7 @@ $('zAdd').onclick = () => { const v = $('zNueva').value.trim(); if (!v) return; 
 async function guardarUbicaciones() {
   const n = Object.keys(ubic).length;
   if (!n) { toast('Aún no hay ubicaciones para guardar'); return; }
-  const data = JSON.stringify({ tipo: 'jat_ubicaciones', version: 1, fecha: new Date().toISOString(), zonas, ubic });
+  const data = JSON.stringify({ tipo: 'jat_ubicaciones', version: 2, fecha: new Date().toISOString(), zonas, ubic, extra });
   const file = new File([data], 'ubicaciones_bodega.json', { type: 'application/json' });
   try {
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -461,6 +476,8 @@ $('fUbic').onchange = async e => {
     let nuevos = 0;
     for (const [b, v] of Object.entries(j.ubic)) { if (!ubic[b] || (v.t || 0) > (ubic[b].t || 0)) { ubic[b] = v; nuevos++; } }
     (j.zonas || []).forEach(z => { if (!zonas.includes(z)) zonas.push(z); });
+    for (const [b, v] of Object.entries(j.extra || {})) if (!extra[b] || (v.t || 0) > (extra[b].t || 0)) extra[b] = v;
+    LS.set('jat_kardex_extra', extra);
     LS.set('jat_ubicaciones', ubic); LS.set('jat_zonas', zonas); render();
     toast('✅ Ubicaciones cargadas (' + nuevos + ' nuevas o actualizadas)');
   } catch (_) { toast('Ese archivo no es de ubicaciones'); }
@@ -478,9 +495,12 @@ $('fArchivo').onchange = async e => {
 
 // ---------- REGISTRAR UBICACIONES (sin egreso, con el kardex) ----------
 let modoReg = false, regHechos = [];
+let extra = LS.get('jat_kardex_extra', {});   // codigo -> {n, cat, t}  (productos agregados a mano)
 function buscarKardex(cod) {
   const b = String(cod || '').trim();
-  if (!KC || !b) return null;
+  if (!b) return null;
+  for (const k of [b, b.replace(/^0+/, '')]) if (extra[k]) return { cod: k, cat: extra[k].cat || 'Agregado a mano', nom: extra[k].n || '' };
+  if (!KC) return null;
   for (const k of [b, b.replace(/^0+/, ''), b.padStart(12, '0'), b.padStart(13, '0')]) if (KC.m[k] !== undefined) return { cod: k, cat: KC.c[KC.m[k]], nom: KN ? (KN[k] || '') : '' };
   return null;
 }
@@ -497,12 +517,67 @@ function renderReg() {
   });
 }
 function abrirRegistro() {
+  if (!modoReg) { $('rRes').innerHTML = ''; $('rBuscar').value = ''; }
   llenarZonas($('rZona'), LS.get('jat_reg_zona', ''));
   $('rDet').value = LS.get('jat_reg_det', '');
   const dets = [...new Set(Object.values(ubic).map(x => x.d).filter(Boolean))].slice(0, 60);
   $('detList').innerHTML = dets.map(d => `<option value="${esc(d)}">`).join('');
   renderReg(); abrir('shReg');
 }
+let KIDX = null;
+function indiceNombres() {
+  if (!KIDX && KN) KIDX = Object.entries(KN).map(([c, n]) => [c, norm(n).replace(/[^a-z0-9]+/g, ' ')]);
+  return KIDX || [];
+}
+function buscarNombres(texto, max) {
+  const pal = norm(texto).split(/[^a-z0-9]+/).filter(x => x.length >= 2);
+  if (!pal.length) return [];
+  const lista = [...Object.entries(extra).map(([c, e]) => [c, norm(e.n).replace(/[^a-z0-9]+/g, ' ')]), ...indiceNombres()];
+  const out = [];
+  for (const [c, n] of lista) { if (pal.every(w => n.includes(w))) { out.push(c); if (out.length >= max) break; } }
+  return out;
+}
+function buscarPorOCR(texto, max) {   // palabras leídas por la cámara → productos del kardex con más palabras en común
+  const leidas = [...new Set(norm(texto).split(/[^a-z0-9]+/).filter(x => x.length >= 3))];
+  if (!leidas.length) return [];
+  const res = [];
+  for (const [c, n] of [...Object.entries(extra).map(([c, e]) => [c, norm(e.n).replace(/[^a-z0-9]+/g, ' ')]), ...indiceNombres()]) {
+    const tp = n.split(' ').filter(x => x.length >= 3); let ch = 0, k = 0;
+    for (const t of new Set(tp)) if (leidas.some(l => l === t || (l.length >= 4 && t.length >= 4 && (l.includes(t) || t.includes(l))))) { ch += t.length; k++; }
+    if (k >= 2 && ch >= 7) res.push({ c, ch: ch + k / tp.length });
+  }
+  return res.sort((a, b) => b.ch - a.ch).slice(0, max).map(r => r.c);
+}
+function mostrarResultados(cods, titulo) {
+  const nomDe = c => (extra[c] && extra[c].n) || (KN && KN[c]) || c;
+  $('rRes').innerHTML = (titulo ? `<div style="font-size:.82rem;color:#475569;margin:8px 0 4px">${esc(titulo)}</div>` : '') +
+    (cods.length ? cods.map(c => `<div class="li" style="padding:10px;margin:6px 0" data-cod="${esc(c)}">${esc(nomDe(c))}<div style="font-weight:400;font-size:.8rem;color:#64748b">${esc(c)}${ubic[c] && ubic[c].z ? ' · ahora: ' + esc(ubic[c].z + (ubic[c].d ? ' · ' + ubic[c].d : '')) : ''} — toca para guardar aquí</div></div>`).join('')
+      : '<div class="empty" style="padding:14px">No se encontró en el kardex</div>');
+  $('rRes').querySelectorAll('[data-cod]').forEach(el => el.onclick = () => { registrarCodigo([el.dataset.cod], false); $('rBuscar').value = ''; $('rRes').innerHTML = ''; });
+}
+let nuevoDesdeCamara = false;
+function abrirNuevo(cod, desdeCamara) {
+  nuevoDesdeCamara = desdeCamara;
+  $('nCod').textContent = cod; $('nNom').value = ''; $('nCat').value = '';
+  $('catList').innerHTML = (KC ? KC.c : []).map(c => `<option value="${esc(c)}">`).join('');
+  abrir('shNuevo'); setTimeout(() => $('nNom').focus(), 150);
+}
+$('nCancelar').onclick = () => { cerrar('shNuevo'); if (nuevoDesdeCamara) sEstado('🟢 ' + $('rZona').value + ' — escanea cualquier producto'); };
+$('nGuardar').onclick = () => {
+  const cod = $('nCod').textContent, n = $('nNom').value.trim();
+  if (!n) { toast('Escribe el nombre del producto'); $('nNom').focus(); return; }
+  extra[cod] = { n, cat: $('nCat').value.trim(), t: Date.now() };
+  LS.set('jat_kardex_extra', extra);
+  cerrar('shNuevo'); sUlt = '';
+  registrarCodigo([cod], nuevoDesdeCamara);
+};
+$('rBuscar').oninput = () => {
+  const v = $('rBuscar').value.trim();
+  if (v.length < 2) { $('rRes').innerHTML = ''; return; }
+  if (!KN) { $('rRes').innerHTML = '<div class="empty" style="padding:14px">Cargando nombres del kardex…</div>'; return; }
+  mostrarResultados(buscarNombres(v, 20));
+};
+
 function registrarCodigo(codigos, desdeCamara) {
   const z = $('rZona').value, d = $('rDet').value.trim();
   if (!z) { toast('Primero elige la zona donde estás'); if (desdeCamara) { sEstado('⚠️ Elige la zona primero'); decir('Elige la zona primero.'); } return; }
@@ -512,6 +587,11 @@ function registrarCodigo(codigos, desdeCamara) {
   const ahora = Date.now();
   if (desdeCamara && cod === sUlt && ahora - sUltT < 3000) return;
   sUlt = cod; sUltT = ahora;
+  if (!k) {
+    if (navigator.vibrate) navigator.vibrate([40, 40, 40]);
+    if (desdeCamara) { sEstado('➕ No está en el kardex — ' + cod); decir('No está en el kardex. Agrégalo.'); }
+    abrirNuevo(cod, desdeCamara); return;
+  }
   const prev = ubic[cod] ? { ...ubic[cod] } : null;
   const antesTxt = prev && prev.z ? prev.z + (prev.d ? ' · ' + prev.d : '') : '';
   const nuevoTxt = z + (d ? ' · ' + d : '');
@@ -521,7 +601,7 @@ function registrarCodigo(codigos, desdeCamara) {
   if (navigator.vibrate) navigator.vibrate(k ? 70 : [40, 40, 40]);
   pitido();
   const msg = (k ? '✅ ' + (k.nom || k.cat) : '⚠️ No está en el kardex (guardado igual)') + ' → ' + nuevoTxt + (antesTxt && antesTxt !== nuevoTxt ? ' (antes: ' + antesTxt + ')' : '');
-  if (desdeCamara) { sEstado(msg); decir(k ? 'Guardado. ' + k.cat : 'Guardado. No está en el kardex.'); }
+  if (desdeCamara) { sEstado(msg); decir('Guardado. ' + k.cat); }
   else toast(msg);
   renderReg(); render();
 }
@@ -547,7 +627,7 @@ async function abrirScanner() {
     try { const tr = sStream.getVideoTracks()[0]; const cap = tr.getCapabilities ? tr.getCapabilities() : {}; if (cap.focusMode && cap.focusMode.includes('continuous')) await tr.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch (_) {}
     if (modoReg) sEstado('🟢 ' + $('rZona').value + ' — escanea cualquier producto');
     else { sEstado('🟢 Apunta al código de barras o al nombre del producto'); iniciarAutoOCR(); }
-    $('sTexto').style.display = modoReg ? 'none' : ''; $('sManual').textContent = modoReg ? '✔ Terminar' : '⌨️ A mano';
+     $('sManual').textContent = modoReg ? '✔ Terminar' : '⌨️ A mano';
     if ('BarcodeDetector' in window) {
       try {
         const fm = await BarcodeDetector.getSupportedFormats();
@@ -564,7 +644,7 @@ async function abrirScanner() {
     sZX.decodeFromVideoElementContinuously(v, r => { if (r && !sPausado()) lectura([r.getText()]); });
   } catch (e) { cerrarScanner(); toast('No se pudo abrir la cámara: ' + (e.message || e.name)); }
 }
-function sPausado() { return $('shItem').style.display === 'flex'; }
+function sPausado() { return $('shItem').style.display === 'flex' || $('shNuevo').style.display === 'flex'; }
 function cerrarScanner() {
   clearInterval(sTimer); sTimer = null; sDet = null; clearInterval(ocrTimer); ocrTimer = null; ocrUlt = '';
   try { sZX && sZX.reset(); } catch (_) {} sZX = null;
@@ -695,7 +775,21 @@ function iniciarAutoOCR() {
 }
 $('bEscanear').onclick = abrirScanner;
 $('sCerrar').onclick = cerrarScanner;
-$('sTexto').onclick = () => leerTexto('manual');
+$('sTexto').onclick = () => modoReg ? leerTextoRegistro() : leerTexto('manual');
+async function leerTextoRegistro() {
+  if (ocrBusy || !sStream) return;
+  const c = recorte($('sVideo'), 1, 1, 1400); if (!c) return;
+  ocrBusy = true; sEstado('🟡 Leyendo texto de la caja…');
+  try {
+    const w = await ocrWorker(); const { data } = await w.recognize(c);
+    const texto = (data && data.text) || '', res = buscarPorOCR(texto, 8);
+    const leido = texto.trim().replace(/\s+/g, ' ').slice(0, 60);
+    if (!res.length) { sEstado('❌ No se encontró — leído: ' + (leido || '(nada legible)')); decir('No se encontró.'); return; }
+    cerrarScanner(); // vuelve a la hoja de registro
+    mostrarResultados(res, 'Leído: “' + leido + '”. Toca el producto correcto:');
+  } catch (e) { sEstado('Error al leer texto: ' + (e.message || e)); }
+  finally { ocrBusy = false; }
+}
 $('sManual').onclick = () => { const r = modoReg; cerrarScanner(); if (!r) $('q').focus(); };
 
 // ---------- Eventos ----------
