@@ -420,6 +420,12 @@
         .jat-keypad.kp-compacto button{height:46px}
         .jat-keypad button{width:100%!important;min-width:0!important;max-width:none!important;padding:0!important;margin:0!important}
         .jat-keypad.kp-compacto .kp-ok{grid-row:auto;height:46px;font-size:24px}
+        #jatRegBanner{display:none;align-items:center;justify-content:space-between;gap:10px;background:#0b223d;color:#fff;padding:10px 14px;border-radius:14px;margin:6px 10px 0}
+        #jatRegBanner button{flex:none;background:#1E7F4A;color:#fff;border:0;border-radius:10px;padding:10px 14px;font-weight:700;font-size:.9rem;cursor:pointer}
+        .reg-box{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;background:#fff8e6;border:1px solid #f2d48a;padding:14px;border-radius:14px}
+        .reg-box input{width:100%;padding:12px 14px;border:1.5px solid #e6d3a3;border-radius:12px;font-size:16px;box-sizing:border-box}
+        #jatRegModal .reg-nombre{display:flex;gap:8px;align-items:center}
+        #jatRegModal .reg-nombre input{margin:0}
         .excel-box{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px;background:#effaf3;border:1px solid #bfe6cd;padding:12px;border-radius:14px}
         #mapeoExcelModal select{width:100%;padding:10px 12px;border:1.5px solid #dce3ea;border-radius:12px;font-size:16px;background:#fff}
         #mapeoExcelModal table{width:100%;border-collapse:collapse;font-size:.8rem;margin-top:8px}
@@ -489,7 +495,8 @@
             <div class="menu-section open">
                 <button class="menu-parent" type="button"><span class="left">📂 Archivo</span><span class="arrow">▶</span></button>
                 <div class="submenu">
-                    <div class="menu-item active" data-action="nuevoEgreso"><span class="icon">📄</span> Nuevo egreso desde PDF</div>
+                    <div class="menu-item active" data-action="nuevoEgreso"><span class="icon">📄</span> Nuevo egreso</div>
+                    <div class="menu-item" data-action="registrarSalida"><span class="icon">🛒</span> Registrar salida sin egreso</div>
                     <div class="menu-item" data-action="abrirEgreso"><span class="icon">📁</span> Abrir egreso guardado</div>
                     <div class="menu-item" data-action="guardarAhora"><span class="icon">💾</span> Guardar</div>
                     <div class="menu-item" data-action="guardarComo"><span class="icon">📂</span> Guardar como / Carpeta</div>
@@ -533,6 +540,44 @@
         <span id="hatEgresoStatus">Egreso: ninguno</span>
         <span id="hatSaveStatus">Guardado: pendiente</span>
         <span id="hatChangeStatus">Último cambio: sin cambios</span>
+    </div>
+
+    <!-- MODAL REGISTRAR PRODUCTO -->
+    <div id="jatRegModal" class="qty-modal-overlay">
+        <div class="qty-modal-card">
+            <h3>🛒 Registrar producto</h3>
+            <div style="font-family:monospace;font-size:.95rem;color:#2c3e50;" id="jatRegCodigoTxt"></div>
+            <div id="jatRegYaLleva" style="font-size:.8rem;color:#6b7c8f;margin-top:4px;"></div>
+            <div class="reg-nombre" style="margin-top:12px;">
+                <input id="jatRegNombre" type="text" placeholder="Nombre del producto" autocomplete="off" style="font-size:16px;padding:12px;">
+                <button type="button" class="scan-tool" id="jatRegVozBtn" aria-label="Dictar nombre">🎤</button>
+            </div>
+            <label for="jatRegQty" style="display:block;font-size:.85rem;color:#1a3a5c;margin-top:12px;font-weight:600;">Cantidad</label>
+            <input id="jatRegQty" type="number" inputmode="none" min="1" value="1" style="margin:6px 0 4px;text-align:center;font-weight:700;">
+            <div class="jat-keypad on" id="jatRegKeypad" style="grid-template-columns:repeat(3,1fr);">
+                <button type="button" data-rk="7">7</button><button type="button" data-rk="8">8</button><button type="button" data-rk="9">9</button>
+                <button type="button" data-rk="4">4</button><button type="button" data-rk="5">5</button><button type="button" data-rk="6">6</button>
+                <button type="button" data-rk="1">1</button><button type="button" data-rk="2">2</button><button type="button" data-rk="3">3</button>
+                <button type="button" class="kp-fn" data-rk="del" aria-label="Borrar un número">⌫</button><button type="button" data-rk="0">0</button><button type="button" class="kp-fn" data-rk="clr">Borrar</button>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:12px;">
+                <button class="btn" id="jatRegCancelarBtn" type="button" style="flex:1;min-height:52px;">Cancelar</button>
+                <button class="btn btn-success" id="jatRegGuardarBtn" type="button" style="flex:2;min-height:52px;font-size:1.05rem;">✅ Registrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL TERMINAR REGISTRO -->
+    <div id="jatRegFinModal" class="qty-modal-overlay">
+        <div class="qty-modal-card">
+            <h3>✅ Terminar registro</h3>
+            <p style="font-size:.9rem;color:#2c3e50;margin-bottom:14px;">¿Qué quieres hacer con esta salida?</p>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+                <button class="btn btn-success" id="jatRegListoBtn" type="button" style="min-height:52px;">💾 Listo: guardar la salida</button>
+                <button class="btn btn-primary" id="jatRegVerificarBtn" type="button" style="min-height:52px;">🔍 Que otra persona la verifique</button>
+                <button class="btn" id="jatRegSeguirBtn" type="button" style="min-height:48px;">Seguir registrando</button>
+            </div>
+        </div>
     </div>
 
     <!-- MODAL COLUMNAS EXCEL -->
@@ -1977,7 +2022,7 @@
 
     // ---- VERIFICADOR ----
     function abrirVerificador() {
-        if (!currentProductos.length) { showAlert('No hay productos para verificar', 'warning'); return; }
+        if (!currentProductos.length && !window.jatModoRegistro) { showAlert('No hay productos para verificar', 'warning'); return; }
         const ui = currentEgreso?.uiState || {};
         filtroChipActivo = ui.filtroChipActivo || 'todos';
         document.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c.dataset.filter === filtroChipActivo));
@@ -3257,6 +3302,7 @@
                 item.classList.add('active');
                 const action = item.dataset.action;
                 if (action === 'nuevoEgreso') cargarVistaNuevoEgreso(true);
+                else if (action === 'registrarSalida') { cargarVistaNuevoEgreso(false); setTimeout(() => document.querySelector('.reg-box')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150); }
                 else if (action === 'abrirEgreso') abrirEgresoGuardado();
                 else if (action === 'guardarAhora') guardarActualSeguro();
                 else if (action === 'guardarComo') abrirGuardarComo();
@@ -3291,6 +3337,12 @@
                     <button id="leerPdfBtn" class="btn">🔁 Releer PDF</button>
                     <span id="pdfStatus" style="font-size:0.72rem;color:#7f8c8d;">Sin PDF cargado</span>
                 </div>
+                <div class="reg-box">
+                    <strong style="color:#7a5200;">🛒 ¿No tienes egreso? Registra la salida escaneando</strong>
+                    <span style="font-size:.78rem;color:#7a5200;">Escaneas cada producto que sale y pones la cantidad. La app arma la lista, guarda el reporte y recuerda los nombres para la próxima vez.</span>
+                    <input type="text" id="jatRegDestino" placeholder="Para quién es (cliente o destino) — opcional" autocomplete="off">
+                    <button id="jatIniciarRegistroBtn" class="btn btn-primary" type="button">🛒 Empezar a registrar</button>
+                </div>
                 <div class="excel-box">
                     <input type="file" id="excelEgresoInput" accept=".xlsx,.xls,.csv,.ods,.txt,text/csv" style="display:none;">
                     <button id="cargarExcelBtn" class="btn btn-success">📊 Cargar Excel o CSV del cliente</button>
@@ -3317,6 +3369,7 @@
         </div>`;
         document.getElementById('procesarTablaBtn').addEventListener('click', procesarTablaPegada);
         document.getElementById('seleccionarPdfBtn').addEventListener('click', () => document.getElementById('pdfEgresoInput').click());
+        document.getElementById('jatIniciarRegistroBtn')?.addEventListener('click', () => jatIniciarRegistro());
         document.getElementById('cargarExcelBtn')?.addEventListener('click', () => document.getElementById('excelEgresoInput').click());
         document.getElementById('excelEgresoInput')?.addEventListener('change', (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) jatLeerExcel(f); });
         document.getElementById('pdfEgresoInput').addEventListener('change', leerPDFSeleccionado);
@@ -4343,6 +4396,172 @@
     }
     ['mapCodigo', 'mapProducto', 'mapCantidad', 'mapEncabezado'].forEach(id => document.getElementById(id)?.addEventListener('change', jatPreviewMapeo));
     document.getElementById('mapConfirmarBtn')?.addEventListener('click', jatConfirmarMapeo);
+
+    // ===== Registrar salida escaneando (sin egreso) =====
+    window.jatModoRegistro = false;
+    let jatRegCodigo = '', jatRegQtyNuevo = true;
+    function jatCatalogo() { try { return JSON.parse(localStorage.getItem('jatv_catalogo') || '{}') || {}; } catch (e) { return {}; } }
+    function jatGuardarEnCatalogo(codigo, nombre) {
+        const c = jatCatalogo(); c[codigo] = nombre;
+        try { localStorage.setItem('jatv_catalogo', JSON.stringify(c)); } catch (e) {}
+    }
+    function jatNombreConocido(codigo) {
+        const c = jatCatalogo();
+        if (c[codigo]) return c[codigo];
+        for (const eg of (typeof egresosGuardados !== 'undefined' ? egresosGuardados : [])) {
+            const p = (eg.productos || []).find(x => String(x.barcode) === codigo);
+            if (p && p.productName && p.productName !== codigo) return p.productName;
+        }
+        return '';
+    }
+    function jatBannerRegistro() {
+        let b = document.getElementById('jatRegBanner');
+        if (!b) {
+            const sec = document.querySelector('#verificadorModal .scanner-section');
+            if (!sec) return null;
+            b = document.createElement('div');
+            b.id = 'jatRegBanner';
+            b.innerHTML = '<div style="min-width:0;"><strong>🛒 Registrando salida</strong><div id="jatRegResumen" style="font-size:.78rem;opacity:.85;">Escanea o escribe cada producto que sale</div></div><button type="button" id="jatRegTerminarBtn">✅ Terminar</button>';
+            sec.parentNode.insertBefore(b, sec);
+            document.getElementById('jatRegTerminarBtn').addEventListener('click', () => {
+                if (!currentProductos.length) { jatSalirRegistro(); cerrarVerificador(); return; }
+                document.getElementById('jatRegFinModal').style.display = 'flex';
+            });
+        }
+        return b;
+    }
+    function jatActualizarBanner() {
+        const b = jatBannerRegistro(); if (!b) return;
+        b.style.display = window.jatModoRegistro ? 'flex' : 'none';
+        const r = document.getElementById('jatRegResumen');
+        if (r) r.textContent = currentProductos.length
+            ? `${currentProductos.length} productos · ${formatearQty(totalEsperado())} unidades${metadataEgresoActual?.bodegaDestino ? ' · Para: ' + metadataEgresoActual.bodegaDestino : ''}`
+            : 'Escanea o escribe cada producto que sale';
+    }
+    function jatIniciarRegistro() {
+        const destino = (document.getElementById('jatRegDestino')?.value || '').trim();
+        const d = new Date(), z = n => String(n).padStart(2, '0');
+        metadataEgresoActual = { secuencial: `SALIDA_${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}_${z(d.getHours())}${z(d.getMinutes())}`, bodegaDestino: destino };
+        currentProductos = [];
+        currentEgreso = null;
+        currentSelectedIndex = -1; currentMultipleResults = []; currentMultiplePosition = -1;
+        window.jatModoRegistro = true;
+        abrirVerificador();
+        jatActualizarBanner();
+        const inp = document.getElementById('scannerInput'); if (inp) inp.value = '';
+        showAlert('🛒 Escanea con la cámara o escribe el código de cada producto que sale', 'info');
+    }
+    function jatSalirRegistro() {
+        window.jatModoRegistro = false;
+        jatActualizarBanner();
+    }
+    function jatAbrirRegistroProducto(codigo) {
+        if (document.getElementById('jatRegModal').style.display === 'flex') return;
+        jatRegCodigo = codigo;
+        const idx = currentProductos.findIndex(p => String(p.barcode) === codigo);
+        const nombre = idx >= 0 ? currentProductos[idx].productName : jatNombreConocido(codigo);
+        document.getElementById('jatRegCodigoTxt').textContent = codigo;
+        const ni = document.getElementById('jatRegNombre');
+        ni.value = nombre && nombre !== codigo ? nombre : '';
+        document.getElementById('jatRegYaLleva').textContent = idx >= 0 ? `Ya registraste ${formatearQty(getExpectedQty(currentProductos[idx]))}. Lo que pongas se suma.` : (nombre ? 'Producto conocido.' : 'Producto nuevo: escribe o dicta su nombre una sola vez.');
+        const q = document.getElementById('jatRegQty'); q.value = '1'; jatRegQtyNuevo = true;
+        document.getElementById('jatRegModal').style.display = 'flex';
+        if (!ni.value) setTimeout(() => ni.focus(), 120);
+    }
+    function jatCerrarRegistroProducto() {
+        document.getElementById('jatRegModal').style.display = 'none';
+        const inp = document.getElementById('scannerInput'); if (inp) { inp.value = ''; }
+    }
+    function jatGuardarRegistroProducto() {
+        const codigo = jatRegCodigo;
+        const nombre = (document.getElementById('jatRegNombre').value || '').replace(/\s+/g, ' ').trim() || codigo;
+        const qty = jatNumero(document.getElementById('jatRegQty').value);
+        if (!qty || qty <= 0) { showAlert('Escribe la cantidad', 'warning'); return; }
+        let idx = currentProductos.findIndex(p => String(p.barcode) === codigo);
+        if (idx >= 0) {
+            const p = currentProductos[idx];
+            const prev = getExpectedQty(p);
+            p.expectedQty = prev + qty;
+            p.productName = nombre;
+            setVerifiedQty(p, getVerifiedQty(p) + qty);
+            (p.historialMovimientos = p.historialMovimientos || []).push({ fecha: new Date().toISOString(), tipo: 'registro', anterior: prev, cantidadSumada: qty, nuevo: prev + qty });
+        } else {
+            const p = normalizarProducto({ fuenteOrden: 'registro', barcode: codigo, productName: nombre, unidad: 'UNIDAD', bodega: '', expectedQty: qty, verifiedQty: 0, verified: false, observacion: '' });
+            setVerifiedQty(p, qty);
+            p.historialMovimientos = [{ fecha: new Date().toISOString(), tipo: 'registro', anterior: 0, cantidadSumada: qty, nuevo: qty }];
+            currentProductos.push(p);
+            idx = currentProductos.length - 1;
+        }
+        if (nombre !== codigo) jatGuardarEnCatalogo(codigo, nombre);
+        if (!currentEgreso) guardarAutomaticoDesdeCabecera(metadataEgresoActual); else autoGuardarEgreso();
+        if (currentEgreso) document.getElementById('verificadorNombreEgreso').innerText = `— ${currentEgreso.nombre}`;
+        jatCerrarRegistroProducto();
+        renderVerificadorTabla();
+        actualizarStatsVerificador();
+        mostrarUltimoEscaneo(idx, 'ok');
+        resaltarFilaVerificador(idx);
+        jatActualizarBanner();
+        if (navigator.vibrate) navigator.vibrate(60);
+        hablarHat(`Registrado. ${formatearQty(qty)}.`, 'ok', { force: true });
+        showAlert(`✅ ${nombre.substring(0, 40)}: +${formatearQty(qty)}`, 'success');
+    }
+    function jatRegistrarDesdeBuscador() {
+        const inp = document.getElementById('scannerInput');
+        const codigo = (inp?.value || '').trim();
+        if (!codigo) { showAlert('Escanea o escribe un código', 'warning'); return; }
+        jatAbrirRegistroProducto(codigo);
+    }
+    const _jatMarcarOriginal = marcarActualComoVerificado;
+    marcarActualComoVerificado = async function () {
+        if (window.jatModoRegistro) return jatRegistrarDesdeBuscador();
+        return _jatMarcarOriginal.apply(this, arguments);
+    };
+    const _jatCerrarVerifOriginal = cerrarVerificador;
+    cerrarVerificador = function () {
+        if (window.jatModoRegistro) jatSalirRegistro();
+        return _jatCerrarVerifOriginal.apply(this, arguments);
+    };
+    (function jatInitRegistro() {
+        document.querySelectorAll('#jatRegKeypad button').forEach(b => {
+            b.addEventListener('pointerdown', (e) => e.preventDefault());
+            b.addEventListener('click', () => {
+                const q = document.getElementById('jatRegQty'); const k = b.dataset.rk;
+                const nuevo = jatRegQtyNuevo; jatRegQtyNuevo = false;
+                if (k === 'del') q.value = nuevo ? '' : String(q.value).slice(0, -1);
+                else if (k === 'clr') q.value = '';
+                else q.value = (nuevo ? '' : String(q.value || '')) + k;
+            });
+        });
+        document.getElementById('jatRegGuardarBtn')?.addEventListener('click', jatGuardarRegistroProducto);
+        document.getElementById('jatRegCancelarBtn')?.addEventListener('click', jatCerrarRegistroProducto);
+        document.getElementById('jatRegNombre')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); } });
+        document.getElementById('jatRegVozBtn')?.addEventListener('click', () => {
+            const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SR) { showAlert('Este navegador no permite dictar. Ábrelo en Google Chrome.', 'warning'); return; }
+            const r = new SR(); r.lang = 'es-EC'; r.interimResults = false;
+            const btn = document.getElementById('jatRegVozBtn'); btn.classList.add('escuchando');
+            r.onresult = (ev) => { document.getElementById('jatRegNombre').value = (ev.results[0][0].transcript || '').trim().toUpperCase(); };
+            r.onerror = (ev) => showAlert(ev.error === 'not-allowed' ? 'Permite el micrófono para poder dictar' : 'No se entendió. Intenta de nuevo.', 'warning');
+            r.onend = () => btn.classList.remove('escuchando');
+            try { r.start(); } catch (e) { btn.classList.remove('escuchando'); }
+        });
+        document.getElementById('jatRegListoBtn')?.addEventListener('click', () => {
+            document.getElementById('jatRegFinModal').style.display = 'none';
+            autoGuardarEgreso();
+            jatSalirRegistro();
+            showAlert('✅ Salida guardada. Usa 📄 PDF o 🖨️ Imprimir para el reporte.', 'success');
+        });
+        document.getElementById('jatRegVerificarBtn')?.addEventListener('click', () => {
+            document.getElementById('jatRegFinModal').style.display = 'none';
+            currentProductos.forEach(p => { setVerifiedQty(p, 0); p.verified = false; });
+            jatSalirRegistro();
+            autoGuardarEgreso();
+            renderVerificadorTabla();
+            actualizarStatsVerificador();
+            showAlert('🔍 Lista lista para verificar: escanea cada producto otra vez', 'info');
+        });
+        document.getElementById('jatRegSeguirBtn')?.addEventListener('click', () => { document.getElementById('jatRegFinModal').style.display = 'none'; });
+    })();
     </script>
     <!-- ====================================================================
          NOTAS DE AUDITORÍA — SEGUNDA PASADA (Jorge reportó: "cámara no funciona")
