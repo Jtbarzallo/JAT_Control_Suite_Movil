@@ -141,6 +141,8 @@ const pedido = p => { const n = parseFloat(String(p.expectedQty ?? p.cantidad ??
 const nombre = p => p.productName || p.descripcion || p.nombre || '';
 
 fetch('kardex_categorias.json').then(r => r.ok ? r.json() : null).then(j => { if (j && j.c) { KC = j; render(); } }).catch(() => {});
+let KN = null;
+fetch('kardex_nombres.json').then(r => r.ok ? r.json() : null).then(j => { if (j) { KN = j; if ($('shReg').style.display === 'flex') renderReg(); } }).catch(() => {});
 function categoria(p) {
   if (KC) {
     const b = String(p.barcode || '').trim();
@@ -479,15 +481,15 @@ let modoReg = false, regHechos = [];
 function buscarKardex(cod) {
   const b = String(cod || '').trim();
   if (!KC || !b) return null;
-  for (const k of [b, b.replace(/^0+/, ''), b.padStart(12, '0'), b.padStart(13, '0')]) if (KC.m[k] !== undefined) return { cod: k, cat: KC.c[KC.m[k]] };
+  for (const k of [b, b.replace(/^0+/, ''), b.padStart(12, '0'), b.padStart(13, '0')]) if (KC.m[k] !== undefined) return { cod: k, cat: KC.c[KC.m[k]], nom: KN ? (KN[k] || '') : '' };
   return null;
 }
 function renderReg() {
   const total = KC ? Object.keys(KC.m).length : 0;
   const conUb = KC ? Object.keys(ubic).filter(b => KC.m[b] !== undefined).length : Object.keys(ubic).length;
   $('rCont').textContent = 'Productos con ubicación: ' + conUb + (total ? ' de ' + total.toLocaleString('es') + ' del kardex' : '') + ' · Hoy: ' + regHechos.length;
-  $('rLista').innerHTML = regHechos.slice(-30).reverse().map((r, k) => `<div class="li" style="padding:10px"><div class="row" style="justify-content:space-between"><span>${esc(r.cod)}</span><button class="btn ghost small" style="flex:0 0 auto" data-undo="${regHechos.length - 1 - k}">↩️ Deshacer</button></div>
-    <div style="font-weight:400;font-size:.82rem;color:#475569">${esc(r.cat || '⚠️ No está en el kardex')} · 📍 ${esc(r.z + (r.d ? ' · ' + r.d : ''))}${r.antes ? ' · antes: ' + esc(r.antes) : ''}</div></div>`).join('');
+  $('rLista').innerHTML = regHechos.slice(-30).reverse().map((r, k) => `<div class="li" style="padding:10px"><div class="row" style="justify-content:space-between"><span>${esc(r.nom || (KN && KN[r.cod]) || r.cod)}</span><button class="btn ghost small" style="flex:0 0 auto" data-undo="${regHechos.length - 1 - k}">↩️ Deshacer</button></div>
+    <div style="font-weight:400;font-size:.82rem;color:#475569">${esc(r.cod)} · ${esc(r.cat || '⚠️ No está en el kardex')} · 📍 ${esc(r.z + (r.d ? ' · ' + r.d : ''))}${r.antes ? ' · antes: ' + esc(r.antes) : ''}</div></div>`).join('');
   $('rLista').querySelectorAll('[data-undo]').forEach(b => b.onclick = () => {
     const r = regHechos[+b.dataset.undo]; if (!r) return;
     if (r.prev) ubic[r.cod] = r.prev; else delete ubic[r.cod];
@@ -515,10 +517,10 @@ function registrarCodigo(codigos, desdeCamara) {
   const nuevoTxt = z + (d ? ' · ' + d : '');
   ubic[cod] = { z, d, t: ahora };
   LS.set('jat_ubicaciones', ubic); LS.set('jat_reg_zona', z); LS.set('jat_reg_det', d);
-  regHechos.push({ cod, cat: k ? k.cat : '', z, d, prev, antes: antesTxt && antesTxt !== nuevoTxt ? antesTxt : '' });
+  regHechos.push({ cod, nom: k ? k.nom : '', cat: k ? k.cat : '', z, d, prev, antes: antesTxt && antesTxt !== nuevoTxt ? antesTxt : '' });
   if (navigator.vibrate) navigator.vibrate(k ? 70 : [40, 40, 40]);
   pitido();
-  const msg = (k ? '✅ ' + k.cat : '⚠️ No está en el kardex (guardado igual)') + ' → ' + nuevoTxt + (antesTxt && antesTxt !== nuevoTxt ? ' (antes: ' + antesTxt + ')' : '');
+  const msg = (k ? '✅ ' + (k.nom || k.cat) : '⚠️ No está en el kardex (guardado igual)') + ' → ' + nuevoTxt + (antesTxt && antesTxt !== nuevoTxt ? ' (antes: ' + antesTxt + ')' : '');
   if (desdeCamara) { sEstado(msg); decir(k ? 'Guardado. ' + k.cat : 'Guardado. No está en el kardex.'); }
   else toast(msg);
   renderReg(); render();
