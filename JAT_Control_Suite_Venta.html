@@ -401,6 +401,29 @@
         .brand-sub{font-size:.62rem;letter-spacing:2px;color:#dbe8f7;text-transform:uppercase;}
         @media(max-width:900px){.sidebar{width:240px}.hat-statusline{left:240px}.top-bar .user-area strong{display:none}}
         .menu-toggle,.menu-overlay{display:none}
+        .scanner-section{flex-wrap:wrap!important}
+        .scan-row{display:flex;gap:6px;align-items:center;flex:1 1 100%;min-width:0}
+        .scanner-section > .jat-keypad{flex:1 1 100%;width:100%}
+        .scan-row .scanner-input-wrapper{min-width:0}
+        .scan-tool{flex:none;width:44px;height:44px;border-radius:12px;border:1.5px solid #dce3ea;background:#fff;font-size:20px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0}
+        .scan-tool.on{background:#0b223d;border-color:#0b223d;color:#fff}
+        .scan-tool.escuchando{background:#e0362c;border-color:#e0362c;animation:jatPulso 1s ease-in-out infinite}
+        @keyframes jatPulso{50%{opacity:.6}}
+        .jat-keypad{display:none;grid-template-columns:repeat(4,1fr);gap:6px;padding:8px 0 2px}
+        .jat-keypad.on{display:grid}
+        .jat-keypad button{height:48px;border-radius:12px;border:1.5px solid #dce3ea;background:#fff;color:#0b223d;font-size:22px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+        .jat-keypad button:active{background:#e8eef5}
+        .jat-keypad .kp-ok{grid-row:span 2;height:auto;background:#1E7F4A;border-color:#1E7F4A;color:#fff;font-size:26px}
+        .jat-keypad .kp-0{grid-column:span 3}
+        .jat-keypad .kp-fn{font-size:17px;background:#f3f6f9}
+        .jat-keypad.kp-compacto{grid-template-columns:repeat(6,1fr);gap:5px;padding:6px 0 0}
+        .jat-keypad.kp-compacto button{height:46px}
+        .jat-keypad button{width:100%!important;min-width:0!important;max-width:none!important;padding:0!important;margin:0!important}
+        .jat-keypad.kp-compacto .kp-ok{grid-row:auto;height:46px;font-size:24px}
+        .excel-box{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px;background:#effaf3;border:1px solid #bfe6cd;padding:12px;border-radius:14px}
+        #mapeoExcelModal select{width:100%;padding:10px 12px;border:1.5px solid #dce3ea;border-radius:12px;font-size:16px;background:#fff}
+        #mapeoExcelModal table{width:100%;border-collapse:collapse;font-size:.8rem;margin-top:8px}
+        #mapeoExcelModal td,#mapeoExcelModal th{border-bottom:1px solid #edf2f7;padding:6px 4px;text-align:left;vertical-align:top}
         @media(max-width:760px){
           html,body{overflow-x:hidden}
           .top-bar{height:56px!important;padding:0 10px!important}
@@ -512,6 +535,26 @@
         <span id="hatChangeStatus">Último cambio: sin cambios</span>
     </div>
 
+    <!-- MODAL COLUMNAS EXCEL -->
+    <div id="mapeoExcelModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📊 Columnas del archivo</h3>
+                <span class="close-modal" onclick="closeModal('mapeoExcelModal')">&times;</span>
+            </div>
+            <p id="mapeoArchivo" style="font-size:.78rem;color:#667;margin-bottom:12px;"></p>
+            <div class="form-group"><label for="mapCodigo">Código de barras</label><select id="mapCodigo"></select></div>
+            <div class="form-group"><label for="mapProducto">Producto</label><select id="mapProducto"></select></div>
+            <div class="form-group"><label for="mapCantidad">Cantidad</label><select id="mapCantidad"></select></div>
+            <label style="display:flex;gap:10px;align-items:center;font-size:.85rem;margin:6px 0 10px;"><input type="checkbox" id="mapEncabezado" style="width:22px;height:22px;"> La primera fila son títulos</label>
+            <div id="mapPreview"></div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
+                <button class="btn btn-primary" id="mapConfirmarBtn" type="button">✅ Cargar egreso</button>
+                <button class="btn" type="button" onclick="closeModal('mapeoExcelModal')">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL GUARDAR -->
     <div id="guardarComoModal" class="modal">
         <div class="modal-content">
@@ -615,7 +658,7 @@
                     <button class="cam-btn" id="camActivarBtn" type="button">Activar cámara</button>
                     <button class="cam-btn" id="camFotoFallbackBtn" type="button" style="display:none;background:#e9c987;">📸 Tomar foto y escanear</button>
                     <small>Escaneo en vivo de código de barras / QR. La cámara se queda en esta misma pantalla — no se abre ninguna app externa.</small>
-                    <button class="cam-btn secundario" id="camUsarTecladoBtn" type="button">⌨️ Prefiero escribir el código</button>
+                    <button class="cam-btn secundario" id="camUsarTecladoBtn" type="button">🔢 Prefiero escribir el código</button>
                 </div>
                 <input type="file" accept="image/*" capture="environment" id="camCaptureInput" style="display:none;">
                 <div class="cam-last-line" id="camLastLine" style="display:none;"></div>
@@ -634,10 +677,19 @@
             </div>
 
             <div class="scanner-section">
+                <div class="scan-row">
                 <div class="scanner-input-wrapper">
                     <span class="icon-search">🔍</span>
-                    <input type="text" id="scannerInput" class="scanner-input" placeholder="Escanea o escribe: código, últimos dígitos o nombre del producto..." autocomplete="off" enterkeyhint="done">
+                    <input type="text" id="scannerInput" class="scanner-input" inputmode="none" placeholder="Código o producto" autocomplete="off" enterkeyhint="done">
                     <button type="button" id="limpiarBusquedaBtn" class="scanner-clear-btn" title="Limpiar" aria-label="Limpiar búsqueda">✕</button>
+                </div>
+                <button type="button" class="scan-tool" id="kpToggleBtn" title="Teclado numérico" aria-label="Teclado numérico">🔢</button>
+                <button type="button" class="scan-tool" id="vozDictarBtn" title="Dictar por voz" aria-label="Dictar por voz">🎤</button>
+                <button type="button" class="scan-tool" id="tecladoSistemaBtn" title="Teclado del celular" aria-label="Teclado del celular">⌨️</button>
+                </div>
+                <div class="jat-keypad kp-compacto" id="jatKeypad" aria-label="Teclado numérico">
+                    <button type="button" data-k="1">1</button><button type="button" data-k="2">2</button><button type="button" data-k="3">3</button><button type="button" data-k="4">4</button><button type="button" data-k="5">5</button><button type="button" class="kp-fn" data-k="del" aria-label="Borrar un número">⌫</button>
+                    <button type="button" data-k="6">6</button><button type="button" data-k="7">7</button><button type="button" data-k="8">8</button><button type="button" data-k="9">9</button><button type="button" data-k="0">0</button><button type="button" class="kp-ok" data-k="ok" aria-label="Aceptar">✓</button>
                 </div>
             </div>
 
@@ -723,7 +775,13 @@
         <div class="qty-modal-card">
             <h3>Cantidad a guardar</h3>
             <div id="qtyFastInfo" style="font-size:.9rem;color:#2c3e50;line-height:1.5;"></div>
-            <input id="qtyFastInput" type="number" inputmode="numeric" min="1" step="1" placeholder="Escribe la cantidad">
+            <input id="qtyFastInput" type="number" inputmode="none" min="1" step="1" placeholder="Cantidad">
+            <div class="jat-keypad on" id="qtyKeypad" style="grid-template-columns:repeat(3,1fr);">
+                <button type="button" data-qk="7">7</button><button type="button" data-qk="8">8</button><button type="button" data-qk="9">9</button>
+                <button type="button" data-qk="4">4</button><button type="button" data-qk="5">5</button><button type="button" data-qk="6">6</button>
+                <button type="button" data-qk="1">1</button><button type="button" data-qk="2">2</button><button type="button" data-qk="3">3</button>
+                <button type="button" class="kp-fn" data-qk="del" aria-label="Borrar un número">⌫</button><button type="button" data-qk="0">0</button><button type="button" class="kp-fn" data-qk="clr">Borrar</button>
+            </div>
             <div style="display:flex;gap:10px;margin-top:6px;">
                 <button class="btn" id="qtyFastOneBtn" style="flex:1;min-height:48px;">+1</button>
                 <button class="btn" id="qtyFastAllBtn" style="flex:2;min-height:48px;">Completar todo</button>
@@ -2289,6 +2347,7 @@
             const host = document.fullscreenElement || document.body;
             if (modal.parentElement !== host) host.appendChild(modal);
             modal.style.display = 'flex';
+            input.dataset.tocado = '';
             setTimeout(() => { input.focus(); input.select(); }, 80);
             const cerrar = (val) => { modal.style.display = 'none'; resolve(val); };
             document.getElementById('qtyFastCancelBtn').onclick = () => cerrar(0);
@@ -3232,6 +3291,11 @@
                     <button id="leerPdfBtn" class="btn">🔁 Releer PDF</button>
                     <span id="pdfStatus" style="font-size:0.72rem;color:#7f8c8d;">Sin PDF cargado</span>
                 </div>
+                <div class="excel-box">
+                    <input type="file" id="excelEgresoInput" accept=".xlsx,.xls,.csv,.ods,.txt,text/csv" style="display:none;">
+                    <button id="cargarExcelBtn" class="btn btn-success">📊 Cargar Excel o CSV del cliente</button>
+                    <span id="excelStatus" style="font-size:0.72rem;color:#4a6b57;">Eliges qué columna es el código, el producto y la cantidad</span>
+                </div>
                 <textarea id="tablaEgresoInput" rows="8" placeholder="Código de barras&#9;Producto&#9;Unidad&#9;Bodega&#9;Cantidad&#10;7861234567890&#9;PRODUCTO DE EJEMPLO&#9;UNIDAD&#9;PRINCIPAL&#9;6.00" style="width:100%;padding:14px;border-radius:14px;border:1.5px solid #dce3ea;font-family:monospace;font-size:0.8rem;flex:1;min-height:140px;resize:vertical;outline:none;"></textarea>
                 <div style="display:flex;gap:12px;margin-top:14px;flex-wrap:wrap;">
                     <button id="procesarTablaBtn" class="btn btn-primary">📊 Procesar Tabla</button>
@@ -3253,6 +3317,8 @@
         </div>`;
         document.getElementById('procesarTablaBtn').addEventListener('click', procesarTablaPegada);
         document.getElementById('seleccionarPdfBtn').addEventListener('click', () => document.getElementById('pdfEgresoInput').click());
+        document.getElementById('cargarExcelBtn')?.addEventListener('click', () => document.getElementById('excelEgresoInput').click());
+        document.getElementById('excelEgresoInput')?.addEventListener('change', (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) jatLeerExcel(f); });
         document.getElementById('pdfEgresoInput').addEventListener('change', leerPDFSeleccionado);
         document.getElementById('leerPdfBtn').addEventListener('click', leerPDFSeleccionado);
         document.getElementById('elegirCarpetaBtn').addEventListener('click', abrirGuardarComo);
@@ -3526,7 +3592,7 @@
             if (offLayer) offLayer.style.display = 'flex';
             setEstadoPill('📷 Cámara apagada', false);
             const scanInput = $('scannerInput');
-            if (scanInput) scanInput.removeAttribute('inputmode');
+            if (scanInput) scanInput.setAttribute('inputmode', window.jatTecladoSistema ? 'text' : 'none');
         }
 
         async function cambiarCamara() {
@@ -4048,8 +4114,7 @@
             $('camCambiarBtn')?.addEventListener('click', cambiarCamara);
             $('camUsarTecladoBtn')?.addEventListener('click', () => {
                 detenerCamaraEscaner();
-                const scanInput = $('scannerInput');
-                if (scanInput) { scanInput.focus(); scanInput.select(); }
+                if (typeof jatMostrarKeypad === 'function') jatMostrarKeypad(true);
             });
             $('camDiagBtn')?.addEventListener('click', () => toggleDiagPanel(true));
             $('camDiagCerrarBtn')?.addEventListener('click', () => toggleDiagPanel(false));
@@ -4073,6 +4138,211 @@
         window.addEventListener('pagehide', detenerCamaraEscaner);
 
     })();
+
+    // ===== Entrada sin teclado: teclado numérico propio, voz y teclado del celular =====
+    window.jatTecladoSistema = false;
+    function jatInputBuscador() { return document.getElementById('scannerInput'); }
+    function jatAplicarModoTeclado() {
+        const inp = jatInputBuscador(); if (!inp) return;
+        inp.setAttribute('inputmode', window.jatTecladoSistema ? 'text' : 'none');
+        document.getElementById('qtyFastInput')?.setAttribute('inputmode', window.jatTecladoSistema ? 'numeric' : 'none');
+        const qk = document.getElementById('qtyKeypad'); if (qk) qk.classList.toggle('on', !window.jatTecladoSistema);
+        document.getElementById('tecladoSistemaBtn')?.classList.toggle('on', window.jatTecladoSistema);
+    }
+    function jatMostrarKeypad(mostrar) {
+        const kp = document.getElementById('jatKeypad'); if (!kp) return;
+        const on = (mostrar === undefined) ? !kp.classList.contains('on') : !!mostrar;
+        kp.classList.toggle('on', on);
+        document.getElementById('kpToggleBtn')?.classList.toggle('on', on);
+        if (on && window.jatTecladoSistema) { window.jatTecladoSistema = false; jatAplicarModoTeclado(); jatInputBuscador()?.blur(); }
+        try { localStorage.setItem('jatv_keypad_on', on ? '1' : '0'); } catch (e) {}
+    }
+    function jatTeclaKeypad(k) {
+        const inp = jatInputBuscador(); if (!inp) return;
+        if (k === 'ok') {
+            inp.focus({ preventScroll: true });
+            inp.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+            return;
+        }
+        const todoSeleccionado = inp.value && inp.selectionStart === 0 && inp.selectionEnd === inp.value.length;
+        if (k === 'del') inp.value = todoSeleccionado ? '' : inp.value.slice(0, -1);
+        else if (k === 'clr') inp.value = '';
+        else inp.value = todoSeleccionado ? k : inp.value + k;
+        inp.dispatchEvent(new Event('input', { bubbles: true }));
+        inp.focus({ preventScroll: true });
+    }
+    const JAT_NUM_PAL = { cero:'0', uno:'1', una:'1', dos:'2', tres:'3', cuatro:'4', cinco:'5', seis:'6', siete:'7', ocho:'8', nueve:'9' };
+    function jatDictar() {
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const btn = document.getElementById('vozDictarBtn');
+        if (!SR) { showAlert('Este navegador no permite dictar. Ábrelo en Google Chrome.', 'warning'); return; }
+        const r = new SR();
+        r.lang = 'es-EC'; r.interimResults = false; r.maxAlternatives = 1;
+        btn?.classList.add('escuchando');
+        showAlert('🎤 Habla ahora: di el código o el nombre del producto', 'info');
+        r.onresult = (ev) => {
+            let t = (ev.results[0][0].transcript || '').trim();
+            const palabras = t.toLowerCase().split(/\s+/);
+            if (palabras.length && palabras.every(w => JAT_NUM_PAL[w] !== undefined || /^\d+$/.test(w))) t = palabras.map(w => JAT_NUM_PAL[w] ?? w).join('');
+            const compacto = t.replace(/[\s\-.]/g, '');
+            if (/^\d+$/.test(compacto)) t = compacto;
+            const inp = jatInputBuscador(); if (!inp) return;
+            inp.value = t;
+            inp.dispatchEvent(new Event('input', { bubbles: true }));
+            showAlert('🎤 Dijiste: ' + t + (/^\d+$/.test(t) ? ' — toca ✓ para sumar' : ''), 'success');
+        };
+        r.onerror = (ev) => showAlert(ev.error === 'not-allowed' ? 'Permite el micrófono para poder dictar' : 'No se entendió. Intenta de nuevo.', 'warning');
+        r.onend = () => btn?.classList.remove('escuchando');
+        try { r.start(); } catch (e) { btn?.classList.remove('escuchando'); }
+    }
+    function jatInitEntradaSinTeclado() {
+        jatAplicarModoTeclado();
+        document.querySelectorAll('#jatKeypad button').forEach(b => {
+            b.addEventListener('pointerdown', (e) => e.preventDefault());
+            b.addEventListener('click', () => jatTeclaKeypad(b.dataset.k));
+        });
+        ['kpToggleBtn', 'vozDictarBtn', 'tecladoSistemaBtn'].forEach(id => document.getElementById(id)?.addEventListener('pointerdown', (e) => e.preventDefault()));
+        document.getElementById('kpToggleBtn')?.addEventListener('click', () => jatMostrarKeypad());
+        document.getElementById('vozDictarBtn')?.addEventListener('click', jatDictar);
+        document.getElementById('tecladoSistemaBtn')?.addEventListener('click', () => {
+            window.jatTecladoSistema = !window.jatTecladoSistema;
+            const inp = jatInputBuscador();
+            if (window.jatTecladoSistema) jatMostrarKeypad(false);
+            jatAplicarModoTeclado();
+            if (inp) { inp.blur(); if (window.jatTecladoSistema) setTimeout(() => inp.focus(), 60); }
+        });
+        document.querySelectorAll('#qtyKeypad button').forEach(b => {
+            b.addEventListener('pointerdown', (e) => e.preventDefault());
+            b.addEventListener('click', () => {
+                const q = document.getElementById('qtyFastInput'); if (!q) return;
+                const k = b.dataset.qk;
+                const nuevo = q.dataset.tocado !== '1';
+                q.dataset.tocado = '1';
+                if (k === 'del') q.value = nuevo ? '' : String(q.value).slice(0, -1);
+                else if (k === 'clr') q.value = '';
+                else q.value = (nuevo ? '' : String(q.value || '')) + k;
+                q.focus({ preventScroll: true });
+            });
+        });
+        let guardado = null; try { guardado = localStorage.getItem('jatv_keypad_on'); } catch (e) {}
+        jatMostrarKeypad(guardado === null ? true : guardado === '1');
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', jatInitEntradaSinTeclado); else jatInitEntradaSinTeclado();
+
+    // ===== Cargar egreso desde Excel / CSV del cliente =====
+    let jatExcelFilas = [], jatExcelNombre = '';
+    function jatCargarSheetJS() {
+        if (window.XLSX) return Promise.resolve();
+        return new Promise((ok, mal) => {
+            const sc = document.createElement('script');
+            sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+            sc.onload = () => ok(); sc.onerror = () => mal(new Error('sin conexión'));
+            document.head.appendChild(sc);
+        });
+    }
+    function jatCeldaTexto(v) {
+        if (v === null || v === undefined) return '';
+        if (typeof v === 'number') return Number.isInteger(v) ? v.toFixed(0) : String(v);
+        return String(v).trim();
+    }
+    async function jatLeerExcel(file) {
+        const st = document.getElementById('excelStatus');
+        try {
+            if (st) st.textContent = 'Leyendo ' + file.name + '…';
+            await jatCargarSheetJS();
+            const buf = await file.arrayBuffer();
+            const wb = XLSX.read(buf, { type: 'array' });
+            const hoja = wb.Sheets[wb.SheetNames[0]];
+            const filas = XLSX.utils.sheet_to_json(hoja, { header: 1, raw: true, defval: '' })
+                .map(f => f.map(jatCeldaTexto))
+                .filter(f => f.some(c => c !== ''));
+            if (!filas.length) { showAlert('El archivo está vacío', 'error'); if (st) st.textContent = 'Archivo vacío'; return; }
+            jatExcelFilas = filas; jatExcelNombre = file.name;
+            jatAbrirMapeo();
+            if (st) st.textContent = file.name;
+        } catch (e) {
+            showAlert('No se pudo leer el archivo. Revisa la conexión a internet e intenta de nuevo.', 'error');
+            if (st) st.textContent = 'Error al leer el archivo';
+        }
+    }
+    function jatAdivinarColumnas(filas) {
+        const nCols = Math.max(...filas.slice(0, 50).map(f => f.length));
+        const enc = filas[0].map(c => String(c).toLowerCase());
+        const buscar = (re) => enc.findIndex(c => re.test(c));
+        let cod = buscar(/c[oó]d|barra|ean|sku|upc|referencia/), prod = buscar(/produc|descrip|art[ií]culo|nombre|detalle/), cant = buscar(/cant|qty|pzas|piezas|unidades/);
+        const tieneEnc = [cod, prod, cant].filter(i => i >= 0).length >= 2 && !filas[0].some(c => /^\d{6,}$/.test(c));
+        const datos = filas.slice(tieneEnc ? 1 : 0, 60);
+        const puntaje = (i, fn) => datos.reduce((a, f) => a + (fn(f[i] || '') ? 1 : 0), 0);
+        const todas = () => [...Array(nCols).keys()];
+        const esCod = v => /^[A-Za-z0-9\-]{5,}$/.test(v) && /\d{4,}/.test(v);
+        const esCant = v => /^\d{1,5}([.,]\d+)?$/.test(v);
+        if (cod < 0 || !tieneEnc) cod = todas().sort((a, b) => puntaje(b, esCod) - puntaje(a, esCod))[0];
+        if (cant < 0 || !tieneEnc) cant = todas().filter(i => i !== cod).sort((a, b) => puntaje(b, esCant) - puntaje(a, esCant))[0];
+        if (prod < 0 || !tieneEnc) {
+            const largo = (i) => datos.reduce((a, f) => a + (/[a-záéíóúñ]/i.test(f[i] || '') ? String(f[i]).length : 0), 0);
+            prod = todas().filter(i => i !== cod && i !== cant).sort((a, b) => largo(b) - largo(a))[0];
+        }
+        return { nCols, cod: cod ?? 0, prod: prod ?? -1, cant: cant ?? 1, tieneEnc };
+    }
+    function jatLetraCol(i) { let s = ''; i++; while (i > 0) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; }
+    function jatEsc(t) { return String(t).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c])); }
+    function jatAbrirMapeo() {
+        const g = jatAdivinarColumnas(jatExcelFilas);
+        const primera = jatExcelFilas[0];
+        const opciones = (sel, permitirNinguna) => [...Array(g.nCols).keys()].map(i => {
+            const muestra = (primera[i] || (jatExcelFilas[1] || [])[i] || '').toString().substring(0, 28);
+            return `<option value="${i}" ${i === sel ? 'selected' : ''}>Columna ${jatLetraCol(i)}: ${jatEsc(muestra)}</option>`;
+        }).join('') + (permitirNinguna ? `<option value="-1" ${sel === -1 ? 'selected' : ''}>(sin nombre de producto)</option>` : '');
+        document.getElementById('mapCodigo').innerHTML = opciones(g.cod);
+        document.getElementById('mapProducto').innerHTML = opciones(g.prod, true);
+        document.getElementById('mapCantidad').innerHTML = opciones(g.cant);
+        document.getElementById('mapEncabezado').checked = g.tieneEnc;
+        document.getElementById('mapeoArchivo').textContent = jatExcelNombre + ' · ' + jatExcelFilas.length + ' filas. Revisa que cada columna sea la correcta.';
+        jatPreviewMapeo();
+        document.getElementById('mapeoExcelModal').style.display = 'flex';
+    }
+    function jatNumero(v) {
+        let t = String(v || '').trim().replace(/\s/g, '');
+        if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(t)) t = t.replace(/\./g, '').replace(',', '.');
+        else t = t.replace(',', '.');
+        const n = parseFloat(t);
+        return isNaN(n) ? null : n;
+    }
+    function jatProductosDesdeMapeo() {
+        const ci = +document.getElementById('mapCodigo').value, pi = +document.getElementById('mapProducto').value, qi = +document.getElementById('mapCantidad').value;
+        const enc = document.getElementById('mapEncabezado').checked;
+        const porCodigo = new Map(); let omitidas = 0;
+        jatExcelFilas.slice(enc ? 1 : 0).forEach(f => {
+            const codigo = String(f[ci] || '').trim();
+            const qty = jatNumero(f[qi]);
+            if (!codigo || qty === null || qty <= 0) { omitidas++; return; }
+            const nombre = (pi >= 0 ? String(f[pi] || '').replace(/\s+/g, ' ').trim() : '') || codigo;
+            if (porCodigo.has(codigo)) porCodigo.get(codigo).expectedQty += qty;
+            else porCodigo.set(codigo, { fuenteOrden: 'excel-cliente', barcode: codigo, productName: nombre.substring(0, 220), unidad: 'UNIDAD', bodega: '', expectedQty: qty, verifiedQty: 0, verified: false, observacion: '' });
+        });
+        return { productos: [...porCodigo.values()], omitidas };
+    }
+    function jatPreviewMapeo() {
+        const { productos, omitidas } = jatProductosDesdeMapeo();
+        const filas = productos.slice(0, 4).map(p => `<tr><td>${jatEsc(p.barcode)}</td><td>${jatEsc(p.productName.substring(0, 40))}</td><td>${formatearQty(p.expectedQty)}</td></tr>`).join('');
+        document.getElementById('mapPreview').innerHTML = productos.length
+            ? `<strong style="font-size:.85rem;">${productos.length} productos · ${formatearQty(productos.reduce((a, p) => a + p.expectedQty, 0))} unidades</strong>${omitidas ? `<span style="font-size:.75rem;color:#b9770e;"> · ${omitidas} filas sin código o cantidad se omiten</span>` : ''}<table><tr><th>Código</th><th>Producto</th><th>Cant.</th></tr>${filas}</table>`
+            : '<p style="color:#c0392b;font-size:.85rem;">Con estas columnas no salen productos. Cambia la columna de código o de cantidad.</p>';
+    }
+    function jatConfirmarMapeo() {
+        const { productos } = jatProductosDesdeMapeo();
+        if (!productos.length) { showAlert('Elige las columnas correctas antes de cargar', 'error'); return; }
+        closeModal('mapeoExcelModal');
+        metadataEgresoActual = extraerCabeceraEgreso('');
+        currentProductos = productos.map(normalizarProducto);
+        guardarAutomaticoDesdeCabecera(metadataEgresoActual);
+        mostrarPreviewTabla(currentProductos);
+        ['guardarComoBtn', 'abrirVerificadorDirectoBtn', 'imprimirActualBtn'].forEach(id => { const b = document.getElementById(id); if (b) b.style.display = 'inline-block'; });
+        showAlert(`✅ Egreso cargado desde ${jatExcelNombre}: ${productos.length} códigos / ${formatearQty(totalEsperado())} artículos`, 'success');
+        document.getElementById('abrirVerificadorDirectoBtn')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    ['mapCodigo', 'mapProducto', 'mapCantidad', 'mapEncabezado'].forEach(id => document.getElementById(id)?.addEventListener('change', jatPreviewMapeo));
+    document.getElementById('mapConfirmarBtn')?.addEventListener('click', jatConfirmarMapeo);
     </script>
     <!-- ====================================================================
          NOTAS DE AUDITORÍA — SEGUNDA PASADA (Jorge reportó: "cámara no funciona")
