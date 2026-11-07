@@ -400,7 +400,32 @@
         .brand-main{font-family:Georgia,'Times New Roman',serif;font-size:1.34rem;letter-spacing:4px;color:#f4d391;font-weight:600;}
         .brand-sub{font-size:.62rem;letter-spacing:2px;color:#dbe8f7;text-transform:uppercase;}
         @media(max-width:900px){.sidebar{width:240px}.hat-statusline{left:240px}.top-bar .user-area strong{display:none}}
-        @media(max-width:720px){.sidebar{width:72px}.menu-parent .left,.menu-parent .arrow,.submenu .menu-item span:not(.icon),.menu-title,.menu-hint,#sidebarEgresoActivo{display:none}.submenu{display:block!important;padding-left:0}.menu-section{margin:0 6px}.hat-statusline{left:72px}.content-area{padding:10px}.top-bar .badge,.user-area span{display:none}}
+        .menu-toggle,.menu-overlay{display:none}
+        @media(max-width:760px){
+          html,body{overflow-x:hidden}
+          .top-bar{height:56px!important;padding:0 10px!important}
+          .top-bar .badge,.top-bar .user-area{display:none!important}
+          .menu-toggle{display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;margin-right:10px;border:0;border-radius:12px;background:rgba(255,255,255,.1);color:#fff;font-size:24px;cursor:pointer}
+          .logo-area{display:flex;align-items:center}
+          .main-layout{height:calc(100vh - 56px)!important;height:calc(100dvh - 56px)!important}
+          .sidebar{position:fixed!important;top:56px;left:0;bottom:0;width:84vw!important;max-width:320px;z-index:4000;transform:translateX(-105%);transition:transform .22s ease;overflow-y:auto}
+          body.menu-abierto .sidebar{transform:none}
+          body.menu-abierto .menu-overlay{display:block;position:fixed;top:56px;left:0;right:0;bottom:0;background:rgba(6,27,52,.5);z-index:3900}
+          .submenu .menu-item{padding:14px 18px!important;font-size:1rem!important;min-height:50px;display:flex;align-items:center;gap:10px}
+          .menu-parent{min-height:48px;font-size:.95rem}
+          .content-area{padding:10px 10px 46px!important;overflow-y:auto!important}
+          #mainContent > div{border-radius:14px!important}
+          #mainContent > div > div{padding-left:14px!important;padding-right:14px!important}
+          .hat-statusline{left:0!important;height:32px;gap:14px;padding:0 12px;overflow-x:auto;white-space:nowrap;font-size:.7rem}
+          .hat-statusline span:nth-child(n+4){display:none}
+          .btn{min-height:48px;font-size:.95rem!important;padding:12px 16px!important}
+          #mainContent .btn{flex:1 1 100%}
+          input,select,textarea{font-size:16px!important}
+          .alert-toast{left:10px!important;right:10px!important;top:64px!important;bottom:auto!important;max-width:none!important;text-align:center}
+          .modal:not(#verificadorModal) .modal-content{width:96vw!important;max-width:96vw!important;max-height:90vh!important;padding:20px 16px!important;border-radius:18px!important}
+          .modal-content [style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
+          .form-group input,.form-group textarea{padding:12px 14px}
+        }
 
 
 
@@ -418,8 +443,9 @@
 <body>
     <div class="top-bar">
         <div class="logo-area">
+            <button class="menu-toggle" id="menuToggleBtn" type="button" aria-label="Abrir menú">☰</button>
             <div class="brand-block">
-                <img src="assets/JAT_logo_aprobado.png" class="brand-emblem" alt="JAT Control Suite">
+                <img src="assets/JAT_logo_aprobado.png" class="brand-emblem" alt="" onerror="this.remove()">
                 <div class="brand-text">
                     <div class="brand-main">JAT</div>
                     <div class="brand-sub">Control Suite</div>
@@ -473,6 +499,7 @@
             </div>
         </div>
 
+        <div class="menu-overlay" id="menuOverlay"></div>
         <div class="content-area" id="mainContent"></div>
     </div>
 
@@ -3158,6 +3185,10 @@
 
     // ---- MENÚ DESPLEGABLE ----
     function initMenu() {
+        const cerrarMenuMovil = () => document.body.classList.remove('menu-abierto');
+        document.getElementById('menuToggleBtn')?.addEventListener('click', () => document.body.classList.toggle('menu-abierto'));
+        document.getElementById('menuOverlay')?.addEventListener('click', cerrarMenuMovil);
+        document.querySelectorAll('.menu-item').forEach(it => it.addEventListener('click', cerrarMenuMovil));
         document.querySelectorAll('.menu-parent').forEach(btn => {
             btn.addEventListener('click', () => btn.closest('.menu-section')?.classList.toggle('open'));
         });
