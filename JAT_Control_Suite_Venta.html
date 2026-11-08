@@ -522,6 +522,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
+<style id="jatLoginGate">html:not(.jat-sesion-ok) body > *:not(#jatLogin){visibility:hidden!important}</style>
     <div class="top-bar">
         <div class="logo-area">
             <button class="menu-toggle" id="menuToggleBtn" type="button" aria-label="Abrir menú">☰</button>
@@ -5949,7 +5950,7 @@
     // ---- COPIA DE SEGURIDAD ----
     function jatExportarTodo() {
         const datos = {};
-        for (let i = 0; i < localStorage.length; i++) { const key = localStorage.key(i); if (key && key.startsWith('jatv_')) datos[key] = localStorage.getItem(key); }
+        for (let i = 0; i < localStorage.length; i++) { const key = localStorage.key(i); if (key && key.startsWith('jatv_') && key !== 'jatv_sesion' && key !== 'jatv_login_intentos') datos[key] = localStorage.getItem(key); }
         jatDescargar('JAT_copia_' + new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-') + '.json', JSON.stringify({ app: 'JAT Control Suite', fecha: new Date().toISOString(), datos }), 'application/json');
         showAlert('⬇️ Copia descargada. Guárdala en OneDrive o envíatela por correo.', 'success');
     }
@@ -6639,6 +6640,225 @@
                 document.querySelector('[data-mas="buscarcam"]').addEventListener('click', jatBuscarKardexCamara);
             }
         };
+    })();
+
+    // ===== Inicio de sesión (usuarios con contraseña) =====
+    (function () {
+        const K_USR = 'jatv_usuarios', K_SES = 'jatv_sesion', K_INT = 'jatv_login_intentos';
+        const enc = new TextEncoder();
+        const hex = b => [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('');
+        const azar = n => hex(crypto.getRandomValues(new Uint8Array(n)));
+        async function hashClave(clave, sal) {
+            const k = await crypto.subtle.importKey('raw', enc.encode(clave), 'PBKDF2', false, ['deriveBits']);
+            return hex(await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: enc.encode(sal), iterations: 150000, hash: 'SHA-256' }, k, 256));
+        }
+        const iguales = (a, b) => { if (a.length !== b.length) return false; let r = 0; for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i); return r === 0; };
+        const usuarios = () => jatLeerJSON(K_USR, []);
+        const guardarUsuarios = l => jatEscribirJSON(K_USR, l);
+        const norm = u => (u || '').trim().toLowerCase();
+        function sesionActual() {
+            let s = null;
+            try { s = JSON.parse(sessionStorage.getItem(K_SES) || 'null') || JSON.parse(localStorage.getItem(K_SES) || 'null'); } catch (e) {}
+            if (!s || !s.u || (s.exp && Date.now() > s.exp)) return null;
+            const us = usuarios().find(x => x.u === s.u);
+            if (!us || us.ver !== s.ver) return null;
+            return us;
+        }
+        window.jatUsuarioSesion = sesionActual;
+        window.jatEsAdmin = () => { const u = sesionActual(); return !!u && u.rol === 'admin'; };
+        function abrirSesion(us, recordar) {
+            const s = JSON.stringify({ u: us.u, ver: us.ver, exp: recordar ? Date.now() + 30 * 864e5 : 0 });
+            try { if (recordar) localStorage.setItem(K_SES, s); else { sessionStorage.setItem(K_SES, s); localStorage.removeItem(K_SES); } } catch (e) {}
+            try { localStorage.setItem('jatv_hat_usuario_actual', us.nombre || us.u); } catch (e) {}
+            localStorage.removeItem(K_INT);
+            desbloquear();
+        }
+        window.jatCerrarSesion = function () {
+            try { sessionStorage.removeItem(K_SES); localStorage.removeItem(K_SES); } catch (e) {}
+            location.reload();
+        };
+        function desbloquear() {
+            document.getElementById('jatLogin')?.remove();
+            document.documentElement.classList.add('jat-sesion-ok');
+        }
+        const CSS = `#jatLogin{position:fixed;inset:0;z-index:300000;background:linear-gradient(160deg,#0b1f3a,#1a3a5c);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:28px 16px;font-family:inherit}
+            #jatLogin .lg{background:#fff;border-radius:20px;width:100%;max-width:400px;padding:24px 20px;box-shadow:0 20px 50px rgba(0,0,0,.35);display:flex;flex-direction:column;gap:12px;margin-top:4vh}
+            #jatLogin h2{margin:0;color:#1a3a5c;font-size:1.25rem}
+            #jatLogin p{margin:0;font-size:.85rem;color:#5a6b7f;line-height:1.45}
+            #jatLogin label{font-size:.82rem;font-weight:700;color:#1a3a5c;margin-bottom:-6px}
+            #jatLogin input[type=text],#jatLogin input[type=password]{width:100%;padding:14px;border:1.5px solid #dce3ea;border-radius:12px;font-size:16px;box-sizing:border-box}
+            #jatLogin .pw{position:relative}#jatLogin .pw button{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:none;font-size:1.2rem;min-width:44px;min-height:44px;cursor:pointer}
+            #jatLogin .bt{min-height:54px;border:0;border-radius:14px;background:#1E7F4A;color:#fff;font-size:1.05rem;font-weight:700;cursor:pointer}
+            #jatLogin .bt:disabled{opacity:.55}
+            #jatLogin .ln{background:none;border:0;color:#1a3a5c;text-decoration:underline;font-size:.85rem;min-height:40px;cursor:pointer}
+            #jatLogin .er{color:#c0392b;font-size:.86rem;font-weight:600;min-height:1.2em}
+            #jatLogin .cod{font-family:monospace;font-size:1.25rem;letter-spacing:.06em;background:#f5f8fb;border:2px dashed #1a3a5c;border-radius:12px;padding:14px;text-align:center;color:#1a2b3c;user-select:all}
+            #jatLogin .marca{color:#d4af37;font-weight:800;letter-spacing:.2em;font-size:1.4rem}`;
+        function pantalla(html) {
+            let d = document.getElementById('jatLogin');
+            if (!d) { d = document.createElement('div'); d.id = 'jatLogin'; document.body.appendChild(d); }
+            d.innerHTML = `<style>${CSS}</style><div class="lg"><div class="marca">JAT <span style="font-size:.7rem;letter-spacing:.25em;color:#1a3a5c;">CONTROL SUITE</span></div>${html}</div>`;
+            d.querySelectorAll('.pw button').forEach(b => b.addEventListener('click', () => { const i = b.previousElementSibling; i.type = i.type === 'password' ? 'text' : 'password'; b.textContent = i.type === 'password' ? '👁️' : '🙈'; }));
+            return d;
+        }
+        const campoClave = (id, ph, ac) => `<div class="pw"><input type="password" id="${id}" placeholder="${ph || ''}" autocomplete="${ac || 'current-password'}"><button type="button" aria-label="Ver contraseña">👁️</button></div>`;
+        function validarClave(c) { if (c.length < 6) return 'La contraseña debe tener al menos 6 caracteres.'; if (/^(\d)\1+$|^123456|^abcdef/i.test(c)) return 'Esa contraseña es muy fácil de adivinar.'; return ''; }
+        function codigoRecuperacion() { const a = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; const r = crypto.getRandomValues(new Uint8Array(12)); let s = ''; r.forEach((x, i) => { s += a[x % a.length]; if (i % 4 === 3 && i < 11) s += '-'; }); return s; }
+        async function crearUsuario(u, nombre, clave, rol) {
+            const sal = azar(16);
+            return { u: norm(u), nombre: nombre.trim() || u.trim(), rol, sal, h: await hashClave(clave, sal), ver: azar(4), creado: new Date().toISOString() };
+        }
+        // --- primera vez: crear administrador ---
+        function vistaPrimerUso() {
+            const d = pantalla(`<h2>🔐 Protege tu app</h2><p>Crea el usuario administrador. Desde ahora se pedirá usuario y contraseña para entrar.</p>
+                <label>Tu nombre</label><input type="text" id="lgNom" placeholder="Ej: Carlos Pérez" autocomplete="name">
+                <label>Usuario</label><input type="text" id="lgUsr" placeholder="Ej: carlos" autocomplete="username" autocapitalize="none">
+                <label>Contraseña</label>${campoClave('lgPw1', 'Mínimo 6 caracteres', 'new-password')}
+                <label>Repite la contraseña</label>${campoClave('lgPw2', '', 'new-password')}
+                <div class="er" id="lgEr"></div><button class="bt" id="lgOk" type="button">Crear y entrar</button>`);
+            d.querySelector('#lgOk').addEventListener('click', async (ev) => {
+                const er = d.querySelector('#lgEr'), u = d.querySelector('#lgUsr').value.trim(), n = d.querySelector('#lgNom').value, p1 = d.querySelector('#lgPw1').value, p2 = d.querySelector('#lgPw2').value;
+                if (!/^[a-zA-Z0-9._-]{3,30}$/.test(u)) return er.textContent = 'El usuario debe tener 3 a 30 letras o números, sin espacios.';
+                const v = validarClave(p1); if (v) return er.textContent = v;
+                if (p1 !== p2) return er.textContent = 'Las contraseñas no coinciden.';
+                ev.target.disabled = true;
+                const us = await crearUsuario(u, n, p1, 'admin');
+                const cod = codigoRecuperacion(); us.rs = azar(16); us.rh = await hashClave(cod.replace(/-/g, ''), us.rs);
+                guardarUsuarios([us]);
+                const d2 = pantalla(`<h2>🗝️ Código de recuperación</h2><p>Si olvidas tu contraseña, con este código puedes poner una nueva. <b>Anótalo o tómale captura y guárdalo en un lugar seguro.</b> No se volverá a mostrar.</p>
+                    <div class="cod">${cod}</div><button class="bt" id="lgSeguir" type="button">Ya lo guardé, entrar</button>`);
+                d2.querySelector('#lgSeguir').addEventListener('click', () => abrirSesion(us, false));
+            });
+        }
+        // --- inicio de sesión ---
+        function bloqueoRestante() { const i = jatLeerJSON(K_INT, { n: 0, hasta: 0 }); return Math.max(0, Math.ceil((i.hasta - Date.now()) / 1000)); }
+        function vistaLogin(msg) {
+            const d = pantalla(`<h2>Iniciar sesión</h2>
+                <label>Usuario</label><input type="text" id="lgUsr" autocomplete="username" autocapitalize="none">
+                <label>Contraseña</label>${campoClave('lgPw', '', 'current-password')}
+                <label style="display:flex;gap:10px;align-items:center;font-weight:600;margin:0;min-height:40px;"><input type="checkbox" id="lgRec" style="width:22px;height:22px;"> Mantener la sesión abierta en este celular (30 días)</label>
+                <div class="er" id="lgEr">${msg || ''}</div><button class="bt" id="lgOk" type="button">Entrar</button>
+                <button class="ln" id="lgOlv" type="button">Olvidé mi contraseña</button>`);
+            const ok = d.querySelector('#lgOk'), er = d.querySelector('#lgEr');
+            const espera = () => { const r = bloqueoRestante(); if (r > 0) { ok.disabled = true; er.textContent = `Demasiados intentos. Espera ${r} s.`; setTimeout(espera, 1000); } else if (ok.disabled) { ok.disabled = false; er.textContent = ''; } };
+            espera();
+            const entrar = async () => {
+                if (bloqueoRestante() > 0) return espera();
+                const u = norm(d.querySelector('#lgUsr').value), p = d.querySelector('#lgPw').value;
+                if (!u || !p) return er.textContent = 'Escribe usuario y contraseña.';
+                ok.disabled = true; er.textContent = '';
+                const us = usuarios().find(x => x.u === u);
+                const h = await hashClave(p, us ? us.sal : 'x-sin-usuario');
+                if (us && iguales(h, us.h)) return abrirSesion(us, d.querySelector('#lgRec').checked);
+                const i = jatLeerJSON(K_INT, { n: 0, hasta: 0 }); i.n++;
+                if (i.n >= 5) i.hasta = Date.now() + Math.min(15 * 60, 30 * Math.pow(2, i.n - 5)) * 1000;
+                jatEscribirJSON(K_INT, i);
+                ok.disabled = false; d.querySelector('#lgPw').value = '';
+                er.textContent = 'Usuario o contraseña incorrectos.'; espera();
+            };
+            ok.addEventListener('click', entrar);
+            d.querySelector('#lgPw').addEventListener('keydown', e => { if (e.key === 'Enter') entrar(); });
+            d.querySelector('#lgOlv').addEventListener('click', vistaRecuperar);
+        }
+        function vistaRecuperar() {
+            const d = pantalla(`<h2>🗝️ Recuperar acceso</h2><p>Escribe el <b>código de recuperación</b> que guardaste al crear el administrador. Si eres operador, pídele al administrador que te cambie la contraseña.</p>
+                <label>Código de recuperación</label><input type="text" id="lgCod" placeholder="XXXX-XXXX-XXXX" autocapitalize="characters" autocomplete="off">
+                <label>Contraseña nueva</label>${campoClave('lgPw1', 'Mínimo 6 caracteres', 'new-password')}
+                <div class="er" id="lgEr"></div><button class="bt" id="lgOk" type="button">Cambiar contraseña</button><button class="ln" id="lgVol" type="button">Volver</button>`);
+            d.querySelector('#lgVol').addEventListener('click', () => vistaLogin());
+            d.querySelector('#lgOk').addEventListener('click', async (ev) => {
+                const er = d.querySelector('#lgEr');
+                if (bloqueoRestante() > 0) return er.textContent = `Demasiados intentos. Espera ${bloqueoRestante()} s.`;
+                const cod = d.querySelector('#lgCod').value.toUpperCase().replace(/[^A-Z0-9]/g, ''), p = d.querySelector('#lgPw1').value;
+                const v = validarClave(p); if (v) return er.textContent = v;
+                ev.target.disabled = true;
+                const l = usuarios();
+                for (const us of l.filter(x => x.rol === 'admin' && x.rh)) {
+                    if (iguales(await hashClave(cod, us.rs), us.rh)) {
+                        us.sal = azar(16); us.h = await hashClave(p, us.sal); us.ver = azar(4);
+                        const nuevo = codigoRecuperacion(); us.rs = azar(16); us.rh = await hashClave(nuevo.replace(/-/g, ''), us.rs);
+                        guardarUsuarios(l); localStorage.removeItem(K_INT);
+                        const d2 = pantalla(`<h2>✅ Contraseña cambiada</h2><p>Usuario: <b>${jatEsc(us.u)}</b>. Este es tu <b>nuevo código de recuperación</b> (el anterior ya no sirve). Guárdalo:</p><div class="cod">${nuevo}</div><button class="bt" id="lgSeguir" type="button">Ir a iniciar sesión</button>`);
+                        d2.querySelector('#lgSeguir').addEventListener('click', () => vistaLogin());
+                        return;
+                    }
+                }
+                const i = jatLeerJSON(K_INT, { n: 0, hasta: 0 }); i.n++; if (i.n >= 5) i.hasta = Date.now() + Math.min(15 * 60, 30 * Math.pow(2, i.n - 5)) * 1000; jatEscribirJSON(K_INT, i);
+                ev.target.disabled = false; er.textContent = 'Código incorrecto.';
+            });
+        }
+        // --- arranque ---
+        if (sesionActual()) desbloquear();
+        else if (!usuarios().length) vistaPrimerUso();
+        else vistaLogin();
+
+        // --- administración de usuarios (en Más) ---
+        function cargarVistaUsuarios() {
+            const yo = sesionActual(); if (!yo) return jatCerrarSesion();
+            const l = usuarios();
+            jatVista('🔐 Usuarios y contraseñas', 'mas', `
+                <p style="font-size:.84rem;color:#4a5f78;">Sesión iniciada como <b>${jatEsc(yo.nombre)}</b> (${yo.rol === 'admin' ? 'administrador' : 'operador'}).</p>
+                <button type="button" class="btn" id="usCambiar" style="min-height:48px;">🔑 Cambiar mi contraseña</button>
+                ${yo.rol === 'admin' ? `<h4 style="color:#1a3a5c;font-size:.95rem;margin-top:6px;">👥 Usuarios</h4>
+                <div>${l.map(u => `<div style="display:flex;align-items:center;gap:10px;border-bottom:1px solid #edf2f7;padding:10px 2px;"><span style="flex:1;"><b>${jatEsc(u.nombre)}</b><br><span style="font-size:.78rem;color:#6b7c8f;">${jatEsc(u.u)} · ${u.rol === 'admin' ? 'Administrador' : 'Operador'}</span></span>
+                    ${u.u !== yo.u ? `<button type="button" data-usr="${jatEsc(u.u)}" data-acc="clave" style="min-height:44px;border:1.5px solid #dce3ea;background:#fff;border-radius:10px;padding:0 10px;cursor:pointer;">🔑</button><button type="button" data-usr="${jatEsc(u.u)}" data-acc="borrar" style="min-height:44px;border:1.5px solid #dce3ea;background:#fff;border-radius:10px;padding:0 10px;cursor:pointer;">🗑️</button>` : '<span style="font-size:.75rem;color:#6b7c8f;">tú</span>'}</div>`).join('')}</div>
+                <h4 style="color:#1a3a5c;font-size:.95rem;margin-top:6px;">➕ Agregar usuario</h4>
+                <input id="usNom" placeholder="Nombre (Ej: Ana López)" style="${JAT_INPUT}">
+                <input id="usUsr" placeholder="Usuario (Ej: ana)" autocapitalize="none" autocomplete="off" style="${JAT_INPUT}">
+                <input id="usPw" type="password" placeholder="Contraseña (mínimo 6)" autocomplete="new-password" style="${JAT_INPUT}">
+                <select id="usRol" style="${JAT_INPUT}"><option value="operador">Operador — usa la app</option><option value="admin">Administrador — además maneja usuarios</option></select>
+                <button type="button" class="btn btn-success" id="usAgregar" style="min-height:52px;">➕ Agregar usuario</button>` : ''}
+                <button type="button" class="btn" id="usSalir" style="min-height:52px;margin-top:8px;color:#c0392b;">🚪 Cerrar sesión</button>`);
+            document.getElementById('usSalir').addEventListener('click', jatCerrarSesion);
+            document.getElementById('usCambiar').addEventListener('click', () => {
+                const d = pantalla(`<h2>🔑 Cambiar mi contraseña</h2><label>Contraseña actual</label>${campoClave('lgAct')}<label>Contraseña nueva</label>${campoClave('lgPw1', 'Mínimo 6 caracteres', 'new-password')}<div class="er" id="lgEr"></div><button class="bt" id="lgOk" type="button">Guardar</button><button class="ln" id="lgVol" type="button">Cancelar</button>`);
+                d.querySelector('#lgVol').addEventListener('click', desbloquear);
+                d.querySelector('#lgOk').addEventListener('click', async () => {
+                    const er = d.querySelector('#lgEr'), lst = usuarios(), us = lst.find(x => x.u === yo.u);
+                    if (!iguales(await hashClave(d.querySelector('#lgAct').value, us.sal), us.h)) return er.textContent = 'La contraseña actual no es correcta.';
+                    const p = d.querySelector('#lgPw1').value, v = validarClave(p); if (v) return er.textContent = v;
+                    us.sal = azar(16); us.h = await hashClave(p, us.sal); us.ver = azar(4); guardarUsuarios(lst);
+                    abrirSesion(us, !!localStorage.getItem(K_SES)); showAlert('✅ Contraseña cambiada', 'success');
+                });
+            });
+            if (yo.rol !== 'admin') return;
+            document.getElementById('usAgregar').addEventListener('click', async () => {
+                const v = id => document.getElementById(id).value;
+                const u = v('usUsr').trim(), p = v('usPw');
+                if (!/^[a-zA-Z0-9._-]{3,30}$/.test(u)) return showAlert('Usuario de 3 a 30 letras o números, sin espacios', 'warning');
+                if (usuarios().some(x => x.u === norm(u))) return showAlert('Ese usuario ya existe', 'warning');
+                const e = validarClave(p); if (e) return showAlert(e, 'warning');
+                const lst = usuarios(); lst.push(await crearUsuario(u, v('usNom'), p, v('usRol'))); guardarUsuarios(lst);
+                showAlert('✅ Usuario agregado', 'success'); cargarVistaUsuarios();
+            });
+            document.querySelectorAll('[data-usr]').forEach(b => b.addEventListener('click', async () => {
+                const lst = usuarios(), us = lst.find(x => x.u === b.dataset.usr); if (!us) return;
+                if (b.dataset.acc === 'borrar') {
+                    if (b.dataset.ok !== '1') { b.dataset.ok = '1'; b.textContent = '¿Borrar?'; b.style.background = '#c0392b'; b.style.color = '#fff'; return; }
+                    if (us.rol === 'admin' && lst.filter(x => x.rol === 'admin').length < 2) return showAlert('Debe quedar al menos un administrador', 'warning');
+                    guardarUsuarios(lst.filter(x => x !== us)); showAlert('Usuario borrado', 'info'); return cargarVistaUsuarios();
+                }
+                const d = pantalla(`<h2>🔑 Nueva contraseña</h2><p>Para <b>${jatEsc(us.nombre)}</b> (${jatEsc(us.u)}).</p>${campoClave('lgPw1', 'Mínimo 6 caracteres', 'new-password')}<div class="er" id="lgEr"></div><button class="bt" id="lgOk" type="button">Guardar</button><button class="ln" id="lgVol" type="button">Cancelar</button>`);
+                d.querySelector('#lgVol').addEventListener('click', desbloquear);
+                d.querySelector('#lgOk').addEventListener('click', async () => {
+                    const p = d.querySelector('#lgPw1').value, e = validarClave(p); if (e) return d.querySelector('#lgEr').textContent = e;
+                    const l2 = usuarios(), u2 = l2.find(x => x.u === us.u); u2.sal = azar(16); u2.h = await hashClave(p, u2.sal); u2.ver = azar(4); guardarUsuarios(l2);
+                    desbloquear(); showAlert('✅ Contraseña cambiada', 'success');
+                });
+            }));
+        }
+        const _vm3 = cargarVistaMas;
+        cargarVistaMas = function () {
+            _vm3.apply(this, arguments);
+            const ref = document.querySelector('[data-mas="perfil"]');
+            if (ref && !document.querySelector('[data-mas="usuarios"]')) {
+                const yo = sesionActual();
+                ref.insertAdjacentHTML('afterend', `<button type="button" data-mas="usuarios" style="display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:#fff;border:0;border-top:1px solid #edf2f7;padding:15px 16px;cursor:pointer;min-height:56px;"><span style="font-size:1.3rem;width:28px;text-align:center;">🔐</span><span style="flex:1;font-size:1rem;color:#1a2b3c;">Usuarios y contraseñas<span style="display:block;font-size:.76rem;color:#6b7c8f;">${yo ? jatEsc(yo.nombre) + ' · cerrar sesión' : ''}</span></span><span style="color:#9aa7b2;font-size:1.3rem;">›</span></button>`);
+                document.querySelector('[data-mas="usuarios"]').addEventListener('click', cargarVistaUsuarios);
+            }
+        };
+        // si otro proceso cambia la sesión (otra pestaña cerró sesión), bloquear
+        window.addEventListener('storage', (e) => { if ((e.key === K_SES || e.key === K_USR) && !sesionActual()) location.reload(); });
     })();
     </script>
     <!-- ====================================================================
