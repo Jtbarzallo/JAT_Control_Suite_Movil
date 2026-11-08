@@ -6943,6 +6943,282 @@
         // Tecla de volumen / Enter de un lector físico no aplica; atajo: barra espaciadora dispara
         document.addEventListener('keydown', (e) => { if (e.code === 'Space' && btn() && btn().style.display === 'block' && !/INPUT|TEXTAREA/.test(document.activeElement?.tagName || '')) { e.preventDefault(); disparar(); } });
     })();
+
+    // ===== Ubicaciones en bodega + Salida por ubicación (integrado desde JAT Salida de Mercadería) =====
+    (function () {
+        const jatUbic = () => jatLeerJSON('jatv_ubicaciones', {});
+        const jatZonas = () => jatLeerJSON('jatv_zonas', ['Pasillo 1', 'Pasillo 2', 'Bodega']);
+        const guardarZonas = z => jatEscribirJSON('jatv_zonas', z);
+        function ponerUbic(cod, z, d) { const u = jatUbic(); if (z) u[cod] = { z, d: (d || '').trim(), t: Date.now() }; else delete u[cod]; jatEscribirJSON('jatv_ubicaciones', u); }
+        const ubicTxt = cod => { const u = jatUbic()[cod]; return u && u.z ? u.z + (u.d ? ' · ' + u.d : '') : ''; };
+        window.jatUbicacionDe = ubicTxt;
+        const opZonas = (act) => `<option value="">— Elige zona —</option>` + jatZonas().map(z => `<option ${z === act ? 'selected' : ''}>${jatEsc(z)}</option>`).join('');
+        const INP = 'width:100%;padding:13px 14px;border:1.5px solid #dce3ea;border-radius:12px;font-size:16px;box-sizing:border-box;background:#fff;';
+        const detalles = () => [...new Set(Object.values(jatUbic()).map(u => u.d).filter(Boolean))].slice(0, 60);
+        function dlDetalles() { let dl = document.getElementById('jatDetList'); if (!dl) { dl = document.createElement('datalist'); dl.id = 'jatDetList'; document.body.appendChild(dl); } dl.innerHTML = detalles().map(d => `<option value="${jatEsc(d)}">`).join(''); }
+
+        // ---- hoja inferior (va encima de la cámara) ----
+        function hoja(html) {
+            cerrarHoja();
+            const bg = document.createElement('div'); bg.id = 'jatUbHoja';
+            bg.style.cssText = 'position:fixed;inset:0;z-index:100500;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;';
+            bg.innerHTML = `<div style="background:#fff;width:100%;max-height:88vh;overflow:auto;border-radius:20px 20px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:10px;">${html}</div>`;
+            bg.addEventListener('click', e => { if (e.target === bg) cerrarHoja(); });
+            (document.fullscreenElement || document.body).appendChild(bg);
+            return bg;
+        }
+        function cerrarHoja() { document.getElementById('jatUbHoja')?.remove(); }
+        const hojaAbierta = () => !!document.getElementById('jatUbHoja');
+
+        // ---- escáner continuo con botón LEER ----
+        function escanerContinuo(titulo, alLeer) {
+            const FMT = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'code_93', 'itf', 'codabar', 'qr_code'];
+            let stream = null, vivo = true, timer = null, zx = null, armado = 0, tAv = null;
+            const ov = document.createElement('div'); ov.id = 'jatScanCont';
+            ov.style.cssText = 'position:fixed;inset:0;z-index:100000;background:#000;display:flex;flex-direction:column;';
+            ov.innerHTML = `<div style="flex:1;position:relative;overflow:hidden;"><video playsinline muted autoplay style="width:100%;height:100%;object-fit:cover;"></video>
+                <div style="position:absolute;left:6%;right:6%;top:30%;height:26%;border:3px solid #2ecc71;border-radius:14px;box-shadow:0 0 0 2000px rgba(0,0,0,.35);pointer-events:none;"></div>
+                <div id="jscSt" style="position:absolute;top:0;left:0;right:0;background:rgba(0,0,0,.6);color:#fff;text-align:center;padding:12px;font-weight:700;">${jatEsc(titulo)}</div>
+                <button type="button" id="jscLeer" style="position:absolute;left:50%;bottom:22px;transform:translateX(-50%);width:84px;height:84px;border-radius:50%;border:5px solid #fff;background:#1E7F4A;color:#fff;font-weight:800;font-size:.9rem;box-shadow:0 4px 14px rgba(0,0,0,.5);">LEER</button>
+                <button type="button" id="jscZoom" style="display:none;position:absolute;right:14px;bottom:36px;min-width:64px;min-height:50px;border:0;border-radius:25px;background:rgba(255,255,255,.92);font-weight:700;"></button></div>
+                <button type="button" id="jscCerrar" style="min-height:60px;border:0;background:#1a3a5c;color:#fff;font-size:1.05rem;font-weight:700;">✓ Terminar</button>`;
+            (document.fullscreenElement || document.body).appendChild(ov);
+            const video = ov.querySelector('video'), bL = ov.querySelector('#jscLeer');
+            const ctrl = {
+                estado(t) { const e = ov.querySelector('#jscSt'); if (e) e.textContent = t; },
+                cerrar() { vivo = false; clearTimeout(timer); clearTimeout(tAv); try { zx && zx.reset(); } catch (e) {} try { stream && stream.getTracks().forEach(t => t.stop()); } catch (e) {} ov.remove(); if (ctrl.alCerrar) ctrl.alCerrar(); }
+            };
+            const pintarL = (on) => { bL.style.background = on ? '#d4a017' : '#1E7F4A'; bL.textContent = on ? '...' : 'LEER'; };
+            let enfocar = () => {};
+            bL.addEventListener('click', () => {
+                armado = Date.now() + 2000; pintarL(true); enfocar(); if (navigator.vibrate) navigator.vibrate(25);
+                clearTimeout(tAv); tAv = setTimeout(() => { if (armado) { armado = 0; pintarL(false); ctrl.estado('No se leyó. Acerca o aleja un poco y aprieta LEER'); } }, 2050);
+            });
+            const lectura = (cod) => {
+                cod = String(cod || '').trim(); if (!vivo || !cod || hojaAbierta() || !(armado > Date.now())) return;
+                armado = 0; clearTimeout(tAv); pintarL(false);
+                if (navigator.vibrate) navigator.vibrate(80);
+                alLeer(cod, ctrl);
+            };
+            ov.querySelector('#jscCerrar').addEventListener('click', () => ctrl.cerrar());
+            video.addEventListener('click', () => enfocar());
+            (async () => {
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+                    if (!vivo) { stream.getTracks().forEach(t => t.stop()); return; }
+                    video.srcObject = stream; await video.play();
+                    const pista = stream.getVideoTracks()[0], cap = pista.getCapabilities ? pista.getCapabilities() : {};
+                    enfocar = async () => { try { if (cap.focusMode && cap.focusMode.includes('single-shot')) await pista.applyConstraints({ advanced: [{ focusMode: 'single-shot' }] }); if (cap.focusMode && cap.focusMode.includes('continuous')) await pista.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch (e) {} };
+                    enfocar();
+                    if (cap.zoom && cap.zoom.max >= 1.5) { const zb = ov.querySelector('#jscZoom'), zm = Math.min(cap.zoom.max, 2.5); let z = 1; zb.style.display = 'block'; zb.textContent = '🔍 ' + (Math.round(zm * 10) / 10) + 'x'; zb.addEventListener('click', async () => { z = z > 1 ? 1 : zm; try { await pista.applyConstraints({ advanced: [{ zoom: z }] }); } catch (e) {} zb.textContent = z > 1 ? '🔍 1x' : '🔍 ' + (Math.round(zm * 10) / 10) + 'x'; enfocar(); }); }
+                    let det = null;
+                    if ('BarcodeDetector' in window) { try { const sop = await BarcodeDetector.getSupportedFormats(); const f = FMT.filter(x => sop.includes(x)); det = new BarcodeDetector({ formats: f.length ? f : sop }); } catch (e) { det = null; } }
+                    if (det) { const ciclo = async () => { if (!vivo) return; if (armado > Date.now()) { try { const r = await det.detect(video); if (r && r.length) lectura(r[0].rawValue); } catch (e) {} } timer = setTimeout(ciclo, 120); }; ciclo(); }
+                    else {
+                        if (!window.ZXing) await new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js'; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
+                        if (!vivo) return; zx = new ZXing.BrowserMultiFormatReader(); zx.decodeFromVideoElementContinuously(video, r => { if (r) lectura(r.getText()); });
+                    }
+                } catch (e) { ctrl.estado(stream ? '⚠️ No se pudo cargar el lector de códigos. Revisa tu conexión.' : '⚠️ No se pudo abrir la cámara. Revisa el permiso de cámara.'); }
+            })();
+            return ctrl;
+        }
+
+        // ---- hoja: cambiar ubicación de un producto ----
+        function hojaUbicacion(cod, alGuardar) {
+            const k = jatKardex(), u = jatUbic()[cod] || {};
+            dlDetalles();
+            const h = hoja(`<b style="font-size:1.05rem;color:#1a3a5c;">${jatEsc((k[cod] && k[cod].n) || cod)}</b><span style="font-size:.8rem;color:#6b7c8f;font-family:monospace;">${jatEsc(cod)}</span>
+                <label style="font-weight:700;font-size:.85rem;color:#1a3a5c;">📍 Zona (pasillo / cuarto)</label><select id="hubZ" style="${INP}">${opZonas(u.z)}</select>
+                <label style="font-weight:700;font-size:.85rem;color:#1a3a5c;">Detalle (estante, nivel)</label><input id="hubD" list="jatDetList" value="${jatEsc(u.d || '')}" placeholder="Ej: Estante 3, nivel 2" autocomplete="off" style="${INP}">
+                <div style="display:flex;gap:8px;margin-top:6px;"><button type="button" id="hubQ" class="btn" style="flex:1;min-height:50px;">🗑️ Quitar</button><button type="button" id="hubG" class="btn btn-success" style="flex:2;min-height:50px;">💾 Guardar</button></div>`);
+            h.querySelector('#hubG').addEventListener('click', () => { const z = h.querySelector('#hubZ').value; if (!z) return showAlert('Elige la zona', 'warning'); ponerUbic(cod, z, h.querySelector('#hubD').value); cerrarHoja(); showAlert('📍 Ubicación guardada', 'success'); alGuardar && alGuardar(); });
+            h.querySelector('#hubQ').addEventListener('click', () => { ponerUbic(cod, ''); cerrarHoja(); showAlert('Ubicación quitada', 'info'); alGuardar && alGuardar(); });
+        }
+
+        // ---- vista: Ubicaciones en bodega ----
+        let ubFiltroZona = '', ubSoloCon = true;
+        function cargarVistaUbicaciones() {
+            const zs = jatZonas(); dlDetalles();
+            let regZ = localStorage.getItem('jatv_reg_zona') || ''; if (!zs.includes(regZ)) regZ = '';
+            jatVista('📍 Ubicaciones en bodega', 'mas', `
+                <p style="font-size:.84rem;color:#4a5f78;line-height:1.5;">Guarda en qué pasillo o cuarto está cada producto. Luego, al sacar un egreso, la app te ordena los productos por ubicación.</p>
+                <div style="border:1px solid #e3e9f0;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px;">
+                    <b style="color:#1a3a5c;">📷 Registrar ubicaciones</b>
+                    <span style="font-size:.8rem;color:#6b7c8f;">Elige dónde estás, escanea cada producto y su ubicación se guarda sola.</span>
+                    <select id="ubRegZ" style="${INP}">${opZonas(regZ)}</select>
+                    <input id="ubRegD" list="jatDetList" value="${jatEsc(localStorage.getItem('jatv_reg_det') || '')}" placeholder="Detalle (estante, nivel) — opcional" autocomplete="off" style="${INP}">
+                    <button type="button" id="ubRegScan" class="btn btn-success" style="min-height:54px;font-size:1.05rem;">📷 Escanear productos</button>
+                    <input id="ubRegBus" placeholder="🔎 ¿Sin código? Busca por nombre" autocomplete="off" style="${INP}"><div id="ubRegRes"></div>
+                </div>
+                <div style="border:1px solid #e3e9f0;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px;">
+                    <b style="color:#1a3a5c;">🏬 Pasillos y cuartos</b>
+                    <div id="ubZonas" style="display:flex;flex-wrap:wrap;gap:6px;">${zs.map((z, i) => `<span style="display:inline-flex;align-items:center;gap:4px;background:#eef2f7;border-radius:20px;padding:6px 6px 6px 12px;font-weight:600;font-size:.85rem;color:#1a3a5c;">${jatEsc(z)}<button type="button" data-zdel="${i}" aria-label="Quitar" style="border:0;background:none;font-size:1rem;min-width:32px;min-height:32px;cursor:pointer;">✖</button></span>`).join('')}</div>
+                    <div style="display:flex;gap:8px;"><input id="ubZNueva" placeholder="Ej: Pasillo 3, Cuarto guitarras" autocomplete="off" style="${INP}flex:1;min-width:0;"><button type="button" id="ubZAdd" class="btn btn-success" style="flex:none;min-width:56px;">➕</button></div>
+                </div>
+                <div style="border:1px solid #e3e9f0;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px;">
+                    <b style="color:#1a3a5c;">📋 Productos y su ubicación</b>
+                    <div style="display:flex;gap:8px;"><select id="ubFZ" style="${INP}flex:1;"><option value="">Todas las zonas</option>${zs.map(z => `<option ${z === ubFiltroZona ? 'selected' : ''}>${jatEsc(z)}</option>`).join('')}</select>
+                    <select id="ubFC" style="${INP}flex:1;"><option value="1" ${ubSoloCon ? 'selected' : ''}>Con ubicación</option><option value="0" ${ubSoloCon ? '' : 'selected'}>Sin ubicación</option></select></div>
+                    <div id="ubLista"></div>
+                </div>`);
+            const regZel = document.getElementById('ubRegZ'), regD = document.getElementById('ubRegD');
+            regZel.addEventListener('change', () => localStorage.setItem('jatv_reg_zona', regZel.value));
+            regD.addEventListener('input', () => localStorage.setItem('jatv_reg_det', regD.value.trim()));
+            const registrar = (cod, ctrl) => {
+                const z = regZel.value, d = regD.value; const k = jatKardex();
+                if (!k[cod]) {
+                    const h = hoja(`<b style="font-size:1.05rem;color:#1a3a5c;">➕ No está en el kardex</b><span style="font-size:.85rem;color:#6b7c8f;">Código <b>${jatEsc(cod)}</b>. Escribe su nombre para agregarlo.</span>
+                        <input id="ubNNom" placeholder="Nombre del producto" autocomplete="off" style="${INP}">
+                        <div style="display:flex;gap:8px;"><button type="button" id="ubNCan" class="btn" style="flex:1;min-height:50px;">Cancelar</button><button type="button" id="ubNOk" class="btn btn-success" style="flex:2;min-height:50px;">💾 Agregar y guardar</button></div>`);
+                    h.querySelector('#ubNCan').addEventListener('click', cerrarHoja);
+                    h.querySelector('#ubNOk').addEventListener('click', () => { const n = h.querySelector('#ubNNom').value.trim(); if (!n) return showAlert('Escribe el nombre', 'warning'); jatKardexGuardar(cod, { n, c: '' }); ponerUbic(cod, z, d); cerrarHoja(); ctrl && ctrl.estado('✅ ' + n + ' → ' + z); if (!ctrl) cargarVistaUbicaciones(); });
+                    return;
+                }
+                ponerUbic(cod, z, d);
+                const msg = '✅ ' + (k[cod].n || cod) + ' → ' + z + (d ? ' · ' + d : '');
+                if (ctrl) { ctrl.estado(msg); try { hablarHat('Guardado.', 'ok', { force: true }); } catch (e) {} } else { showAlert(msg, 'success'); cargarVistaUbicaciones(); }
+            };
+            document.getElementById('ubRegScan').addEventListener('click', () => {
+                if (!regZel.value) return showAlert('Primero elige la zona donde estás', 'warning');
+                const c = escanerContinuo('📍 ' + regZel.value + (regD.value ? ' · ' + regD.value : '') + ' — aprieta LEER en cada producto', registrar);
+                c.alCerrar = cargarVistaUbicaciones;
+            });
+            document.getElementById('ubRegBus').addEventListener('input', (e) => {
+                const t = e.target.value.trim().toLowerCase(), k = jatKardex();
+                const r = t.length < 2 ? [] : Object.keys(k).filter(c => (c + ' ' + k[c].n).toLowerCase().includes(t)).slice(0, 12);
+                document.getElementById('ubRegRes').innerHTML = r.map(c => `<button type="button" data-ubr="${jatEsc(c)}" style="display:block;width:100%;text-align:left;background:#fff;border:0;border-bottom:1px solid #edf2f7;padding:11px 4px;cursor:pointer;"><b style="font-size:.88rem;">${jatEsc(k[c].n)}</b><br><span style="font-size:.75rem;color:#6b7c8f;">${jatEsc(c)}${ubicTxt(c) ? ' · 📍 ' + jatEsc(ubicTxt(c)) : ''}</span></button>`).join('');
+            });
+            document.getElementById('ubRegRes').addEventListener('click', (e) => { const b = e.target.closest('[data-ubr]'); if (!b) return; if (!regZel.value) return showAlert('Primero elige la zona donde estás', 'warning'); registrar(b.dataset.ubr, null); });
+            document.getElementById('ubZAdd').addEventListener('click', () => { const v = document.getElementById('ubZNueva').value.trim(); if (!v) return; const z = jatZonas(); if (!z.includes(v)) z.push(v); guardarZonas(z); cargarVistaUbicaciones(); });
+            document.getElementById('ubZonas').addEventListener('click', (e) => {
+                const b = e.target.closest('[data-zdel]'); if (!b) return;
+                const z = jatZonas(), nom = z[+b.dataset.zdel];
+                const usados = Object.values(jatUbic()).filter(u => u.z === nom).length;
+                if (b.dataset.ok !== '1') { b.dataset.ok = '1'; b.textContent = usados ? `¿Quitar? ${usados} productos` : '¿Quitar?'; b.style.color = '#c0392b'; b.style.fontSize = '.75rem'; return; }
+                z.splice(+b.dataset.zdel, 1); guardarZonas(z); cargarVistaUbicaciones();
+            });
+            const lista = () => {
+                const k = jatKardex(), u = jatUbic();
+                const cods = Object.keys(k).filter(c => ubSoloCon ? (u[c] && (!ubFiltroZona || u[c].z === ubFiltroZona)) : !u[c]).sort((a, b) => ((u[a]?.z || '') + (u[a]?.d || '') + k[a].n).localeCompare((u[b]?.z || '') + (u[b]?.d || '') + k[b].n, 'es'));
+                document.getElementById('ubLista').innerHTML = `<div style="font-size:.8rem;color:#6b7c8f;margin-bottom:4px;">${cods.length} productos</div>` + cods.slice(0, 200).map(c => `<button type="button" data-ubl="${jatEsc(c)}" style="display:flex;gap:8px;align-items:center;width:100%;text-align:left;background:#fff;border:0;border-bottom:1px solid #edf2f7;padding:10px 2px;cursor:pointer;"><span style="flex:1;min-width:0;"><b style="font-size:.88rem;color:#1a2b3c;">${jatEsc(k[c].n)}</b><br><span style="font-size:.74rem;color:#6b7c8f;font-family:monospace;">${jatEsc(c)}</span></span><span style="flex:none;max-width:45%;background:${u[c] ? '#fef3c7' : '#fee2e2'};color:${u[c] ? '#78350f' : '#991b1b'};border-radius:8px;padding:4px 8px;font-weight:700;font-size:.78rem;">${u[c] ? '📍 ' + jatEsc(ubicTxt(c)) : 'Sin ubicación'}</span></button>`).join('') + (cods.length > 200 ? '<p style="font-size:.78rem;color:#6b7c8f;">Mostrando 200. Filtra por zona.</p>' : '');
+            };
+            document.getElementById('ubFZ').addEventListener('change', e => { ubFiltroZona = e.target.value; lista(); });
+            document.getElementById('ubFC').addEventListener('change', e => { ubSoloCon = e.target.value === '1'; lista(); });
+            document.getElementById('ubLista').addEventListener('click', e => { const b = e.target.closest('[data-ubl]'); if (b) hojaUbicacion(b.dataset.ubl, lista); });
+            lista();
+        }
+        window.cargarVistaUbicaciones = cargarVistaUbicaciones;
+
+        // ---- vista: Salida por ubicación ----
+        let salFiltro = 'pend';
+        function cargarVistaSalidaElegir() {
+            const egs = (egresosGuardados || []).filter(e => (e.productos || []).length && jatTipoEgreso(e).id !== 'ingreso').slice().reverse();
+            jatVista('📤 Salida por ubicación', 'mas', `
+                <p style="font-size:.84rem;color:#4a5f78;line-height:1.5;">Elige el egreso que vas a sacar. La app ordena los productos por pasillo y cuarto para que recorras la bodega una sola vez.</p>
+                ${egs.map(e => { const t = e.productos.reduce((a, p) => a + getExpectedQty(p), 0), v = e.productos.reduce((a, p) => a + Math.min(getVerifiedQty(p), getExpectedQty(p)), 0), pc = t ? Math.round(v / t * 100) : 0;
+                    return `<button type="button" data-sale="${jatEsc(e.id)}" style="display:block;width:100%;text-align:left;background:#fff;border:1.5px solid #e3e9f0;border-radius:14px;padding:14px;margin-bottom:8px;cursor:pointer;"><b style="color:#1a2b3c;">${jatEsc(e.nombre || e.secuencial || 'Egreso')}</b><br><span style="font-size:.8rem;color:#6b7c8f;">${jatEsc(e.bodegaDestino || '')} · ${e.productos.length} productos · ${pc}% sacado</span><div style="height:8px;border-radius:6px;background:#e3e9f0;margin-top:8px;overflow:hidden;"><i style="display:block;height:100%;width:${pc}%;background:#1E7F4A;"></i></div></button>`; }).join('') || '<p style="text-align:center;color:#6b7c8f;padding:30px 0;">No tienes egresos. Crea uno con el botón ＋ en Egresos.</p>'}`);
+            document.querySelectorAll('[data-sale]').forEach(b => b.addEventListener('click', () => cargarVistaSalida(b.dataset.sale)));
+        }
+        function cargarVistaSalida(id) {
+            const eg = egresosGuardados.find(e => e.id === id); if (!eg) return cargarVistaSalidaElegir();
+            const u = jatUbic(), zs = jatZonas();
+            const prods = eg.productos.map((p, i) => ({ p, i, ub: u[String(p.barcode).trim()] }));
+            const pend = x => getVerifiedQty(x.p) < getExpectedQty(x.p);
+            const ver = prods.filter(x => salFiltro === 'todos' || pend(x));
+            const grupos = {};
+            ver.forEach(x => { const g = x.ub && x.ub.z ? x.ub.z : '❓ Sin ubicación'; (grupos[g] = grupos[g] || []).push(x); });
+            const orden = Object.keys(grupos).sort((a, b) => { const ia = zs.indexOf(a), ib = zs.indexOf(b); return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib) || a.localeCompare(b, 'es'); });
+            const t = prods.reduce((a, x) => a + getExpectedQty(x.p), 0), v = prods.reduce((a, x) => a + Math.min(getVerifiedQty(x.p), getExpectedQty(x.p)), 0), pc = t ? Math.round(v / t * 100) : 0;
+            const chip = (f, txt) => `<button type="button" data-sf="${f}" style="flex:none;padding:9px 14px;border-radius:20px;border:1.5px solid ${salFiltro === f ? '#1a3a5c' : '#dce3ea'};background:${salFiltro === f ? '#1a3a5c' : '#fff'};color:${salFiltro === f ? '#fff' : '#1a3a5c'};font-weight:700;font-size:.85rem;">${txt}</button>`;
+            jatVista('📤 ' + (eg.nombre || eg.secuencial || 'Salida'), 'salida-elegir', `
+                <div style="font-size:.85rem;color:#4a5f78;">${jatEsc(eg.bodegaDestino || '')} · <b>${formatearQty(v)} de ${formatearQty(t)}</b> unidades sacadas (${pc}%)</div>
+                <div style="height:10px;border-radius:6px;background:#e3e9f0;overflow:hidden;margin-top:-4px;"><i style="display:block;height:100%;width:${pc}%;background:#1E7F4A;"></i></div>
+                <button type="button" id="salScan" class="btn btn-success" style="min-height:54px;font-size:1.05rem;">📷 Escanear lo que saco</button>
+                <div style="display:flex;gap:8px;">${chip('pend', '⏳ Pendientes')}${chip('todos', 'Todos')}</div>
+                ${orden.map(g => `<div style="background:#1a3a5c;color:#fff;font-weight:800;padding:9px 12px;border-radius:10px;margin-top:4px;">${g.startsWith('❓') ? g : '📍 ' + jatEsc(g)} <span style="font-weight:600;opacity:.8;">(${grupos[g].length})</span></div>` + grupos[g].sort((a, b) => (a.ub?.d || '').localeCompare(b.ub?.d || '', 'es')).map(x => {
+                    const e = getExpectedQty(x.p), q = getVerifiedQty(x.p), ok = q >= e, parc = q > 0 && !ok;
+                    return `<button type="button" data-si="${x.i}" style="display:block;width:100%;text-align:left;background:${ok ? '#f0fdf4' : '#fff'};border:1px solid #e3e9f0;border-left:6px solid ${ok ? '#16a34a' : parc ? '#3b82f6' : '#f59e0b'};border-radius:12px;padding:12px;cursor:pointer;">
+                        <b style="font-size:.92rem;color:#1a2b3c;">${jatEsc(x.p.productName || x.p.barcode)}</b>
+                        <div style="display:flex;justify-content:space-between;gap:8px;margin-top:6px;font-size:.8rem;color:#475569;align-items:center;"><span style="background:${x.ub ? '#fef3c7' : '#fee2e2'};color:${x.ub ? '#78350f' : '#991b1b'};border-radius:8px;padding:3px 8px;font-weight:700;">${x.ub ? (x.ub.d ? jatEsc(x.ub.d) : jatEsc(x.ub.z)) : 'Sin ubicación'}</span><b style="font-size:1rem;color:#1a3a5c;">${formatearQty(q)} / ${formatearQty(e)}</b></div></button>`; }).join('')).join('') || '<p style="text-align:center;color:#1E7F4A;font-weight:700;padding:24px 0;">✅ Todo sacado</p>'}
+                <button type="button" id="salCierre" class="btn" style="min-height:52px;margin-top:6px;">🧾 Abrir en Verificar para el cierre</button>`);
+            document.querySelectorAll('[data-sf]').forEach(b => b.addEventListener('click', () => { salFiltro = b.dataset.sf; cargarVistaSalida(id); }));
+            document.querySelectorAll('[data-si]').forEach(b => b.addEventListener('click', () => hojaSacar(eg, +b.dataset.si, null)));
+            document.getElementById('salCierre').addEventListener('click', () => cargarEgresoParaVerificar(eg.id));
+            document.getElementById('salScan').addEventListener('click', () => {
+                const c = escanerContinuo('📤 Aprieta LEER en cada producto que sacas', (cod, ctrl) => {
+                    const i = eg.productos.findIndex(p => String(p.barcode).trim() === cod);
+                    if (i < 0) { ctrl.estado('❌ ' + cod + ' no está en este egreso'); try { hablarHat('No está en este egreso.', 'error', { force: true }); } catch (e) {} return; }
+                    hojaSacar(eg, i, ctrl);
+                });
+                c.alCerrar = () => cargarVistaSalida(id);
+            });
+        }
+        function hojaSacar(eg, i, ctrl) {
+            const p = eg.productos[i], cod = String(p.barcode).trim(), e = getExpectedQty(p), u = jatUbic()[cod] || {};
+            dlDetalles();
+            const ini = ctrl ? Math.min(e, getVerifiedQty(p) + 1) : getVerifiedQty(p);
+            const h = hoja(`<b style="font-size:1.05rem;color:#1a3a5c;">${jatEsc(p.productName || cod)}</b><span style="font-size:.8rem;color:#6b7c8f;font-family:monospace;">${jatEsc(cod)}</span>
+                <label style="font-weight:700;font-size:.85rem;color:#1a3a5c;">Cantidad sacada <span style="font-weight:400;color:#6b7c8f;">(pedido: ${formatearQty(e)})</span></label>
+                <div style="display:flex;gap:8px;"><button type="button" id="hsM" class="btn" style="flex:1;min-height:54px;font-size:1.4rem;">−</button><input id="hsQ" type="number" inputmode="numeric" value="${ini}" style="${INP}flex:2;text-align:center;font-size:1.4rem;font-weight:800;"><button type="button" id="hsP" class="btn" style="flex:1;min-height:54px;font-size:1.4rem;">+</button></div>
+                <button type="button" id="hsT" class="btn" style="min-height:46px;">Completar todo (${formatearQty(e)})</button>
+                <label style="font-weight:700;font-size:.85rem;color:#1a3a5c;">📍 Zona</label><select id="hsZ" style="${INP}">${opZonas(u.z)}</select>
+                <input id="hsD" list="jatDetList" value="${jatEsc(u.d || '')}" placeholder="Detalle (estante, nivel)" autocomplete="off" style="${INP}">
+                <div style="display:flex;gap:8px;"><button type="button" id="hsC" class="btn" style="flex:1;min-height:52px;">Cancelar</button><button type="button" id="hsG" class="btn btn-success" style="flex:2;min-height:52px;">💾 Guardar</button></div>`);
+            const q = h.querySelector('#hsQ');
+            h.querySelector('#hsM').addEventListener('click', () => q.value = Math.max(0, (+q.value || 0) - 1));
+            h.querySelector('#hsP').addEventListener('click', () => q.value = (+q.value || 0) + 1);
+            h.querySelector('#hsT').addEventListener('click', () => q.value = e);
+            h.querySelector('#hsC').addEventListener('click', cerrarHoja);
+            h.querySelector('#hsG').addEventListener('click', () => {
+                const n = Math.max(0, +q.value || 0);
+                if (n > e) { showAlert(`Pediste ${formatearQty(e)}. No puedes sacar más.`, 'warning'); return; }
+                setVerifiedQty(p, n);
+                if (currentEgreso && currentEgreso.id === eg.id) { const cp = currentProductos.find(x => String(x.barcode).trim() === cod); if (cp) setVerifiedQty(cp, n); }
+                eg.fechaModificacion = new Date().toISOString();
+                guardarEgresosStorage();
+                const z = h.querySelector('#hsZ').value; if (z) ponerUbic(cod, z, h.querySelector('#hsD').value);
+                cerrarHoja();
+                if (ctrl) ctrl.estado('✅ ' + (p.productName || cod) + ': ' + formatearQty(n) + ' de ' + formatearQty(e));
+                else cargarVistaSalida(eg.id);
+            });
+        }
+
+        // ---- enganches: menú Más, hoja ＋, volver, kardex ----
+        const _irU = jatIrTab;
+        jatIrTab = function (tab) { if (tab === 'salida-elegir') return cargarVistaSalidaElegir(); if (tab === 'ubicaciones') return cargarVistaUbicaciones(); return _irU.apply(this, arguments); };
+        const _vmU = cargarVistaMas;
+        cargarVistaMas = function () {
+            _vmU.apply(this, arguments);
+            const ref = document.querySelector('[data-mas="ingreso"]');
+            if (ref && !document.querySelector('[data-mas="ubicaciones"]')) {
+                const it = (id, ic, t) => `<button type="button" data-mas="${id}" style="display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:#fff;border:0;border-top:1px solid #edf2f7;padding:15px 16px;cursor:pointer;min-height:56px;"><span style="font-size:1.3rem;width:28px;text-align:center;">${ic}</span><span style="flex:1;font-size:1rem;color:#1a2b3c;">${t}</span><span style="color:#9aa7b2;font-size:1.3rem;">›</span></button>`;
+                ref.insertAdjacentHTML('beforebegin', it('salidaub', '📤', 'Salida por ubicación') + it('ubicaciones', '📍', 'Ubicaciones en bodega'));
+                document.querySelector('[data-mas="salidaub"]').addEventListener('click', cargarVistaSalidaElegir);
+                document.querySelector('[data-mas="ubicaciones"]').addEventListener('click', cargarVistaUbicaciones);
+            }
+        };
+        const _ahU = jatAbrirHoja;
+        jatAbrirHoja = function () {
+            _ahU.apply(this, arguments);
+            const op = document.getElementById('jatHojaOpciones'); if (!op) return;
+            if (jatTabActual === 'kardex') op.insertAdjacentHTML('beforeend', '<button type="button" class="jat-hoja-op" data-op="ub-reg"><span class="ic">📍</span><span><b>Ubicaciones en bodega</b><small>Guarda en qué pasillo está cada producto</small></span></button>');
+            else op.insertAdjacentHTML('beforeend', '<button type="button" class="jat-hoja-op" data-op="ub-sal"><span class="ic">📤</span><span><b>Salida por ubicación</b><small>Saca un egreso recorriendo la bodega en orden</small></span></button>');
+        };
+        const _accU = jatAccionHoja;
+        jatAccionHoja = function (op) { if (op === 'ub-reg') { jatCerrarHoja(); return cargarVistaUbicaciones(); } if (op === 'ub-sal') { jatCerrarHoja(); return cargarVistaSalidaElegir(); } return _accU.apply(this, arguments); };
+        // mostrar la ubicación en la lista del kardex
+        const _rkU = jatRenderKardex;
+        jatRenderKardex = function () {
+            const r = _rkU.apply(this, arguments);
+            const u = jatUbic();
+            document.querySelectorAll('#kdxLista [data-kdx="edit"]').forEach(b => {
+                const c = b.dataset.cod; if (!u[c]) return;
+                const fila = b.parentElement, info = fila && fila.querySelector('div[style*="flex:1"]');
+                if (info && !info.querySelector('.jat-ub')) info.insertAdjacentHTML('beforeend', `<div class="jat-ub" style="display:inline-block;margin-top:3px;background:#fef3c7;color:#78350f;border-radius:6px;padding:2px 7px;font-size:.74rem;font-weight:700;">📍 ${jatEsc(ubicTxt(c))}</div>`);
+            });
+            return r;
+        };
+    })();
     </script>
     <!-- ====================================================================
          NOTAS DE AUDITORÍA — SEGUNDA PASADA (Jorge reportó: "cámara no funciona")
