@@ -427,6 +427,8 @@
     .ini-btn:active{transform:scale(.97);}
     .ini-cargar{background:linear-gradient(135deg,#c0392b,#e15b4c);}
     .ini-ingresar{background:linear-gradient(135deg,#1e8e4e,#2ecc71);}
+    .ini-abrir{grid-column:1/-1;background:linear-gradient(135deg,#8a6a2a,#c99a4a);min-height:72px;flex-direction:row;gap:12px;}
+    .ini-abrir small{display:block;}
     .ini-continuar{grid-column:1/-1;background:linear-gradient(135deg,#1a3a5c,#2d6aa3);flex-direction:row;min-height:70px;gap:12px;justify-content:flex-start;text-align:left;padding:14px 18px;}
     .ini-continuar .txt{display:flex;flex-direction:column;min-width:0;}
     .ini-continuar .txt span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -543,7 +545,7 @@
     <nav class="ini-nav" id="iniNav">
         <button data-nav="inicio" onclick="irInicio()"><span class="ico">🏠</span>Inicio</button>
         <button data-nav="buscar" onclick="irInicio(true)"><span class="ico">🔍</span>Egresos</button>
-        <button data-nav="cargar" onclick="irCargarEgreso()"><span class="ico">📄</span>Cargar</button>
+        <button data-nav="cargar" onclick="irAbrirArchivo()"><span class="ico">📂</span>Abrir</button>
         <button data-nav="ingresar" onclick="irIngresarMercaderia()"><span class="ico">📦</span>Ingresar</button>
         <button data-nav="mas" onclick="document.body.classList.toggle('ini-menu-abierto')"><span class="ico">☰</span>Más</button>
     </nav>
@@ -3487,6 +3489,7 @@
                 ${continuar}
                 <button class="ini-btn ini-cargar" onclick="irCargarEgreso()"><span class="ico">📄</span>Cargar egreso<small>Desde el PDF</small></button>
                 <button class="ini-btn ini-ingresar" onclick="irIngresarMercaderia()"><span class="ico">📦</span>Ingresar mercadería<small>Escanear productos</small></button>
+                <button class="ini-btn ini-abrir" onclick="irAbrirArchivo()"><span class="ico">📂</span>Abrir archivo de egreso<small>.hat, CSV, respaldo o PDF — puedes elegir varios</small></button>
             </div>
             <div class="ini-card">
                 <h4>🔍 Mis egresos</h4>
@@ -3549,6 +3552,114 @@
         if (currentEgreso && currentProductos.length){ iniMarcarNav('ingresar'); abrirVerificador(); return; }
         showAlert('📦 Primero elige el egreso de la lista o carga uno nuevo', 'warning');
         irInicio(true);
+    }
+
+
+    // ===== ABRIR ARCHIVOS DE EGRESO (cualquier tipo, varios a la vez) =====
+    function irAbrirArchivo(){
+        document.body.classList.remove('ini-menu-abierto');
+        iniMarcarNav('cargar');
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.multiple = true;               // sin "accept": así ningún archivo sale en gris
+        input.style.display = 'none';
+        document.body.appendChild(input);
+        input.addEventListener('change', async () => {
+            const files = Array.from(input.files || []);
+            input.remove();
+            if (files.length) await importarArchivosEgreso(files);
+        });
+        input.click();
+    }
+    function iniNumero(v){
+        const t = String(v ?? '').trim().replace(/\s/g,'');
+        if (!t) return 0;
+        const n = parseFloat(t.includes(',') && !t.includes('.') ? t.replace(',', '.') : t.replace(/,/g,''));
+        return isNaN(n) ? 0 : n;
+    }
+    function iniEgresoDesdeCSV(texto, nombreArchivo){
+        const lineas = texto.replace(/^﻿/,'').split(/\r?\n/).filter(l=>l.trim());
+        if (lineas.length < 2) return null;
+        const sep = lineas[0].includes('\t') ? '\t' : (lineas[0].split(';').length > lineas[0].split(',').length ? ';' : ',');
+        const cab = lineas[0].split(sep).map(c=>c.trim().toLowerCase());
+        const col = (...pal) => cab.findIndex(c => pal.some(w => c.includes(w)));
+        const iCod = col('código','codigo','barra'), iVer = col('verificada'), iTot = (col('total') >= 0 ? col('total') : cab.findIndex(c => c.includes('cantidad') && !c.includes('verific'))),
+              iEst = col('estado'), iProd = col('producto','descrip'), iObs = col('serie','observ');
+        if (iCod < 0 || iProd < 0) return null;
+        const productos = lineas.slice(1).map(l => {
+            const c = l.split(sep).map(x => x.replace(/^"|"$/g,'').trim());
+            const total = iniNumero(c[iTot]) || 1;
+            const ver = Math.min(total, iVer >= 0 ? iniNumero(c[iVer]) : 0);
+            const obs = iObs >= 0 ? (c[iObs] || '').replace(/ \| /g, '\n') : '';
+            return { barcode: c[iCod] || '', productName: c[iProd] || '', expectedQty: total, cantidad: total,
+                     verifiedQty: ver, verified: ver >= total || /verificado/i.test(c[iEst] || ''),
+                     observacion: obs, seriesTexto: obs };
+        }).filter(p => p.barcode || p.productName);
+        if (!productos.length) return null;
+        const base = String(nombreArchivo || 'EGRESO').replace(/\.[^.]+$/,'');
+        const m = base.match(/^(.*?)_([A-ZÁÉÍÓÚÑ0-9 ]+)_A_(.+)$/i);
+        const total = productos.reduce((s,p)=>s+p.expectedQty,0), verif = productos.reduce((s,p)=>s+p.verifiedQty,0);
+        return { id: base, nombre: base, secuencial: m ? m[1] : base,
+                 bodegaOrigen: m ? m[2].replace(/_/g,' ') : '', bodegaDestino: m ? m[3].replace(/_/g,' ') : '',
+                 fechaCreacion: new Date().toLocaleDateString('es-EC'), productos,
+                 estadoVerificacion: { total, verificados: verif, completado: verif >= total } };
+    }
+    function iniEgresosDesdeTexto(texto, nombreArchivo){
+        const t = texto.replace(/^﻿/,'').trim();
+        if (t.startsWith('{') || t.startsWith('[')) {
+            const d = JSON.parse(t);
+            if (Array.isArray(d)) return d.filter(e => e && Array.isArray(e.productos));
+            if (Array.isArray(d.egresos)) return d.egresos.filter(e => e && Array.isArray(e.productos));
+            if (d.egreso && Array.isArray(d.egreso.productos)) return [d.egreso];
+            if (Array.isArray(d.productos)) return [d];
+            return [];
+        }
+        const e = iniEgresoDesdeCSV(t, nombreArchivo);
+        return e ? [e] : [];
+    }
+    async function importarArchivosEgreso(files){
+        const pdfs = files.filter(f => /\.pdf$/i.test(f.name) || f.type === 'application/pdf');
+        const otros = files.filter(f => !pdfs.includes(f));
+        if (pdfs.length && !otros.length) {
+            cargarVistaNuevoEgreso(false);
+            const inp = document.getElementById('pdfEgresoInput');
+            try { const dt = new DataTransfer(); dt.items.add(pdfs[0]); inp.files = dt.files; } catch(e) {}
+            leerPDFSeleccionado();
+            return;
+        }
+        // Si hay .hat/.json del mismo egreso que un CSV, se prefiere el .hat (tiene todo el avance)
+        const prioridad = f => /\.(hat|json|bak)$/i.test(f.name) ? 0 : 1;
+        otros.sort((a,b) => prioridad(a) - prioridad(b));
+        let importados = [], fallidos = [];
+        for (const f of otros) {
+            try {
+                const lista = iniEgresosDesdeTexto(await f.text(), f.name);
+                if (!lista.length) { fallidos.push(f.name); continue; }
+                for (const eg of lista) {
+                    if (eg.id === undefined || eg.id === null || eg.id === '') eg.id = eg.secuencial || eg.nombre || ('EG' + Date.now());
+                    const sec = String(eg.secuencial || '');
+                    const idx = egresosGuardados.findIndex(e => String(e.id) === String(eg.id) || (sec && String(e.secuencial || '') === sec) || (eg.nombre && e.nombre === eg.nombre));
+                    if (idx !== -1) {
+                        // no reemplazar un .hat completo con un CSV que trae menos información
+                        if (prioridad(f) === 1 && importados.some(x => x === egresosGuardados[idx])) continue;
+                        egresosGuardados[idx] = eg;
+                    } else egresosGuardados.push(eg);
+                    if (!importados.includes(eg)) importados.push(eg);
+                }
+            } catch (e) { console.error('No se pudo leer', f.name, e); fallidos.push(f.name); }
+        }
+        if (importados.length) {
+            try { localStorage.setItem('oneliv_egresos', JSON.stringify(egresosGuardados)); } catch(e) {}
+            try { guardarEgresosStorage(); } catch(e) {}
+        }
+        if (importados.length === 1 && !fallidos.length) {
+            showAlert('✅ Egreso abierto: ' + (importados[0].nombre || importados[0].secuencial), 'success');
+            cargarEgresoParaVerificar(egresosGuardados.indexOf(importados[0]));
+            return;
+        }
+        irInicio();
+        if (importados.length) showAlert(`✅ ${importados.length} egreso(s) cargados en "Mis egresos"` + (fallidos.length ? ` · ${fallidos.length} archivo(s) no reconocidos` : ''), 'success');
+        else showAlert('❌ No se reconoció ningún egreso en: ' + fallidos.slice(0,3).join(', '), 'error');
     }
 
     // ---- INICIALIZAR ----
