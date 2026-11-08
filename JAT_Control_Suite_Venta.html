@@ -2,7 +2,11 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <link rel="manifest" href="manifest-venta.webmanifest">
+    <meta name="theme-color" content="#061b34">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <title>JAT Control Suite - Verificador de egresos</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -520,6 +524,58 @@
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        /* ===== v8: escáner compacto con GATILLO + botón ＋ para las acciones ===== */
+        #verificadorModal .cam-panel { height: 24vh; min-height: 150px; max-height: 230px; border-bottom-width: 2px; touch-action: none; -webkit-user-select: none; user-select: none; }
+        #verificadorModal .cam-reticle .box { width: 94%; height: 72%; max-height: none; box-shadow: 0 0 0 2000px rgba(0,0,0,0.22); }
+        #verificadorModal .cam-off-layer { gap: 8px; padding: 10px; }
+        #verificadorModal .cam-off-layer .cam-icon, #verificadorModal .cam-off-layer small { display: none; }
+        #verificadorModal .cam-off-layer .cam-btn { padding: 10px 18px; font-size: .9rem; }
+        .cam-laser { position: absolute; left: 5%; right: 5%; top: 50%; height: 2px; margin-top: -1px; background: #ff2a2a; box-shadow: 0 0 8px 2px rgba(255,42,42,.85); opacity: 0; transition: opacity .06s; z-index: 4; pointer-events: none; }
+        .cam-panel.disparando .cam-laser { opacity: 1; }
+        .cam-panel.disparando .cam-reticle .box { border-color: #ff4d4d; }
+        #verificadorModal .toolbar-topbar { position: fixed; left: 14px; bottom: calc(88px + env(safe-area-inset-bottom)); z-index: 1300; display: none; flex-direction: column; gap: 8px; padding: 10px; width: min(250px, calc(100vw - 28px)); max-height: 66vh; overflow-y: auto; background: #fff; border: 1px solid #e2e8f0; border-radius: 18px; box-shadow: 0 14px 40px rgba(6,27,52,.3); }
+        #verificadorModal .toolbar-topbar.abierto { display: flex; }
+        #verificadorModal .toolbar-topbar .tt-btn { width: 100%; min-height: 46px; font-size: .92rem; text-align: left; border-radius: 12px; padding: 10px 16px; }
+        .jat-fab { position: fixed; z-index: 1300; border: none; cursor: pointer; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+        .jat-fab-mas { left: 14px; bottom: calc(16px + env(safe-area-inset-bottom)); width: 58px; height: 58px; border-radius: 50%; background: #1a3a5c; color: #fff; font-size: 2rem; line-height: 1; box-shadow: 0 6px 18px rgba(6,27,52,.35); transition: transform .15s; }
+        .jat-fab-mas.abierto { transform: rotate(45deg); background: #c0392b; }
+        .jat-gatillo { right: 16px; bottom: calc(14px + env(safe-area-inset-bottom)); width: 88px; height: 88px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ff6b5b, #b52a1c 70%); color: #fff; font-weight: 800; font-size: .72rem; letter-spacing: .5px; border: 4px solid #fff; box-shadow: 0 8px 22px rgba(120,20,10,.45); touch-action: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; transition: transform .06s, box-shadow .06s; }
+        .jat-gatillo .ico { font-size: 1.6rem; line-height: 1; }
+        .jat-gatillo.activo { transform: scale(.92); box-shadow: 0 0 0 10px rgba(231,76,60,.28), 0 4px 10px rgba(120,20,10,.4); background: radial-gradient(circle at 35% 30%, #ff8a7d, #e02b1a 70%); }
+        .jat-gatillo.oculto { display: none; }
+        #verificadorModal .verif-bottom-pane { padding-bottom: 112px; }
+    </style>
+<style>
+    /* ===== v9: menú ＋ organizado y pantalla completa en celular ===== */
+    .jat-fab-ini{display:none;}
+    .jat-lanz{display:none;}
+    @media(max-width:760px){
+      #jatNav,#jatFab,.menu-toggle{display:none!important;}
+      .top-bar{height:46px!important;min-height:46px!important;}
+      .top-bar .badge,.top-bar .brand-emblem{display:none!important;}
+      .content-area{padding-bottom:96px!important;}
+      .jat-fab-ini{display:flex;position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:4200;width:64px;height:64px;border-radius:50%;border:3px solid #fff;background:#d62f3a;color:#fff;font-size:2.3rem;line-height:1;align-items:center;justify-content:center;box-shadow:0 8px 22px rgba(120,20,30,.4);cursor:pointer;-webkit-tap-highlight-color:transparent;}
+      body.ini-en-verificador .jat-fab-ini,body.jat-lanz-abierto .jat-fab-ini,body.verificador-abierto .jat-fab-ini{display:none;}
+      body.jat-lanz-abierto .jat-lanz{display:flex;}
+      .jat-lanz{position:fixed;inset:0;z-index:9500;flex-direction:column;background:#081a33;color:#fff;padding:calc(10px + env(safe-area-inset-top)) 14px calc(14px + env(safe-area-inset-bottom));}
+      .jat-lanz-top{display:flex;align-items:center;justify-content:space-between;padding:4px 2px 10px;}
+      .jat-lanz-top b{font-size:1.15rem;letter-spacing:1px;color:#e9c987;}
+      .jat-lanz-top small{display:block;font-size:.75rem;color:#9fb3c8;font-weight:400;max-width:62vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+      .jat-lanz-x{width:52px;height:52px;border-radius:50%;border:none;background:#c0392b;color:#fff;font-size:1.6rem;cursor:pointer;}
+      .jat-lanz-cuerpo{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+      .jat-lanz h5{margin:12px 2px 8px;font-size:.72rem;letter-spacing:1.5px;text-transform:uppercase;color:#c99a4a;}
+      .jat-lanz-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+      .jl{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:88px;padding:8px 4px;border:none;border-radius:16px;background:#12335a;color:#fff;font-family:inherit;font-size:.78rem;font-weight:700;line-height:1.15;text-align:center;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+      .jl:active{transform:scale(.96);filter:brightness(1.2);}
+      .jl .i{font-size:1.75rem;line-height:1;}
+      .jl.grande{grid-column:span 3;flex-direction:row;justify-content:flex-start;gap:14px;min-height:70px;padding:12px 18px;font-size:1rem;}
+      .jl.rojo{background:#b8392b;} .jl.verde{background:#1e8e4e;} .jl.oro{background:#9a7428;} .jl.azul{background:#2d6aa3;}
+      .jl[hidden]{display:none;}
+    }
+    </style>
+<style>#camDisparo,#camDisparadorBtn{display:none!important}</style>
 </head>
 <body>
 <style id="jatLoginGate">html:not(.jat-sesion-ok) body > *:not(#jatLogin){visibility:hidden!important}</style>
@@ -837,11 +893,13 @@
             <div id="camPanel" class="cam-panel">
                 <video id="camVideo" autoplay playsinline muted></video>
                 <div class="cam-reticle"><div class="box" id="camReticleBox"></div></div>
+                <div class="cam-laser"></div>
                 <div class="cam-topbar">
                     <span class="cam-status-pill" id="camStatusPill">📷 Cámara apagada</span>
                     <div class="cam-menu-wrap">
                         <button class="cam-mini-btn" id="camMasBtn" aria-haspopup="true" aria-expanded="false">⋮ Más</button>
                         <div class="cam-dropdown" id="camDropdown" style="display:none;">
+                            <button class="cam-dropdown-item" id="camModoBtn">🎯 Modo: Gatillo</button>
                             <button class="cam-dropdown-item" id="camFullscreenBtn">⛶ Pantalla completa</button>
                             <button class="cam-dropdown-item" id="camDisparadorBtn">🎯 Disparador: ON</button>
                             <button class="cam-dropdown-item" id="camLeerTextoBtn">🔤 Leer texto</button>
@@ -864,7 +922,7 @@
                     <button class="cam-btn" id="camActivarBtn" type="button">Activar cámara</button>
                     <button class="cam-btn" id="camFotoFallbackBtn" type="button" style="display:none;background:#e9c987;">📸 Tomar foto y escanear</button>
                     <small>Escaneo en vivo de código de barras / QR. La cámara se queda en esta misma pantalla — no se abre ninguna app externa.</small>
-                    <button class="cam-btn secundario" id="camUsarTecladoBtn" type="button">🔢 Prefiero escribir el código</button>
+                    <button class="cam-btn secundario" id="camUsarTecladoBtn" type="button" data-teclado>🔢 Prefiero escribir el código</button>
                 </div>
                 <input type="file" accept="image/*" capture="environment" id="camCaptureInput" style="display:none;">
                 <div class="cam-last-line" id="camLastLine" style="display:none;"></div>
@@ -940,6 +998,8 @@
 
             <div id="historialAcciones" class="historial-acciones" style="display:none;"><span style="color:#bdc3c7;">Sin acciones</span></div>
             </div><!-- /.verif-bottom-pane -->
+            <button type="button" class="jat-fab jat-fab-mas" id="jatMasAcciones" aria-label="Más acciones">＋</button>
+            <button type="button" class="jat-fab jat-gatillo" id="jatGatillo" aria-label="Gatillo: mantén presionado para escanear"><span class="ico">⦿</span>ESCANEAR</button>
         </div>
     </div>
 
@@ -3845,8 +3905,8 @@
                         if (!formatos.length && !soportados.length) throw new Error('BarcodeDetector sin formatos soportados en este dispositivo');
                         camDetector = new window.BarcodeDetector({ formats: formatos.length ? formatos : soportados });
                         camMotorUsado = 'nativo';
-                        setEstadoPill('🟢 Escaneando (motor nativo)…', true);
-                        camLoopHandle = setInterval(() => detectarConNativo(video), 130);
+                        setEstadoPill(camModoGatillo ? '🎯 Listo — aprieta el gatillo' : '🟢 Escaneando (motor nativo)…', true);
+                        camLoopHandle = setInterval(() => { pintarGatillo(); detectarConNativo(video); }, 90);
                     } catch (e) {
                         console.warn('BarcodeDetector falló al iniciar, usando ZXing:', e);
                         camUltimoError = e;
@@ -3876,10 +3936,10 @@
         function manejarLecturaCamara(codigosCrudos) {
             const codigos = (codigosCrudos || []).map(c => (c || '').trim()).filter(Boolean);
             if (!codigos.length) return;
-            if (window.jatDisparadorActivo && window.jatDisparadorActivo()) {
-                if (!(window.jatDisparoHasta > Date.now())) return;   // solo lee cuando se aprieta el disparador
-                window.jatDisparoHasta = 0; camUltimoCodigo = ''; camUltimoTiempo = 0;
-                window.jatDisparoLeido && window.jatDisparoLeido();
+            if (camModoGatillo) {
+                if (!gatilloActivo()) return;
+                soltarDisparo();
+                camUltimoCodigo = ''; camUltimoTiempo = 0;   // cada apretón es una lectura nueva
             }
             camUltimaLecturaBarcode = Date.now();
             const exacto = elegirCodigoExactoEnEgreso(codigos);
@@ -3903,7 +3963,7 @@
 
         // ---- PANTALLA COMPLETA — oculta la barra de direcciones de Chrome sin instalar nada ----
         function elementoParaPantallaCompleta() {
-            return document.getElementById('verificadorModal') || document.documentElement;
+            return document.documentElement;
         }
 
         function alternarPantallaCompleta() {
@@ -4174,16 +4234,36 @@
             $('camCaptureInput')?.click();
         }
 
+        let camDetectando = false, camLienzo = null;
+        // Recorta EXACTAMENTE lo que se ve en el recuadro de la cámara, sin reducir resolución
+        // (el video se muestra con object-fit: cover, así que se ve solo la parte central).
+        function recorteVisible(video) {
+            const vw = video.videoWidth, vh = video.videoHeight, panel = $('camPanel');
+            if (!vw || !vh || !panel) return video;
+            const pw = panel.clientWidth, ph = panel.clientHeight;
+            if (!pw || !ph) return video;
+            const esc = Math.max(pw / vw, ph / vh);
+            let sw = Math.min(vw, pw / esc), sh = Math.min(vh, (ph / esc) * 1.15); // 15 % de margen arriba/abajo
+            const sx = (vw - sw) / 2, sy = (vh - sh) / 2;
+            camLienzo = camLienzo || document.createElement('canvas');
+            if (camLienzo.width !== Math.round(sw) || camLienzo.height !== Math.round(sh)) { camLienzo.width = Math.round(sw); camLienzo.height = Math.round(sh); }
+            camLienzo.getContext('2d', { willReadFrequently: true }).drawImage(video, sx, sy, sw, sh, 0, 0, camLienzo.width, camLienzo.height);
+            return camLienzo;
+        }
         async function detectarConNativo(video) {
-            if (!camDetector || video.readyState < 2) return;
+            if (!camDetector || video.readyState < 2 || camDetectando) return;
+            if (camModoGatillo && !gatilloActivo()) return;
+            camDetectando = true;
             try {
-                const resultados = window.jatDetectarRapido ? await window.jatDetectarRapido(camDetector, video) : await camDetector.detect(video);
+                const resultados = camModoGatillo ? await camDetector.detect(recorteVisible(video))
+                    : (window.jatDetectarRapido ? await window.jatDetectarRapido(camDetector, video) : await camDetector.detect(video));
                 if (resultados && resultados.length) manejarLecturaCamara(resultados.map(r => r.rawValue));
             } catch (e) { camUltimoError = e; /* frame sin lectura, normal la mayoría de las veces */ }
+            finally { camDetectando = false; }
         }
 
         function iniciarZXingFallback(video) {
-            setEstadoPill('🟡 Escaneando (modo compatibilidad)…', true);
+            setEstadoPill(camModoGatillo ? '🎯 Listo — aprieta el gatillo (compatibilidad)' : '🟡 Escaneando (modo compatibilidad)…', true);
             camMotorUsado = 'zxing';
             const cargar = () => new Promise((resolve, reject) => {
                 if (window.ZXing) return resolve();
@@ -4196,7 +4276,8 @@
             cargar().then(() => {
                 camZXingReader = new window.ZXing.BrowserMultiFormatReader();
                 camZXingReader.decodeFromVideoElementContinuously(video, (result) => {
-                    if (result) manejarLecturaCamara([result.getText()]);
+                    pintarGatillo();
+                    if (result && (!camModoGatillo || gatilloActivo())) manejarLecturaCamara([result.getText()]);
                 });
             }).catch(err => {
                 console.warn(err);
@@ -4321,6 +4402,71 @@
             _cerrarVerificadorOriginal();
         };
 
+        // ---- GATILLO: funciona como una pistola lectora ----
+        // Mantén apretado: se enciende el láser y lee UN código; suelta y vuelve a apretar para el siguiente.
+        // Toque corto: queda leyendo hasta 2,5 s o hasta leer un código.
+        let camModoGatillo = window.jatDisparadorActivo ? window.jatDisparadorActivo() : true;
+        let camDisparando = false, camDisparoHasta = 0, camDisparoInicio = 0;
+        function gatilloActivo() { return camDisparando || Date.now() < camDisparoHasta; }
+        function pintarGatillo() {
+            if (window.jatDisparadorActivo && window.jatDisparadorActivo() !== camModoGatillo) { camModoGatillo = window.jatDisparadorActivo(); setTimeout(aplicarModoCamara, 0); }
+            const on = camModoGatillo && camActiva && gatilloActivo();
+            $('camPanel')?.classList.toggle('disparando', on);
+            $('jatGatillo')?.classList.toggle('activo', on);
+        }
+        function soltarDisparo() { camDisparando = false; camDisparoHasta = 0; pintarGatillo(); }
+        async function apretarGatillo(ev) {
+            if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+            if (!camModoGatillo) return;
+            if (!camActiva) { await iniciarCamaraEscaner(); if (!camActiva) return; }
+            camDisparando = true; camDisparoHasta = 0; camDisparoInicio = Date.now();
+            if (navigator.vibrate) navigator.vibrate(15);
+            pintarGatillo();
+        }
+        function soltarGatillo(ev) {
+            if (!camDisparando) return;
+            if (ev) ev.preventDefault();
+            const dur = Date.now() - camDisparoInicio;
+            camDisparando = false;
+            camDisparoHasta = dur < 350 ? Date.now() + 2500 : 0;
+            pintarGatillo();
+        }
+        function aplicarModoCamara() {
+            const b = $('camModoBtn'); if (b) b.textContent = camModoGatillo ? '🎯 Modo: Gatillo (cambiar a continuo)' : '🔁 Modo: Continuo (cambiar a gatillo)';
+            $('jatGatillo')?.classList.toggle('oculto', !camModoGatillo);
+            soltarDisparo();
+            if (camActiva) setEstadoPill(camModoGatillo ? '🎯 Listo — aprieta el gatillo' : '🟢 Escaneando continuo…', true);
+        }
+        function enlazarGatillo() {
+            const g = $('jatGatillo'), panel = $('camPanel');
+            if (g) {
+                g.addEventListener('pointerdown', apretarGatillo);
+                ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => g.addEventListener(t, soltarGatillo));
+                g.addEventListener('contextmenu', e => e.preventDefault());
+            }
+            // También se puede usar la propia imagen de la cámara como gatillo.
+            if (panel) {
+                panel.addEventListener('pointerdown', ev => {
+                    if (!camActiva || !camModoGatillo) return;
+                    if (ev.target.closest('.cam-topbar, .cam-off-layer, #camDiagPanel, button')) return;
+                    apretarGatillo(ev);
+                });
+                ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => panel.addEventListener(t, soltarGatillo));
+            }
+            $('camModoBtn')?.addEventListener('click', () => {
+                camModoGatillo = !camModoGatillo;
+                try { localStorage.setItem('jatv_disparador', camModoGatillo ? '1' : '0'); } catch (_) {}
+                aplicarModoCamara();
+            });
+            aplicarModoCamara();
+            // Botón ＋ : las acciones (CSV, Imprimir, PDF, Tabla, Conteo, Voz, Marcar todos, Cierre) salen en un menú.
+            const mas = $('jatMasAcciones'), menu = document.querySelector('#verificadorModal .toolbar-topbar');
+            const cerrarMenu = () => { menu?.classList.remove('abierto'); mas?.classList.remove('abierto'); };
+            mas?.addEventListener('click', ev => { ev.stopPropagation(); const a = !menu.classList.contains('abierto'); menu.classList.toggle('abierto', a); mas.classList.toggle('abierto', a); });
+            menu?.addEventListener('click', ev => { if (ev.target.closest('.tt-btn')) setTimeout(cerrarMenu, 0); });
+            document.addEventListener('click', ev => { if (menu?.classList.contains('abierto') && !ev.target.closest('.toolbar-topbar, #jatMasAcciones')) cerrarMenu(); });
+        }
+
         let camModoSiguienteFoto = 'barcode'; // 'barcode' | 'ocr' — decide qué hacer con la próxima foto capturada
 
         function enlazarBotonesCamara() {
@@ -4330,6 +4476,7 @@
             $('camLeerTextoBtn')?.addEventListener('click', leerTextoDesdeCamara);
             $('camAutoOcrBtn')?.addEventListener('click', alternarAutoOCR);
             actualizarBotonAutoOCR();
+            enlazarGatillo();
             const camMasBtn = $('camMasBtn'), camDropdown = $('camDropdown');
             const cerrarCamDropdown = () => { if (camDropdown) camDropdown.style.display = 'none'; camMasBtn?.setAttribute('aria-expanded', 'false'); };
             camMasBtn?.addEventListener('click', (ev) => {
@@ -6038,7 +6185,7 @@
         if (jatTabActual === 'kardex') document.getElementById('jatHojaOpciones').insertAdjacentHTML('afterbegin', '<button type="button" class="jat-hoja-op" data-op="kdx-ingreso"><span class="ic">📥</span><span><b>Ingreso de mercadería</b><small>Con factura, devolución o transferencia</small></span></button>');
     };
     (function jatInitFull() {
-        const b = document.querySelector('#jatNav [data-tab="menu"]'); if (b) { b.dataset.tab = 'mas'; b.innerHTML = '<span>☰</span>Más'; }
+        const b = document.querySelector('#jatNav [data-tab="mas"], #jatNav [data-tab="menu"]'); if (b) { b.dataset.tab = 'mas'; b.innerHTML = '<span>☰</span>Más'; }
         jatActualizarDatalist();
         // sugerencias de clientes en los campos de destino
         new MutationObserver(() => jatActualizarDatalist()).observe(document.getElementById('mainContent'), { childList: true });
@@ -7441,5 +7588,166 @@
            - Confirmar que el hosting HTTPS que uses (GitHub Pages / Netlify)
              sirve el archivo sin bloquear la cámara.
     ==================================================================== -->
+
+<!-- ===== Botón ＋ y menú organizado (celular) ===== -->
+<button type="button" class="jat-fab-ini" id="jatFabIni" aria-label="Abrir menú">＋</button>
+<div class="jat-lanz" id="jatLanz" role="dialog" aria-label="Menú">
+    <div class="jat-lanz-top">
+        <div><b>JAT · MENÚ</b><small id="jlEgreso"></small></div>
+        <button type="button" class="jat-lanz-x" id="jatLanzX" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="jat-lanz-cuerpo" id="jatLanzCuerpo"></div>
+</div>
+<script>
+// ===== PANTALLA COMPLETA + APP INSTALABLE (sin barra del navegador ni franja inferior) =====
+(function () {
+    const enApp = () => matchMedia('(display-mode: fullscreen)').matches || matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+    const quiere = () => { try { return localStorage.getItem('jat_pantalla_completa') !== 'no'; } catch (_) { return true; } };
+    function pedir() {
+        if (enApp() || !quiere() || document.fullscreenElement || document.webkitFullscreenElement) return;
+        const el = document.documentElement, f = el.requestFullscreen || el.webkitRequestFullscreen;
+        if (!f) return;
+        try { const p = f.call(el, { navigationUI: 'hide' }); if (p && p.catch) p.catch(() => {}); } catch (_) {}
+    }
+    // Chrome solo deja entrar a pantalla completa con un toque: se pide en el primer toque y cada vez que se haya salido.
+    // No se pide en toques que abren el selector de archivos / guardar / compartir: Chrome los bloquearía.
+    const SIN_FS = 'input, select, textarea, label, [data-no-fs], .menu-item, .jl, .ini-cargar, .ini-abrir, #seleccionarPdfBtn, #leerPdfBtn, #elegirCarpetaBtn, #guardarComoBtn, #guardarCarpetaBtn, #camFotoFallbackBtn, #camLeerTextoBtn, #exportarExcelBtn, #descargarPdfBtn, #bAbrirArchivo, #bCargar, #bGuardar, #kExcel, #nGuardar';
+    document.addEventListener('click', ev => { if (!(ev.target.closest && ev.target.closest(SIN_FS))) pedir(); }, true);
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+    window.addEventListener('beforeinstallprompt', e => {
+        e.preventDefault();
+        window.JAT_INSTALAR = () => { e.prompt(); window.JAT_INSTALAR = null; };
+        document.dispatchEvent(new Event('jat-instalable'));
+    });
+    window.JAT_FS = {
+        pedir, quiere, enApp,
+        set(v) {
+            try { localStorage.setItem('jat_pantalla_completa', v ? 'si' : 'no'); } catch (_) {}
+            if (v) pedir(); else if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+        }
+    };
+})();
+
+// ===== Menú ＋ organizado: se arma solo con todas las opciones del programa =====
+(function () {
+    const $ = id => document.getElementById(id);
+    const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const tile = (cls, attr, ico, txt) => `<button type="button" class="jl ${cls}" ${attr}><span class="i">${ico}</span>${esc(txt)}</button>`;
+    // Ya están arriba (Ir a / Crear) o todavía no hacen nada:
+    const OMITIR = new Set(['nuevoEgreso', 'registrarSalida', 'kardex', 'egresoKardex', 'misEgresos', 'verificador', 'bodegas']);
+    // Opciones de la pantalla "Más" (usuario, clientes, reportes, ubicaciones, respaldo…): se leen de esa pantalla
+    // cada vez que aparece, así las opciones nuevas se agregan solas al menú ＋.
+    const K_MAS = 'jatv_lanz_mas2';
+    const masGuardadas = () => { try { return JSON.parse(localStorage.getItem(K_MAS) || '[]'); } catch (_) { return []; } };
+    function leerMas() {
+        return [...document.querySelectorAll('#mainContent [data-mas]')].filter(b => b.dataset.mas !== 'menu').map(b => {
+            const ico = (b.children[0]?.textContent || '•').trim();
+            const caja = b.children[1];
+            const propio = caja ? [...caja.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join('').trim() : '';
+            const txt = (propio || (caja && caja.textContent) || b.textContent).replace(ico, '').trim();
+            return { id: b.dataset.mas, ico, txt };
+        });
+    }
+    function guardarMas() { const l = leerMas(); if (l.length) try { localStorage.setItem(K_MAS, JSON.stringify(l)); } catch (_) {} return l; }
+    const mc = $('mainContent'); if (mc) new MutationObserver(guardarMas).observe(mc, { childList: true, subtree: true });
+    function asegurarMas() {
+        if (masGuardadas().length) return;
+        const nav = document.querySelector('#jatNav [data-tab="mas"], #jatNav [data-tab="menu"]'); if (!nav) return;
+        const antes = document.querySelector('#jatNav button.on')?.dataset.tab || 'egresos';
+        nav.click(); guardarMas();
+        document.querySelector('#jatNav [data-tab="' + (antes === 'menu' || antes === 'mas' ? 'egresos' : antes) + '"]')?.click();
+    }
+    function armar() {
+        asegurarMas();
+        const activo = typeof currentEgreso !== 'undefined' && currentEgreso && typeof currentProductos !== 'undefined' && currentProductos.length;
+        const nom = activo ? (currentEgreso.nombre || currentEgreso.secuencial || 'egreso') : '';
+        $('jlEgreso').textContent = activo ? 'Abierto: ' + nom : 'Ningún egreso abierto';
+        let h = '';
+        if (activo) h += '<div class="jat-lanz-grid">' + tile('grande azul', 'data-tab="verificar"', '▶️', 'Continuar: ' + nom) + '</div>';
+        h += '<h5>Ir a</h5><div class="jat-lanz-grid">' +
+            tile('', 'data-tab="egresos"', '🧾', 'Egresos') + tile('verde', 'data-tab="verificar"', '🎯', 'Verificar') + tile('', 'data-tab="kardex"', '📋', 'Kardex') + '</div>';
+        h += '<h5>Crear un egreso</h5><div class="jat-lanz-grid">' +
+            tile('rojo', 'data-op="eg-pdf"', '📄', 'Desde PDF') + tile('rojo', 'data-op="eg-excel"', '📊', 'Desde Excel o CSV') +
+            tile('rojo', 'data-op="eg-kardex"', '🧾', 'Desde el kardex') + tile('oro', 'data-op="eg-salida"', '🛒', 'Salida sin egreso') + '</div>';
+        h += '<h5>Agregar al kardex</h5><div class="jat-lanz-grid">' +
+            tile('', 'data-op="kdx-scan"', '📷', 'Escaneando') + tile('', 'data-op="kdx-escribir"', '✍️', 'Escribiendo') +
+            tile('', 'data-op="kdx-excel"', '📊', 'Desde Excel') + tile('', 'data-op="kdx-egresos"', '📁', 'De mis egresos') + '</div>';
+        // Las demás secciones salen del menú lateral, así cualquier opción nueva aparece sola.
+        const vistos = new Set();
+        document.querySelectorAll('.sidebar .menu-section').forEach(sec => {
+            const titulo = (sec.querySelector('.menu-parent .left')?.textContent || '').replace(/^[^\wÁÉÍÓÚÑáéíóúñ]+/, '').trim();
+            const items = [...sec.querySelectorAll('.menu-item[data-action]')].filter(it => !OMITIR.has(it.dataset.action) && !vistos.has(it.dataset.action));
+            if (!items.length) return;
+            h += '<h5>' + esc(titulo || 'Más') + '</h5><div class="jat-lanz-grid">' + items.map(it => {
+                vistos.add(it.dataset.action);
+                const ico = it.querySelector('.icon')?.textContent.trim() || '•';
+                const txt = it.textContent.replace(ico, '').trim();
+                return tile('', 'data-a="' + esc(it.dataset.action) + '"', ico, txt);
+            }).join('') + '</div>';
+        });
+        const mas = masGuardadas();
+        if (mas.length) h += '<h5>Más opciones</h5><div class="jat-lanz-grid">' + mas.map(m => tile('', 'data-mas="' + esc(m.id) + '"', esc(m.ico), m.txt)).join('') + '</div>';
+        h += '<h5>Pantalla</h5><div class="jat-lanz-grid">' +
+            (JAT_FS.enApp() ? '' : tile('azul', 'data-go="instalar"', '📲', 'Instalar como app')) +
+            tile('', 'data-go="pantalla"', '⛶', 'Pantalla completa: ' + (JAT_FS.quiere() ? 'SÍ' : 'NO')) + '</div>';
+        $('jatLanzCuerpo').innerHTML = h;
+    }
+    const abrir = () => { armar(); document.body.classList.add('jat-lanz-abierto'); };
+    const cerrar = () => document.body.classList.remove('jat-lanz-abierto');
+    $('jatFabIni').addEventListener('click', abrir);
+    $('jatLanzX').addEventListener('click', cerrar);
+    $('jatLanz').addEventListener('click', ev => {
+        const b = ev.target.closest('.jl'); if (!b) return;
+        const d = b.dataset;
+        if (d.go === 'pantalla') { JAT_FS.set(!JAT_FS.quiere()); armar(); return; }
+        if (d.go === 'instalar') {
+            if (window.JAT_INSTALAR) window.JAT_INSTALAR();
+            else alert('Para que se abra siempre en pantalla completa, como una app:\n\n1. En Chrome toca ⋮ (arriba a la derecha).\n2. Elige "Agregar a la pantalla principal" o "Instalar app".\n3. Ábrela desde el ícono JAT de tu teléfono.');
+            return;
+        }
+        cerrar();
+        if (d.tab) document.querySelector('#jatNav [data-tab="' + d.tab + '"]')?.click();
+        else if (d.op) { const h = $('jatHoja'); if (h) { const t = document.createElement('button'); t.dataset.op = d.op; t.style.display = 'none'; h.appendChild(t); t.click(); t.remove(); } }
+        else if (d.a) document.querySelector('.sidebar .menu-item[data-action="' + d.a + '"]')?.click();
+        else if (d.mas) { document.querySelector('#jatNav [data-tab="mas"], #jatNav [data-tab="menu"]')?.click(); document.querySelector('#mainContent [data-mas="' + d.mas + '"]')?.click(); }
+    });
+    // El ＋ se esconde mientras el verificador está abierto (allí está su propio ＋ y el gatillo).
+    const vm = $('verificadorModal');
+    if (vm) new MutationObserver(() => document.body.classList.toggle('verificador-abierto', getComputedStyle(vm).display !== 'none')).observe(vm, { attributes: true, attributeFilter: ['style', 'class'] });
+})();
+</script>
+<script>
+// ===== TECLADO SOLO CUANDO TÚ TOCAS UN CAMPO PARA ESCRIBIR =====
+// El programa sigue poniendo el cursor en el buscador (así el lector de códigos USB/Bluetooth escribe ahí),
+// pero en el celular el teclado en pantalla ya no aparece solo: aparece únicamente si tocas el campo
+// o el botón "⌨️ Prefiero escribir el código".
+(function () {
+    if (!matchMedia('(pointer: coarse)').matches) return;          // solo celulares/tablets
+    const esTexto = el => !!el && (el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && !/^(button|checkbox|radio|file|range|color|submit|reset|hidden|image)$/i.test(el.type || '')));
+    let permitido = null, tecladoHasta = 0;
+    const devolver = el => {
+        if (el.dataset.jatIm === undefined) { if (el.getAttribute('inputmode') === 'none') el.removeAttribute('inputmode'); return; }
+        const o = el.dataset.jatIm; delete el.dataset.jatIm;
+        if (o && o !== 'none') el.setAttribute('inputmode', o); else el.removeAttribute('inputmode');
+    };
+    document.addEventListener('pointerdown', e => {
+        const el = e.target.closest && e.target.closest('input, textarea');
+        if (esTexto(el)) { permitido = el; devolver(el); }
+        if (e.target.closest && e.target.closest('[data-teclado]')) tecladoHasta = Date.now() + 1500;
+    }, true);
+    document.addEventListener('focusin', e => {
+        const el = e.target;
+        if (!esTexto(el) || el === permitido || Date.now() < tecladoHasta) { if (esTexto(el) && Date.now() < tecladoHasta) { permitido = el; devolver(el); } return; }
+        if (el.dataset.jatIm === undefined) el.dataset.jatIm = el.getAttribute('inputmode') || '';
+        el.setAttribute('inputmode', 'none');
+    }, true);
+    document.addEventListener('focusout', e => {
+        const el = e.target;
+        if (!esTexto(el)) return;
+        if (el === permitido) permitido = null;
+        if (el.dataset.jatIm !== undefined) { const o = el.dataset.jatIm; delete el.dataset.jatIm; if (o) el.setAttribute('inputmode', o); else el.removeAttribute('inputmode'); }
+    }, true);
+})();
+</script>
 </body>
 </html>
