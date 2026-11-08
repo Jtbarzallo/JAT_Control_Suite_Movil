@@ -469,6 +469,27 @@
       .ini-nav button.on{color:#c0392b;}
       .ini-btn{font-size:.95rem;min-height:104px;}
     }
+
+        /* ===== v8: escáner compacto con GATILLO + botón ＋ para las acciones ===== */
+        #verificadorModal .cam-panel { height: 24vh; min-height: 150px; max-height: 230px; border-bottom-width: 2px; touch-action: none; -webkit-user-select: none; user-select: none; }
+        #verificadorModal .cam-reticle .box { width: 94%; height: 72%; max-height: none; box-shadow: 0 0 0 2000px rgba(0,0,0,0.22); }
+        #verificadorModal .cam-off-layer { gap: 8px; padding: 10px; }
+        #verificadorModal .cam-off-layer .cam-icon, #verificadorModal .cam-off-layer small { display: none; }
+        #verificadorModal .cam-off-layer .cam-btn { padding: 10px 18px; font-size: .9rem; }
+        .cam-laser { position: absolute; left: 5%; right: 5%; top: 50%; height: 2px; margin-top: -1px; background: #ff2a2a; box-shadow: 0 0 8px 2px rgba(255,42,42,.85); opacity: 0; transition: opacity .06s; z-index: 4; pointer-events: none; }
+        .cam-panel.disparando .cam-laser { opacity: 1; }
+        .cam-panel.disparando .cam-reticle .box { border-color: #ff4d4d; }
+        #verificadorModal .toolbar-topbar { position: fixed; left: 14px; bottom: calc(88px + env(safe-area-inset-bottom)); z-index: 1300; display: none; flex-direction: column; gap: 8px; padding: 10px; width: min(250px, calc(100vw - 28px)); max-height: 66vh; overflow-y: auto; background: #fff; border: 1px solid #e2e8f0; border-radius: 18px; box-shadow: 0 14px 40px rgba(6,27,52,.3); }
+        #verificadorModal .toolbar-topbar.abierto { display: flex; }
+        #verificadorModal .toolbar-topbar .tt-btn { width: 100%; min-height: 46px; font-size: .92rem; text-align: left; border-radius: 12px; padding: 10px 16px; }
+        .jat-fab { position: fixed; z-index: 1300; border: none; cursor: pointer; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+        .jat-fab-mas { left: 14px; bottom: calc(16px + env(safe-area-inset-bottom)); width: 58px; height: 58px; border-radius: 50%; background: #1a3a5c; color: #fff; font-size: 2rem; line-height: 1; box-shadow: 0 6px 18px rgba(6,27,52,.35); transition: transform .15s; }
+        .jat-fab-mas.abierto { transform: rotate(45deg); background: #c0392b; }
+        .jat-gatillo { right: 16px; bottom: calc(14px + env(safe-area-inset-bottom)); width: 88px; height: 88px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ff6b5b, #b52a1c 70%); color: #fff; font-weight: 800; font-size: .72rem; letter-spacing: .5px; border: 4px solid #fff; box-shadow: 0 8px 22px rgba(120,20,10,.45); touch-action: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; transition: transform .06s, box-shadow .06s; }
+        .jat-gatillo .ico { font-size: 1.6rem; line-height: 1; }
+        .jat-gatillo.activo { transform: scale(.92); box-shadow: 0 0 0 10px rgba(231,76,60,.28), 0 4px 10px rgba(120,20,10,.4); background: radial-gradient(circle at 35% 30%, #ff8a7d, #e02b1a 70%); }
+        .jat-gatillo.oculto { display: none; }
+        #verificadorModal .verif-bottom-pane { padding-bottom: 112px; }
     </style>
 </head>
 <body>
@@ -636,11 +657,13 @@
             <div id="camPanel" class="cam-panel">
                 <video id="camVideo" autoplay playsinline muted></video>
                 <div class="cam-reticle"><div class="box" id="camReticleBox"></div></div>
+                <div class="cam-laser"></div>
                 <div class="cam-topbar">
                     <span class="cam-status-pill" id="camStatusPill">📷 Cámara apagada</span>
                     <div class="cam-menu-wrap">
                         <button class="cam-mini-btn" id="camMasBtn" aria-haspopup="true" aria-expanded="false">⋮ Más</button>
                         <div class="cam-dropdown" id="camDropdown" style="display:none;">
+                            <button class="cam-dropdown-item" id="camModoBtn">🎯 Modo: Gatillo</button>
                             <button class="cam-dropdown-item" id="camFullscreenBtn">⛶ Pantalla completa</button>
                             <button class="cam-dropdown-item" id="camLeerTextoBtn">🔤 Leer texto</button>
                             <button class="cam-dropdown-item" id="camAutoOcrBtn">🔤 Auto-leer: OFF</button>
@@ -728,6 +751,8 @@
 
             <div id="historialAcciones" class="historial-acciones" style="display:none;"><span style="color:#bdc3c7;">Sin acciones</span></div>
             </div><!-- /.verif-bottom-pane -->
+            <button type="button" class="jat-fab jat-fab-mas" id="jatMasAcciones" aria-label="Más acciones">＋</button>
+            <button type="button" class="jat-fab jat-gatillo" id="jatGatillo" aria-label="Gatillo: mantén presionado para escanear"><span class="ico">⦿</span>ESCANEAR</button>
         </div>
     </div>
 
@@ -3908,10 +3933,19 @@
             mostrarAvisoInseguro(false);
             setEstadoPill('📷 Solicitando permiso…', false);
             try {
-                const constraints = camDispositivos.length
-                    ? { video: { deviceId: { exact: camDispositivos[camIndiceActual].deviceId } } }
-                    : { video: { facingMode: { ideal: 'environment' } } };
-                camStream = await navigator.mediaDevices.getUserMedia(constraints);
+                const base = camDispositivos.length
+                    ? { deviceId: { exact: camDispositivos[camIndiceActual].deviceId } }
+                    : { facingMode: { ideal: 'environment' } };
+                try {
+                    camStream = await navigator.mediaDevices.getUserMedia({ video: { ...base, width: { ideal: 1920 }, height: { ideal: 1080 }, advanced: [{ focusMode: 'continuous' }] } });
+                } catch (eAlta) {
+                    if (eAlta && eAlta.name === 'NotAllowedError') throw eAlta;
+                    camStream = await navigator.mediaDevices.getUserMedia({ video: base });
+                }
+                try {
+                    const pista = camStream.getVideoTracks()[0], cap = pista.getCapabilities ? pista.getCapabilities() : {};
+                    if (cap.focusMode && cap.focusMode.includes('continuous')) await pista.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
+                } catch (_) { /* no crítico */ }
             } catch (err) {
                 console.warn('Cámara no disponible:', err);
                 camUltimoError = err;
@@ -3981,8 +4015,8 @@
                         if (!formatos.length && !soportados.length) throw new Error('BarcodeDetector sin formatos soportados en este dispositivo');
                         camDetector = new window.BarcodeDetector({ formats: formatos.length ? formatos : soportados });
                         camMotorUsado = 'nativo';
-                        setEstadoPill('🟢 Escaneando (motor nativo)…', true);
-                        camLoopHandle = setInterval(() => detectarConNativo(video), 220);
+                        setEstadoPill(camModoGatillo ? '🎯 Listo — aprieta el gatillo' : '🟢 Escaneando (motor nativo)…', true);
+                        camLoopHandle = setInterval(() => { pintarGatillo(); detectarConNativo(video); }, 90);
                     } catch (e) {
                         console.warn('BarcodeDetector falló al iniciar, usando ZXing:', e);
                         camUltimoError = e;
@@ -4012,6 +4046,11 @@
         function manejarLecturaCamara(codigosCrudos) {
             const codigos = (codigosCrudos || []).map(c => (c || '').trim()).filter(Boolean);
             if (!codigos.length) return;
+            if (camModoGatillo) {
+                if (!gatilloActivo()) return;
+                soltarDisparo();
+                camUltimoCodigo = ''; camUltimoTiempo = 0;   // cada apretón es una lectura nueva
+            }
             camUltimaLecturaBarcode = Date.now();
             const exacto = elegirCodigoExactoEnEgreso(codigos);
             if (exacto) { manejarCodigoDetectado(exacto); return; }
@@ -4303,16 +4342,36 @@
             $('camCaptureInput')?.click();
         }
 
+        let camDetectando = false, camLienzo = null;
+        // Recorta EXACTAMENTE lo que se ve en el recuadro de la cámara, sin reducir resolución
+        // (el video se muestra con object-fit: cover, así que se ve solo la parte central).
+        function recorteVisible(video) {
+            const vw = video.videoWidth, vh = video.videoHeight, panel = $('camPanel');
+            if (!vw || !vh || !panel) return video;
+            const pw = panel.clientWidth, ph = panel.clientHeight;
+            if (!pw || !ph) return video;
+            const esc = Math.max(pw / vw, ph / vh);
+            let sw = Math.min(vw, pw / esc), sh = Math.min(vh, (ph / esc) * 1.15); // 15 % de margen arriba/abajo
+            const sx = (vw - sw) / 2, sy = (vh - sh) / 2;
+            camLienzo = camLienzo || document.createElement('canvas');
+            if (camLienzo.width !== Math.round(sw) || camLienzo.height !== Math.round(sh)) { camLienzo.width = Math.round(sw); camLienzo.height = Math.round(sh); }
+            camLienzo.getContext('2d', { willReadFrequently: true }).drawImage(video, sx, sy, sw, sh, 0, 0, camLienzo.width, camLienzo.height);
+            return camLienzo;
+        }
         async function detectarConNativo(video) {
-            if (!camDetector || video.readyState < 2) return;
+            if (!camDetector || video.readyState < 2 || camDetectando) return;
+            if (camModoGatillo && !gatilloActivo()) return;
+            camDetectando = true;
             try {
-                const resultados = await camDetector.detect(video);
+                const fuente = camModoGatillo ? recorteVisible(video) : video;
+                const resultados = await camDetector.detect(fuente);
                 if (resultados && resultados.length) manejarLecturaCamara(resultados.map(r => r.rawValue));
             } catch (e) { camUltimoError = e; /* frame sin lectura, normal la mayoría de las veces */ }
+            finally { camDetectando = false; }
         }
 
         function iniciarZXingFallback(video) {
-            setEstadoPill('🟡 Escaneando (modo compatibilidad)…', true);
+            setEstadoPill(camModoGatillo ? '🎯 Listo — aprieta el gatillo (compatibilidad)' : '🟡 Escaneando (modo compatibilidad)…', true);
             camMotorUsado = 'zxing';
             const cargar = () => new Promise((resolve, reject) => {
                 if (window.ZXing) return resolve();
@@ -4325,7 +4384,8 @@
             cargar().then(() => {
                 camZXingReader = new window.ZXing.BrowserMultiFormatReader();
                 camZXingReader.decodeFromVideoElementContinuously(video, (result) => {
-                    if (result) manejarLecturaCamara([result.getText()]);
+                    pintarGatillo();
+                    if (result && (!camModoGatillo || gatilloActivo())) manejarLecturaCamara([result.getText()]);
                 });
             }).catch(err => {
                 console.warn(err);
@@ -4450,6 +4510,70 @@
             _cerrarVerificadorOriginal();
         };
 
+        // ---- GATILLO: funciona como una pistola lectora ----
+        // Mantén apretado: se enciende el láser y lee UN código; suelta y vuelve a apretar para el siguiente.
+        // Toque corto: queda leyendo hasta 2,5 s o hasta leer un código.
+        let camModoGatillo = (() => { try { return localStorage.getItem('jat_cam_modo') !== 'continuo'; } catch (_) { return true; } })();
+        let camDisparando = false, camDisparoHasta = 0, camDisparoInicio = 0;
+        function gatilloActivo() { return camDisparando || Date.now() < camDisparoHasta; }
+        function pintarGatillo() {
+            const on = camModoGatillo && camActiva && gatilloActivo();
+            $('camPanel')?.classList.toggle('disparando', on);
+            $('jatGatillo')?.classList.toggle('activo', on);
+        }
+        function soltarDisparo() { camDisparando = false; camDisparoHasta = 0; pintarGatillo(); }
+        async function apretarGatillo(ev) {
+            if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+            if (!camModoGatillo) return;
+            if (!camActiva) { await iniciarCamaraEscaner(); if (!camActiva) return; }
+            camDisparando = true; camDisparoHasta = 0; camDisparoInicio = Date.now();
+            if (navigator.vibrate) navigator.vibrate(15);
+            pintarGatillo();
+        }
+        function soltarGatillo(ev) {
+            if (!camDisparando) return;
+            if (ev) ev.preventDefault();
+            const dur = Date.now() - camDisparoInicio;
+            camDisparando = false;
+            camDisparoHasta = dur < 350 ? Date.now() + 2500 : 0;
+            pintarGatillo();
+        }
+        function aplicarModoCamara() {
+            const b = $('camModoBtn'); if (b) b.textContent = camModoGatillo ? '🎯 Modo: Gatillo (cambiar a continuo)' : '🔁 Modo: Continuo (cambiar a gatillo)';
+            $('jatGatillo')?.classList.toggle('oculto', !camModoGatillo);
+            soltarDisparo();
+            if (camActiva) setEstadoPill(camModoGatillo ? '🎯 Listo — aprieta el gatillo' : '🟢 Escaneando continuo…', true);
+        }
+        function enlazarGatillo() {
+            const g = $('jatGatillo'), panel = $('camPanel');
+            if (g) {
+                g.addEventListener('pointerdown', apretarGatillo);
+                ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => g.addEventListener(t, soltarGatillo));
+                g.addEventListener('contextmenu', e => e.preventDefault());
+            }
+            // También se puede usar la propia imagen de la cámara como gatillo.
+            if (panel) {
+                panel.addEventListener('pointerdown', ev => {
+                    if (!camActiva || !camModoGatillo) return;
+                    if (ev.target.closest('.cam-topbar, .cam-off-layer, #camDiagPanel, button')) return;
+                    apretarGatillo(ev);
+                });
+                ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => panel.addEventListener(t, soltarGatillo));
+            }
+            $('camModoBtn')?.addEventListener('click', () => {
+                camModoGatillo = !camModoGatillo;
+                try { localStorage.setItem('jat_cam_modo', camModoGatillo ? 'gatillo' : 'continuo'); } catch (_) {}
+                aplicarModoCamara();
+            });
+            aplicarModoCamara();
+            // Botón ＋ : las acciones (CSV, Imprimir, PDF, Tabla, Conteo, Voz, Marcar todos, Cierre) salen en un menú.
+            const mas = $('jatMasAcciones'), menu = document.querySelector('#verificadorModal .toolbar-topbar');
+            const cerrarMenu = () => { menu?.classList.remove('abierto'); mas?.classList.remove('abierto'); };
+            mas?.addEventListener('click', ev => { ev.stopPropagation(); const a = !menu.classList.contains('abierto'); menu.classList.toggle('abierto', a); mas.classList.toggle('abierto', a); });
+            menu?.addEventListener('click', ev => { if (ev.target.closest('.tt-btn')) setTimeout(cerrarMenu, 0); });
+            document.addEventListener('click', ev => { if (menu?.classList.contains('abierto') && !ev.target.closest('.toolbar-topbar, #jatMasAcciones')) cerrarMenu(); });
+        }
+
         let camModoSiguienteFoto = 'barcode'; // 'barcode' | 'ocr' — decide qué hacer con la próxima foto capturada
 
         function enlazarBotonesCamara() {
@@ -4459,6 +4583,7 @@
             $('camLeerTextoBtn')?.addEventListener('click', leerTextoDesdeCamara);
             $('camAutoOcrBtn')?.addEventListener('click', alternarAutoOCR);
             actualizarBotonAutoOCR();
+            enlazarGatillo();
             const camMasBtn = $('camMasBtn'), camDropdown = $('camDropdown');
             const cerrarCamDropdown = () => { if (camDropdown) camDropdown.style.display = 'none'; camMasBtn?.setAttribute('aria-expanded', 'false'); };
             camMasBtn?.addEventListener('click', (ev) => {
