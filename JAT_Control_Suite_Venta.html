@@ -5996,7 +5996,7 @@
         const paso = (t, d) => `<div style="border-bottom:1px solid #edf2f7;padding:12px 0;"><b style="font-size:.95rem;">${t}</b><p style="font-size:.85rem;color:#4a5f78;margin-top:4px;line-height:1.5;">${d}</p></div>`;
         jatVista('❓ Ayuda', 'mas', `
             ${paso('1. Arma tu kardex', 'En la pestaña Kardex toca ＋ y agrega tus productos escaneándolos, escribiéndolos o importando un Excel. En ✏️ → Más datos pones stock, mínimo, precio, ubicación y foto.')}
-            ${paso('2. Ingresa mercadería', 'Más → Ingreso de mercadería. Escaneas lo que llega y se suma al stock.')}
+            ${paso('2. Ingresa mercadería', 'Más → Ingreso de mercadería. Eliges si llegó con factura, por devolución o por transferencia, y se suma al stock.')}
             ${paso('3. Crea y verifica egresos', 'En Egresos toca ＋: desde un PDF, un Excel, el kardex, o registra una salida sin documento. Luego verificas escaneando.')}
             ${paso('4. Cierra el egreso', 'En el verificador toca 🧾 Cierre → Finalizar. Lo verificado se descuenta del stock y queda en el historial.')}
             ${paso('5. Revisa reportes', 'Más → Reportes: historial, inventario, stock bajo, kardex por producto y despachos por cliente.')}
@@ -6019,7 +6019,7 @@
     const _jatAbrirHojaFull = jatAbrirHoja;
     jatAbrirHoja = function () {
         _jatAbrirHojaFull.apply(this, arguments);
-        if (jatTabActual === 'kardex') document.getElementById('jatHojaOpciones').insertAdjacentHTML('afterbegin', '<button type="button" class="jat-hoja-op" data-op="kdx-ingreso"><span class="ic">📥</span><span><b>Ingreso de mercadería</b><small>Escaneas lo que llega y se suma al stock</small></span></button>');
+        if (jatTabActual === 'kardex') document.getElementById('jatHojaOpciones').insertAdjacentHTML('afterbegin', '<button type="button" class="jat-hoja-op" data-op="kdx-ingreso"><span class="ic">📥</span><span><b>Ingreso de mercadería</b><small>Con factura, devolución o transferencia</small></span></button>');
     };
     (function jatInitFull() {
         const b = document.querySelector('#jatNav [data-tab="menu"]'); if (b) { b.dataset.tab = 'mas'; b.innerHTML = '<span>☰</span>Más'; }
@@ -6454,7 +6454,7 @@
         const _ah = jatAbrirHoja;
         jatAbrirHoja = function () {
             _ah.apply(this, arguments);
-            if (jatTabActual === 'kardex') document.getElementById('jatHojaOpciones').insertAdjacentHTML('afterbegin', `<button type="button" class="jat-hoja-op" data-op="kdx-factura"><span class="ic">🧾</span><span><b>Ingreso por factura</b><small>${jatFac ? 'Tienes una factura en curso' : 'XML, PDF o en papel del proveedor'}</small></span></button>`);
+
         };
         const _acc = jatAccionHoja;
         jatAccionHoja = function (op) { if (op === 'kdx-factura') { jatCerrarHoja(); cargarVistaFactura(); return; } return _acc.apply(this, arguments); };
@@ -6468,14 +6468,69 @@
             }
             const ing = document.querySelector('[data-mas="ingreso"]');
             if (ing) {
-                ing.insertAdjacentHTML('beforebegin', `<button type="button" data-mas="factura" style="display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:#fff;border:0;border-top:1px solid #edf2f7;padding:15px 16px;cursor:pointer;min-height:56px;"><span style="font-size:1.3rem;width:28px;text-align:center;">🧾</span><span style="flex:1;font-size:1rem;color:#1a2b3c;">Ingreso por factura${jatFac ? '<span style="display:block;font-size:.76rem;color:#b9770e;">Tienes una factura en curso</span>' : ''}</span><span style="color:#9aa7b2;font-size:1.3rem;">›</span></button>
-                    <button type="button" data-mas="facturas" style="display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:#fff;border:0;border-top:1px solid #edf2f7;padding:15px 16px;cursor:pointer;min-height:56px;"><span style="font-size:1.3rem;width:28px;text-align:center;">📚</span><span style="flex:1;font-size:1rem;color:#1a2b3c;">Facturas de compra</span><span style="color:#9aa7b2;font-size:1.3rem;">›</span></button>`);
-                document.querySelector('[data-mas="factura"]').addEventListener('click', cargarVistaFactura);
+                ing.insertAdjacentHTML('afterend', `<button type="button" data-mas="facturas" style="display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:#fff;border:0;border-top:1px solid #edf2f7;padding:15px 16px;cursor:pointer;min-height:56px;"><span style="font-size:1.3rem;width:28px;text-align:center;">📚</span><span style="flex:1;font-size:1rem;color:#1a2b3c;">Facturas de compra</span><span style="color:#9aa7b2;font-size:1.3rem;">›</span></button>`);
                 document.querySelector('[data-mas="facturas"]').addEventListener('click', cargarVistaFacturas);
             }
         };
         const _ir = jatIrTab;
         jatIrTab = function (tab) { if (tab === 'factura') { cargarVistaFactura(); return; } return _ir.apply(this, arguments); };
+    })();
+
+    // ===== Ingreso de mercadería unificado: factura / devolución / transferencia =====
+    (function () {
+        window.jatIngTipo = '';
+        cargarVistaIngreso = function () { cargarVistaFactura(); };
+        const _origen = jatVistaOrigenFactura;
+        jatVistaOrigenFactura = function () {
+            _origen.apply(this, arguments);
+            const h = document.querySelector('#mainContent h2, #mainContent h3, #mainContent .jat-cab-titulo');
+            document.querySelectorAll('#mainContent *').forEach(el => { if (el.childElementCount === 0 && el.textContent.trim() === '🧾 Ingreso por factura') el.textContent = '📥 Ingreso de mercadería'; });
+            const intro = document.querySelector('#mainContent p');
+            if (intro) intro.innerHTML = '¿Cómo llegó la mercadería? Al terminar, las cantidades se <b>suman al stock</b> del kardex.';
+            const primero = document.querySelector('[data-fo="xml"]');
+            if (primero) primero.insertAdjacentHTML('beforebegin', '<div style="font-size:.78rem;font-weight:700;color:#6b7c8f;letter-spacing:.04em;margin:4px 0 8px;">CON FACTURA DEL PROVEEDOR</div>');
+            const papel = document.querySelector('[data-fo="papel"]');
+            const op = (id, ic, t, d) => `<button type="button" data-ing="${id}" style="display:flex;gap:14px;align-items:center;text-align:left;width:100%;background:#fff;border:1.5px solid #e3e9f0;border-radius:14px;padding:16px;cursor:pointer;margin-bottom:10px;"><span style="font-size:1.8rem;">${ic}</span><span style="flex:1;"><b style="display:block;font-size:1rem;color:#1a2b3c;">${t}</b><span style="display:block;font-size:.82rem;color:#6b7c8f;margin-top:2px;">${d}</span></span></button>`;
+            if (papel) papel.insertAdjacentHTML('afterend', '<div style="font-size:.78rem;font-weight:700;color:#6b7c8f;letter-spacing:.04em;margin:12px 0 8px;">SIN FACTURA</div>'
+                + op('devolucion', '↩️', 'Devolución de cliente', 'Un cliente devuelve productos. Escaneas y vuelven al stock.')
+                + op('transferencia', '🔄', 'Transferencia de otra bodega', 'Llega mercadería de otra bodega o sucursal.'));
+            document.querySelectorAll('[data-ing]').forEach(b => b.addEventListener('click', () => jatVistaIngresoSinFactura(b.dataset.ing)));
+        };
+        function jatVistaIngresoSinFactura(tipo) {
+            const dev = tipo === 'devolucion';
+            jatVista(dev ? '↩️ Devolución de cliente' : '🔄 Transferencia', 'factura', `
+                <p style="font-size:.86rem;color:#4a5f78;line-height:1.5;">${dev ? 'Escanea cada producto que devuelve el cliente y pon la cantidad. Al terminar vuelven al stock.' : 'Escanea cada producto que llegó de la otra bodega y pon la cantidad. Al terminar se suman al stock.'}</p>
+                <input type="text" id="ingOrigen" ${dev ? 'list="jatDestinosList"' : ''} placeholder="${dev ? 'Cliente que devuelve' : 'Bodega o sucursal de origen'}" autocomplete="off" style="width:100%;padding:14px;border:1.5px solid #dce3ea;border-radius:12px;font-size:16px;box-sizing:border-box;margin-bottom:10px;">
+                <input type="text" id="ingDoc" placeholder="${dev ? 'N° de factura de venta o motivo — opcional' : 'N° de guía o documento — opcional'}" autocomplete="off" style="width:100%;padding:14px;border:1.5px solid #dce3ea;border-radius:12px;font-size:16px;box-sizing:border-box;margin-bottom:12px;">
+                <button id="ingEmpezar" class="btn btn-success" type="button" style="min-height:54px;font-size:1.05rem;width:100%;">${dev ? '↩️ Empezar devolución' : '🔄 Empezar transferencia'}</button>`);
+            try { jatActualizarDatalist(); } catch (e) {}
+            document.getElementById('ingEmpezar').addEventListener('click', () => {
+                const origen = document.getElementById('ingOrigen').value.trim();
+                const docu = document.getElementById('ingDoc').value.trim();
+                if (!origen) { showAlert(dev ? 'Escribe el cliente que devuelve' : 'Escribe la bodega de origen', 'warning'); return; }
+                jatIniciarIngreso();
+                window.jatIngTipo = tipo;
+                const d = new Date(), z = n => String(n).padStart(2, '0');
+                metadataEgresoActual.secuencial = `${dev ? 'DEVOLUCION' : 'TRANSFERENCIA'}_${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}_${z(d.getHours())}${z(d.getMinutes())}`;
+                metadataEgresoActual.bodegaDestino = (dev ? 'Devolución de ' : 'Transferencia desde ') + origen + (docu ? ' (' + docu + ')' : '');
+                if (dev) try { jatRecordarCliente(origen); } catch (e) {}
+                jatActualizarBanner();
+            });
+        }
+        const _ban = jatActualizarBanner;
+        jatActualizarBanner = function () {
+            _ban.apply(this, arguments);
+            if (window.jatModoIngreso && window.jatIngTipo) { const t = document.querySelector('#jatRegBanner strong'); if (t) t.textContent = window.jatIngTipo === 'devolucion' ? '↩️ Devolución de cliente' : '🔄 Transferencia'; }
+        };
+        const _sal = jatSalirRegistro;
+        jatSalirRegistro = function () { window.jatIngTipo = ''; return _sal.apply(this, arguments); };
+        const _tipo = jatTipoEgreso;
+        jatTipoEgreso = function (e) {
+            const sec = (e && (e.secuencial || e.nombre)) || '';
+            if (/^DEVOLUCION_/.test(sec)) return { id: 'ingreso', t: '↩️ Devolución', c: '#5b3fa0', bg: '#f1ecfb' };
+            if (/^TRANSFERENCIA_/.test(sec)) return { id: 'ingreso', t: '🔄 Transferencia', c: '#5b3fa0', bg: '#f1ecfb' };
+            return _tipo.apply(this, arguments);
+        };
     })();
     </script>
     <!-- ====================================================================
