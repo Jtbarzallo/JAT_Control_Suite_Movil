@@ -1036,14 +1036,14 @@ document.querySelectorAll('.chip[data-f]').forEach(c => c.onclick = () => { filt
     const enApp = () => matchMedia('(display-mode: fullscreen)').matches || matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
     const quiere = () => { try { return localStorage.getItem('jat_pantalla_completa') !== 'no'; } catch (_) { return true; } };
     function pedir() {
-        if (enApp() || !quiere() || document.fullscreenElement || document.webkitFullscreenElement) return;
+        if (window.top !== window || enApp() || !quiere() || document.fullscreenElement || document.webkitFullscreenElement) return;
         const el = document.documentElement, f = el.requestFullscreen || el.webkitRequestFullscreen;
         if (!f) return;
         try { const p = f.call(el, { navigationUI: 'hide' }); if (p && p.catch) p.catch(() => {}); } catch (_) {}
     }
     // Chrome solo deja entrar a pantalla completa con un toque: se pide en el primer toque y cada vez que se haya salido.
     // No se pide en toques que abren el selector de archivos / guardar / compartir: Chrome los bloquearía.
-    const SIN_FS = 'input, select, textarea, label, [data-no-fs], .menu-item, .jl, .ini-cargar, .ini-abrir, #seleccionarPdfBtn, #leerPdfBtn, #elegirCarpetaBtn, #guardarComoBtn, #guardarCarpetaBtn, #camFotoFallbackBtn, #camLeerTextoBtn, #exportarExcelBtn, #descargarPdfBtn, #bAbrirArchivo, #bCargar, #bGuardar, #kExcel, #nGuardar';
+    const SIN_FS = 'input, select, textarea, label, [data-no-fs], .menu-item, .jl, .ini-cargar, .ini-abrir, #seleccionarPdfBtn, #leerPdfBtn, #elegirCarpetaBtn, #guardarComoBtn, #guardarCarpetaBtn, #camFotoFallbackBtn, #camLeerTextoBtn, #exportarExcelBtn, #descargarPdfBtn, #bAbrirArchivo, #bCargar, #bGuardar, #kExcel, #nGuardar, .js-op';
     document.addEventListener('click', ev => { if (!(ev.target.closest && ev.target.closest(SIN_FS))) pedir(); }, true);
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
     window.addEventListener('beforeinstallprompt', e => {
@@ -1059,6 +1059,14 @@ document.querySelectorAll('.chip[data-f]').forEach(c => c.onclick = () => { filt
         }
     };
 })();
+</script>
+<script>
+// Dentro de la app (pestaña Bodega) se esconde el encabezado propio: los botones están en el ＋ de la app.
+if (new URLSearchParams(location.search).has('embed')) {
+  const st = document.createElement('style'); st.textContent = 'header { display: none !important; } .sheet { padding-bottom: 96px !important; } #lista { padding-bottom: 96px; }'; document.head.appendChild(st);
+  const info = document.getElementById('info');
+  if (info) info.innerHTML = 'Toca <b>＋</b> → <b>Registrar ubicaciones</b> para guardar dónde está cada producto, o <b>Sacar mercadería de un egreso</b> para sacarla ordenada por pasillo.';
+}
 </script>
 </body>
 </html>

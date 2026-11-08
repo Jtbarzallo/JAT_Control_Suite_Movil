@@ -4784,14 +4784,14 @@
     const enApp = () => matchMedia('(display-mode: fullscreen)').matches || matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
     const quiere = () => { try { return localStorage.getItem('jat_pantalla_completa') !== 'no'; } catch (_) { return true; } };
     function pedir() {
-        if (enApp() || !quiere() || document.fullscreenElement || document.webkitFullscreenElement) return;
+        if (window.top !== window || enApp() || !quiere() || document.fullscreenElement || document.webkitFullscreenElement) return;
         const el = document.documentElement, f = el.requestFullscreen || el.webkitRequestFullscreen;
         if (!f) return;
         try { const p = f.call(el, { navigationUI: 'hide' }); if (p && p.catch) p.catch(() => {}); } catch (_) {}
     }
     // Chrome solo deja entrar a pantalla completa con un toque: se pide en el primer toque y cada vez que se haya salido.
     // No se pide en toques que abren el selector de archivos / guardar / compartir: Chrome los bloquearía.
-    const SIN_FS = 'input, select, textarea, label, [data-no-fs], .menu-item, .jl, .ini-cargar, .ini-abrir, #seleccionarPdfBtn, #leerPdfBtn, #elegirCarpetaBtn, #guardarComoBtn, #guardarCarpetaBtn, #camFotoFallbackBtn, #camLeerTextoBtn, #exportarExcelBtn, #descargarPdfBtn, #bAbrirArchivo, #bCargar, #bGuardar, #kExcel, #nGuardar';
+    const SIN_FS = 'input, select, textarea, label, [data-no-fs], .menu-item, .jl, .ini-cargar, .ini-abrir, #seleccionarPdfBtn, #leerPdfBtn, #elegirCarpetaBtn, #guardarComoBtn, #guardarCarpetaBtn, #camFotoFallbackBtn, #camLeerTextoBtn, #exportarExcelBtn, #descargarPdfBtn, #bAbrirArchivo, #bCargar, #bGuardar, #kExcel, #nGuardar, .js-op';
     document.addEventListener('click', ev => { if (!(ev.target.closest && ev.target.closest(SIN_FS))) pedir(); }, true);
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
     window.addEventListener('beforeinstallprompt', e => {
@@ -4880,6 +4880,284 @@
         if (el === permitido) permitido = null;
         if (el.dataset.jatIm !== undefined) { const o = el.dataset.jatIm; delete el.dataset.jatIm; if (o) el.setAttribute('inputmode', o); else el.removeAttribute('inputmode'); }
     }, true);
+})();
+</script>
+<!-- ===================== JAT SHELL: pestañas abajo + título arriba + botón ＋ propio de cada ventana ===================== -->
+<style>
+    .js-top, .js-tabs, .js-fab, .js-hoja, .js-capa { display: none; }
+    /* los avisos no tapan el gatillo ni los botones: los toques pasan a través */
+    .alert-toast { pointer-events: none; }
+    @media (max-width: 760px) {
+        body.js-shell .top-bar, body.js-shell #jatNav, body.js-shell #jatFab, body.js-shell .jat-fab-ini, body.js-shell .menu-toggle, body.js-shell .ini-nav, body.js-shell .hat-statusline { display: none !important; }
+        body.js-shell { padding-top: calc(56px + env(safe-area-inset-top)); padding-bottom: calc(64px + env(safe-area-inset-bottom)); background: #f7f8fa; }
+        body.js-shell .content-area { padding-bottom: 90px !important; }
+        body.js-shell .js-top { display: flex; position: fixed; top: 0; left: 0; right: 0; height: calc(56px + env(safe-area-inset-top)); padding: env(safe-area-inset-top) 4px 0 6px; align-items: center; gap: 2px; background: #fff; border-bottom: 1px solid #eef1f5; z-index: 4300; }
+        .js-top h1 { flex: 1; margin: 0 0 0 10px; font-size: 1.4rem; font-weight: 600; color: #1a2b3c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -.2px; }
+        .js-ib { flex: none; width: 46px; height: 46px; border: none; background: none; border-radius: 50%; color: #1a2b3c; display: flex; align-items: center; justify-content: center; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+        .js-ib:active { background: #eef1f5; }
+        .js-ib svg { width: 26px; height: 26px; }
+        body.js-shell .js-tabs { display: flex; position: fixed; left: 0; right: 0; bottom: 0; height: calc(64px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); background: #fff; border-top: 1px solid #e8ecf1; box-shadow: 0 -2px 10px rgba(0,0,0,.04); z-index: 4300; }
+        .js-tabs button { flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-family: inherit; font-size: .72rem; font-weight: 500; color: #6b7280; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+        .js-tabs button svg { width: 26px; height: 26px; }
+        .js-tabs button.on { color: #d62f3a; font-weight: 700; }
+        body.js-shell .js-fab { display: flex; position: fixed; right: 18px; bottom: calc(80px + env(safe-area-inset-bottom)); width: 62px; height: 62px; border-radius: 50%; border: none; background: #d62f3a; color: #fff; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(214,47,58,.42); z-index: 4320; cursor: pointer; transition: transform .15s; -webkit-tap-highlight-color: transparent; }
+        .js-fab svg { width: 30px; height: 30px; }
+        .js-fab.abierto { transform: rotate(45deg); background: #1a2b3c; }
+        body.js-shell .js-fab.sin { display: none; }
+        body.js-shell .js-hoja.on { display: block; position: fixed; inset: 0; z-index: 4310; }
+        .js-hoja .fondo { position: absolute; inset: 0; background: rgba(10,20,35,.45); }
+        .js-hoja .panel { position: absolute; left: 0; right: 0; bottom: 0; max-height: 82vh; overflow-y: auto; background: #fff; border-radius: 22px 22px 0 0; padding: 10px 14px calc(150px + env(safe-area-inset-bottom)); animation: jsSube .18s ease-out; }
+        @keyframes jsSube { from { transform: translateY(40px); opacity: .4; } to { transform: none; opacity: 1; } }
+        .js-hoja .asa { width: 42px; height: 5px; border-radius: 3px; background: #d6dbe2; margin: 2px auto 10px; }
+        .js-hoja h4 { margin: 0 4px 10px; font-size: 1.05rem; color: #1a2b3c; }
+        .js-op { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 62px; margin-bottom: 8px; padding: 10px 14px; border: none; border-radius: 14px; background: #f4f6f9; color: #1a2b3c; text-align: left; font-family: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+        .js-op:active { background: #e6ebf1; }
+        .js-op .ic { flex: none; width: 40px; height: 40px; border-radius: 12px; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+        .js-op b { display: block; font-size: .98rem; }
+        .js-op small { display: block; margin-top: 2px; font-size: .78rem; color: #6b7280; }
+        .js-op.dest { background: #d62f3a; color: #fff; }
+        .js-op.dest small { color: #ffe1e3; }
+        body.js-shell .js-capa.on { display: block; position: fixed; left: 0; right: 0; top: calc(56px + env(safe-area-inset-top)); bottom: calc(64px + env(safe-area-inset-bottom)); z-index: 4000; background: #f7f8fa; }
+        .js-capa iframe { width: 100%; height: 100%; border: 0; display: block; }
+        body.js-shell.js-oculto .js-top, body.js-shell.js-oculto .js-tabs, body.js-shell.js-oculto .js-fab, body.js-shell.js-oculto .js-hoja, body.js-shell.js-oculto .js-capa { display: none !important; }
+        body.js-shell.js-oculto { padding-top: 0; padding-bottom: 0; }
+        /* listas propias del shell (kardex / menú de la versión móvil) */
+        .js-vista { display: flex; flex-direction: column; gap: 10px; }
+        .js-buscar { width: 100%; padding: 13px 16px; font-size: 16px; border: 1.5px solid #dfe5ec; border-radius: 14px; background: #fff; font-family: inherit; }
+        .js-chips { display: flex; gap: 8px; overflow-x: auto; }
+        .js-chip { flex: none; padding: 8px 14px; border-radius: 30px; border: 1.5px solid #dfe5ec; background: #fff; font-size: .82rem; font-family: inherit; cursor: pointer; }
+        .js-chip.on { background: #1a2b3c; border-color: #1a2b3c; color: #fff; }
+        .js-item { background: #fff; border: 1px solid #edf0f4; border-radius: 14px; padding: 12px 14px; }
+        .js-item .n { font-weight: 700; color: #1a2b3c; font-size: .92rem; }
+        .js-item .m { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 4px; font-size: .78rem; color: #6b7280; }
+        .js-item .st { font-weight: 700; color: #1e8e4e; }
+        .js-item .st.cero { color: #9aa4b1; }
+        .js-item .ub { color: #2d6aa3; font-weight: 600; }
+        .js-vacio { text-align: center; color: #6b7280; padding: 50px 20px; font-size: .95rem; line-height: 1.5; }
+        .js-vacio .gr { font-size: 3.4rem; display: block; margin-bottom: 10px; }
+        .js-mas { border: none; background: none; color: #2d6aa3; font-weight: 700; padding: 12px; font-family: inherit; cursor: pointer; }
+    }
+</style>
+<header class="js-top" id="jsTop">
+    <h1 id="jsTitulo">JAT</h1>
+    <button type="button" class="js-ib" id="jsBuscar" data-teclado aria-label="Buscar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg></button>
+    <button type="button" class="js-ib" id="jsEscanear" aria-label="Escanear"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7V4h3M21 7V4h-3M3 17v3h3M21 17v3h-3"/><path d="M7 8v8M10 8v8M13 8v8M15.5 8v8M17.5 8v8" stroke-width="1.6"/></svg></button>
+    <button type="button" class="js-ib" id="jsPuntos" aria-label="Más opciones"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></button>
+</header>
+<div class="js-capa" id="jsCapa"></div>
+<nav class="js-tabs" id="jsTabs"></nav>
+<div class="js-hoja" id="jsHoja"><div class="fondo"></div><div class="panel"><div class="asa"></div><h4 id="jsHojaTit"></h4><div id="jsHojaOps"></div></div></div>
+<button type="button" class="js-fab" id="jsFab" aria-label="Agregar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+<script>
+window.JATShell = (function () {
+    const $ = id => document.getElementById(id);
+    const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const ICO = {
+        revision: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 12l2 2 4-4M9 17h6"/></svg>',
+        ingreso: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l9-5 9 5v9l-9 5-9-5z"/><path d="M12 8v7M9 12l3 3 3-3"/></svg>',
+        kardex: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>',
+        bodega: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6-5.3-6-10a6 6 0 0112 0c0 4.7-6 10-6 10z"/><circle cx="12" cy="11" r="2.2"/></svg>',
+        menu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>'
+    };
+    let cfg = null, actual = null, hojaModo = '';
+    const activo = () => !!cfg && document.body.classList.contains('js-shell');
+    const tab = id => cfg.tabs.find(t => t.id === id);
+    function marcar(id) {
+        if (!activo() || !tab(id)) return;
+        actual = id;
+        document.querySelectorAll('#jsTabs button').forEach(b => b.classList.toggle('on', b.dataset.t === id));
+        $('jsTitulo').textContent = tab(id).titulo || tab(id).txt;
+        const t = tab(id);
+        $('jsFab').classList.toggle('sin', !t.mas);
+        $('jsCapa').classList.toggle('on', !!t.capa);
+    }
+    function ir(id) {
+        if (!activo()) return;
+        cerrarHoja();
+        marcar(id);
+        const t = tab(id);
+        try { t.abrir && t.abrir(); } catch (e) { console.warn(e); }
+        window.scrollTo(0, 0);
+    }
+    function abrirHoja(titulo, ops, modo) {
+        hojaModo = modo || 'mas';
+        $('jsHojaTit').textContent = titulo;
+        $('jsHojaOps').innerHTML = ops.filter(Boolean).map((o, i) => `<button type="button" class="js-op ${o.dest ? 'dest' : ''}" data-i="${i}"><span class="ic">${o.ico}</span><span><b>${esc(o.txt)}</b>${o.sub ? '<small>' + esc(o.sub) + '</small>' : ''}</span></button>`).join('');
+        $('jsHojaOps')._ops = ops.filter(Boolean);
+        $('jsHoja').classList.add('on');
+        $('jsFab').classList.toggle('abierto', hojaModo === 'mas');
+    }
+    function cerrarHoja() { $('jsHoja')?.classList.remove('on'); $('jsFab')?.classList.remove('abierto'); }
+    // Pone el cursor en el buscador de la ventana (con teclado, porque lo pediste con la lupa)
+    function enfocarBuscador(raiz) {
+        const r = raiz || document.getElementById('mainContent') || document;
+        const el = r.querySelector('input[type="search"], input[placeholder*="Busca"], input[placeholder*="busca"], input[id*="uscar"], input[id*="usca"]');
+        if (el) { el.scrollIntoView({ block: 'center' }); el.focus(); return true; }
+        return false;
+    }
+    function init(c) {
+        cfg = c;
+        if (!matchMedia('(max-width: 760px)').matches) return;
+        document.body.classList.add('js-shell');
+        $('jsTabs').innerHTML = cfg.tabs.map(t => `<button type="button" data-t="${t.id}">${ICO[t.icono || t.id] || ''}<span>${esc(t.txt)}</span></button>`).join('');
+        $('jsTabs').addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (b) ir(b.dataset.t); });
+        $('jsFab').addEventListener('click', () => {
+            if ($('jsHoja').classList.contains('on')) return cerrarHoja();
+            const t = tab(actual); if (!t || !t.mas) return;
+            abrirHoja(t.masTitulo || t.txt, typeof t.mas === 'function' ? t.mas() : t.mas, 'mas');
+        });
+        $('jsHoja').querySelector('.fondo').addEventListener('click', cerrarHoja);
+        $('jsHojaOps').addEventListener('click', e => {
+            const b = e.target.closest('.js-op'); if (!b) return;
+            const o = $('jsHojaOps')._ops[+b.dataset.i];
+            if (!o.mantener) cerrarHoja();
+            try { o.run(); } catch (err) { console.warn(err); }
+        });
+        $('jsBuscar').addEventListener('click', () => { cerrarHoja(); const t = tab(actual); if (t && t.buscar) t.buscar(); else enfocarBuscador(); });
+        $('jsEscanear').addEventListener('click', () => { cerrarHoja(); const t = tab(actual); (t && t.escanear ? t.escanear : cfg.escanear)?.(); });
+        $('jsPuntos').addEventListener('click', () => abrirHoja('Opciones', cfg.puntos ? cfg.puntos() : [], 'puntos'));
+        // Mientras el verificador (pantalla de escaneo) está abierto, se esconden las barras: tiene sus propios botones.
+        const vm = $('verificadorModal');
+        const revisar = () => document.body.classList.toggle('js-oculto', !!vm && getComputedStyle(vm).display !== 'none');
+        if (vm) new MutationObserver(revisar).observe(vm, { attributes: true, attributeFilter: ['style', 'class'] });
+        revisar();
+        ir(cfg.inicial || cfg.tabs[0].id);
+    }
+    return { init, ir, marcar, abrirHoja, cerrarHoja, enfocarBuscador, actual: () => actual, activo };
+})();
+</script>
+<script>
+// ===== Ventanas de la versión móvil (cada una con su propio ＋) =====
+(function () {
+    const $ = id => document.getElementById(id);
+    const main = () => $('mainContent');
+    const hayEgreso = () => typeof currentEgreso !== 'undefined' && currentEgreso && currentProductos.length;
+    const nomEgreso = () => hayEgreso() ? (currentEgreso.nombre || currentEgreso.secuencial || 'egreso') : '';
+    const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const accion = a => document.querySelector('.sidebar .menu-item[data-action="' + a + '"]')?.click();
+
+    // ---------- KARDEX (lista con stock y ubicación) ----------
+    let kmFiltro = 'todos', kmMax = 60, kmDatos = null;
+    async function kmCargar() {
+        let d = null;
+        try { d = await JATKX.cargar(); } catch (_) {}
+        if (!d || !d.m) {
+            try {
+                const [n, c] = await Promise.all([fetch('kardex_nombres.json').then(r => r.json()), fetch('kardex_categorias.json').then(r => r.json())]);
+                d = { n, c: c.c, m: c.m, s: null, archivo: '' };
+            } catch (_) { d = { n: {}, c: [], m: {}, s: null }; }
+        }
+        kmDatos = d; return d;
+    }
+    function kmUbic() { try { return JSON.parse(localStorage.getItem('jat_ubicaciones') || '{}') || {}; } catch (_) { return {}; } }
+    function vistaKardex() {
+        main().innerHTML = `<div class="js-vista">
+            <input id="kmBuscar" class="js-buscar" type="search" placeholder="Buscar por nombre o código…" autocomplete="off">
+            <div class="js-chips" id="kmChips">
+                <button class="js-chip" data-f="todos">Todos</button><button class="js-chip" data-f="stock">Con stock</button>
+                <button class="js-chip" data-f="ubic">📍 Con ubicación</button><button class="js-chip" data-f="sinubic">Sin ubicación</button>
+            </div>
+            <div id="kmInfo" style="font-size:.8rem;color:#6b7280;padding:0 4px"></div>
+            <div id="kmLista" style="display:flex;flex-direction:column;gap:8px"><div class="js-vacio">Cargando kardex…</div></div>
+        </div>`;
+        $('kmBuscar').addEventListener('input', () => { kmMax = 60; kmRender(); });
+        $('kmChips').addEventListener('click', e => { const b = e.target.closest('[data-f]'); if (b) { kmFiltro = b.dataset.f; kmMax = 60; kmRender(); } });
+        kmCargar().then(kmRender);
+    }
+    function kmRender() {
+        const lista = $('kmLista'); if (!lista || !kmDatos) return;
+        document.querySelectorAll('#kmChips [data-f]').forEach(b => b.classList.toggle('on', b.dataset.f === kmFiltro));
+        const d = kmDatos, ub = kmUbic();
+        const cods = Object.keys(d.m || {});
+        if (!cods.length) { lista.innerHTML = '<div class="js-vacio"><span class="gr">📋</span>El kardex está vacío.<br>Toca <b>＋</b> → <b>Actualizar desde Excel</b>.</div>'; $('kmInfo').textContent = ''; return; }
+        const q = ($('kmBuscar').value || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').split(/\s+/).filter(Boolean);
+        let r = cods;
+        if (kmFiltro === 'stock') r = r.filter(c => d.s && d.s[c] > 0);
+        if (kmFiltro === 'ubic') r = r.filter(c => ub[c] && ub[c].z);
+        if (kmFiltro === 'sinubic') r = r.filter(c => !(ub[c] && ub[c].z));
+        if (q.length) r = r.filter(c => { const t = ((d.n[c] || '') + ' ' + c).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); return q.every(w => t.includes(w)); });
+        $('kmInfo').textContent = r.length.toLocaleString('es') + ' productos' + (d.archivo ? ' · kardex: ' + d.archivo : '') + (d.s ? '' : ' · sin stock (carga el Excel)');
+        lista.innerHTML = r.length ? r.slice(0, kmMax).map(c => {
+            const s = d.s ? (d.s[c] ?? 0) : null, u = ub[c];
+            return `<div class="js-item"><div class="n">${esc(d.n[c] || c)}</div><div class="m"><span>${esc(c)}</span><span>${esc(d.c[d.m[c]] || '')}</span>${s === null ? '' : `<span class="st ${s > 0 ? '' : 'cero'}">Stock: ${s.toLocaleString('es')}</span>`}<span class="ub">${u && u.z ? '📍 ' + esc(u.z + (u.d ? ' · ' + u.d : '')) : ''}</span></div></div>`;
+        }).join('') + (r.length > kmMax ? '<button class="js-mas" id="kmMas">Ver más</button>' : '') : '<div class="js-vacio">Sin resultados</div>';
+        $('kmMas')?.addEventListener('click', () => { kmMax += 100; kmRender(); });
+    }
+
+    // ---------- BODEGA (Salida de mercadería y ubicaciones, dentro de la app) ----------
+    function bodega() {
+        const capa = $('jsCapa');
+        if (!$('jsBodegaFrame')) capa.innerHTML = '<iframe id="jsBodegaFrame" src="JAT_Salida_Mercaderia.html?embed=1" allow="camera; fullscreen" title="Bodega"></iframe>';
+    }
+    const enBodega = id => () => { const f = $('jsBodegaFrame'); const run = () => f.contentDocument?.getElementById(id)?.click(); if (f.contentDocument?.readyState === 'complete') run(); else f.addEventListener('load', run, { once: true }); };
+
+    // ---------- MENÚ ----------
+    const OPS_MENU = () => [
+        { ico: '💾', txt: 'Guardar egreso', sub: nomEgreso() || 'Ningún egreso abierto', run: () => accion('guardarAhora') },
+        { ico: '📁', txt: 'Guardar como / carpeta', run: () => accion('guardarComo') },
+        { ico: '🖨️', txt: 'Imprimir', run: () => accion('imprimir') },
+        { ico: '📕', txt: 'Exportar PDF', run: () => accion('exportarPdf') },
+        { ico: '📝', txt: 'Cartas de constancia', run: () => accion('constancias') },
+        { ico: '📋', txt: 'Historial / avances', run: () => accion('historial') },
+        { ico: '🗂️', txt: 'Carpeta de trabajo', sub: 'OneDrive / respaldo', run: () => accion('carpetaTrabajo') },
+        { ico: '⛶', txt: 'Pantalla completa: ' + (JAT_FS.quiere() ? 'SÍ' : 'NO'), sub: 'Toca para cambiar', run: () => { JAT_FS.set(!JAT_FS.quiere()); if (JATShell.actual() === 'menu') vistaMenu(); } },
+        JAT_FS.enApp() ? null : { ico: '📲', txt: 'Instalar como app', sub: 'Se abre siempre en pantalla completa', run: instalar }
+    ];
+    function vistaMenu() {
+        const ops = OPS_MENU().filter(Boolean);
+        main().innerHTML = '<div class="js-vista">' + ops.map((o, i) => `<button type="button" class="js-op" data-i="${i}"><span class="ic">${o.ico}</span><span><b>${esc(o.txt)}</b>${o.sub ? '<small>' + esc(o.sub) + '</small>' : ''}</span></button>`).join('') + '</div>';
+        main().querySelectorAll('.js-op').forEach(b => b.addEventListener('click', () => ops[+b.dataset.i].run()));
+    }
+    function instalar() {
+        if (window.JAT_INSTALAR) window.JAT_INSTALAR();
+        else alert('Para que se abra siempre en pantalla completa, como una app:\n\n1. En Chrome toca ⋮ (arriba a la derecha).\n2. Elige "Agregar a la pantalla principal" o "Instalar app".\n3. Ábrela desde el ícono JAT de tu teléfono.');
+    }
+    const escanearEgreso = () => { if (hayEgreso()) irIngresarMercaderia(); else { JATShell.ir('revision'); showAlert('📦 Primero abre un egreso: toca ＋ → Cargar egreso, o elige uno de la lista', 'warning'); } };
+
+    JATShell.init({
+        inicial: 'revision',
+        escanear: escanearEgreso,
+        tabs: [
+            { id: 'revision', txt: 'Revisión', titulo: 'Revisión', abrir: () => irInicio(),
+              buscar: () => { irInicio(); setTimeout(() => JATShell.enfocarBuscador(), 60); },
+              escanear: escanearEgreso, masTitulo: 'Revisión de mercadería',
+              mas: () => [
+                  hayEgreso() ? { ico: '▶️', txt: 'Continuar: ' + nomEgreso(), sub: 'Seguir escaneando este egreso', dest: true, run: () => irIngresarMercaderia() } : null,
+                  { ico: '📄', txt: 'Egreso nuevo desde PDF', sub: 'El documento de egreso del sistema', run: () => irCargarEgreso() },
+                  { ico: '📂', txt: 'Importar / abrir archivo', sub: '.hat, CSV, respaldo o PDF — varios a la vez', run: () => irAbrirArchivo() },
+                  { ico: '✍️', txt: 'Pegar la tabla a mano', run: () => cargarVistaNuevoEgreso(false) },
+                  { ico: '📁', txt: 'Egresos guardados', sub: 'Buscar en este teléfono', run: () => accion('buscarEgresos') },
+                  { ico: '📋', txt: 'Historial / avances', run: () => accion('historial') }
+              ] },
+            { id: 'kardex', txt: 'Kardex', titulo: 'Kardex', abrir: vistaKardex, buscar: () => { if (!$('kmBuscar')) vistaKardex(); $('kmBuscar').focus(); },
+              escanear: () => { JATShell.ir('bodega'); enBodega('bRegistrar')(); },
+              mas: () => [
+                  { ico: '📊', txt: 'Actualizar desde Excel', sub: 'Reporte de inventario (stock en la columna G)', dest: true, run: () => jatElegirKardexExcel() },
+                  { ico: '📍', txt: 'Poner ubicaciones', sub: 'Escaneas productos en la bodega', run: () => { JATShell.ir('bodega'); enBodega('bRegistrar')(); } }
+              ] },
+            { id: 'bodega', txt: 'Bodega', titulo: 'Bodega', capa: true, abrir: bodega,
+              buscar: () => { const f = $('jsBodegaFrame'); f?.contentDocument?.getElementById('q')?.focus(); },
+              escanear: () => enBodega('bRegistrar')(),
+              mas: () => [
+                  { ico: '📍', txt: 'Registrar ubicaciones', sub: 'Eliges el pasillo y escaneas lo que hay ahí', dest: true, run: enBodega('bRegistrar') },
+                  { ico: '📤', txt: 'Sacar mercadería de un egreso', sub: 'Ordenada por ubicación', run: enBodega('bEgreso') },
+                  { ico: '📋', txt: 'Kardex y ubicaciones', run: enBodega('bKardex') },
+                  { ico: '🏬', txt: 'Pasillos y cuartos', run: enBodega('bZonas') },
+                  { ico: '💾', txt: 'Guardar ubicaciones', sub: 'Archivo para OneDrive', run: enBodega('bGuardar') },
+                  { ico: '📥', txt: 'Cargar ubicaciones', sub: 'Desde un archivo guardado', run: enBodega('bCargar') }
+              ] },
+            { id: 'menu', txt: 'Menú', titulo: 'Menú', abrir: vistaMenu }
+        ],
+        puntos: () => [
+            { ico: '⛶', txt: 'Pantalla completa: ' + (JAT_FS.quiere() ? 'SÍ' : 'NO'), run: () => JAT_FS.set(!JAT_FS.quiere()) },
+            JAT_FS.enApp() ? null : { ico: '📲', txt: 'Instalar como app', run: instalar },
+            { ico: '📊', txt: 'Kardex desde Excel', run: () => jatElegirKardexExcel() },
+            { ico: '🗂️', txt: 'Carpeta de trabajo', run: () => accion('carpetaTrabajo') }
+        ]
+    });
+    // Cuando el programa vuelve al inicio por su cuenta (por ejemplo, el botón 🏠 del verificador), se marca Revisión.
+    const _irInicio = irInicio;
+    irInicio = function () { JATShell.marcar('revision'); return _irInicio.apply(this, arguments); };
 })();
 </script>
 </body>
