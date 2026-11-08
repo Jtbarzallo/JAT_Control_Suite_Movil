@@ -760,7 +760,7 @@
                     <button class="cam-btn" id="camActivarBtn" type="button">Activar cámara</button>
                     <button class="cam-btn" id="camFotoFallbackBtn" type="button" style="display:none;background:#e9c987;">📸 Tomar foto y escanear</button>
                     <small>Escaneo en vivo de código de barras / QR. La cámara se queda en esta misma pantalla — no se abre ninguna app externa.</small>
-                    <button class="cam-btn secundario" id="camUsarTecladoBtn" type="button">⌨️ Prefiero escribir el código</button>
+                    <button class="cam-btn secundario" id="camUsarTecladoBtn" type="button" data-teclado>⌨️ Prefiero escribir el código</button>
                 </div>
                 <input type="file" accept="image/*" capture="environment" id="camCaptureInput" style="display:none;">
                 <div class="cam-last-line" id="camLastLine" style="display:none;"></div>
@@ -4847,6 +4847,39 @@
     });
     // El botón "atrás" del teléfono cierra el menú en vez de salir.
     window.addEventListener('keydown', ev => { if (ev.key === 'Escape') cerrar(); });
+})();
+</script>
+<script>
+// ===== TECLADO SOLO CUANDO TÚ TOCAS UN CAMPO PARA ESCRIBIR =====
+// El programa sigue poniendo el cursor en el buscador (así el lector de códigos USB/Bluetooth escribe ahí),
+// pero en el celular el teclado en pantalla ya no aparece solo: aparece únicamente si tocas el campo
+// o el botón "⌨️ Prefiero escribir el código".
+(function () {
+    if (!matchMedia('(pointer: coarse)').matches) return;          // solo celulares/tablets
+    const esTexto = el => !!el && (el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && !/^(button|checkbox|radio|file|range|color|submit|reset|hidden|image)$/i.test(el.type || '')));
+    let permitido = null, tecladoHasta = 0;
+    const devolver = el => {
+        if (el.dataset.jatIm === undefined) { if (el.getAttribute('inputmode') === 'none') el.removeAttribute('inputmode'); return; }
+        const o = el.dataset.jatIm; delete el.dataset.jatIm;
+        if (o && o !== 'none') el.setAttribute('inputmode', o); else el.removeAttribute('inputmode');
+    };
+    document.addEventListener('pointerdown', e => {
+        const el = e.target.closest && e.target.closest('input, textarea');
+        if (esTexto(el)) { permitido = el; devolver(el); }
+        if (e.target.closest && e.target.closest('[data-teclado]')) tecladoHasta = Date.now() + 1500;
+    }, true);
+    document.addEventListener('focusin', e => {
+        const el = e.target;
+        if (!esTexto(el) || el === permitido || Date.now() < tecladoHasta) { if (esTexto(el) && Date.now() < tecladoHasta) { permitido = el; devolver(el); } return; }
+        if (el.dataset.jatIm === undefined) el.dataset.jatIm = el.getAttribute('inputmode') || '';
+        el.setAttribute('inputmode', 'none');
+    }, true);
+    document.addEventListener('focusout', e => {
+        const el = e.target;
+        if (!esTexto(el)) return;
+        if (el === permitido) permitido = null;
+        if (el.dataset.jatIm !== undefined) { const o = el.dataset.jatIm; delete el.dataset.jatIm; if (o) el.setAttribute('inputmode', o); else el.removeAttribute('inputmode'); }
+    }, true);
 })();
 </script>
 </body>
