@@ -6591,6 +6591,28 @@
             }
         })();
     }
+
+    // ===== Botón 📷 junto al buscador del Kardex =====
+    (function () {
+        function ponerBoton() {
+            const inp = document.getElementById('kdxBuscar');
+            if (!inp || document.getElementById('kdxScanBusca')) return;
+            const fila = document.createElement('div');
+            fila.style.cssText = 'display:flex;gap:8px;align-items:stretch;';
+            inp.parentNode.insertBefore(fila, inp);
+            fila.appendChild(inp);
+            inp.style.flex = '1'; inp.style.minWidth = '0'; inp.placeholder = 'Buscar por nombre o código';
+            fila.insertAdjacentHTML('beforeend', '<button type="button" id="kdxScanBusca" aria-label="Escanear código" style="flex:none;width:56px;border:0;border-radius:12px;background:#1a3a5c;color:#fff;font-size:1.5rem;cursor:pointer;">📷</button>');
+            document.getElementById('kdxScanBusca').addEventListener('click', () => jatEscanearUnCodigo(cod => {
+                const d = jatKardexDato(cod);
+                if (d) { inp.value = cod; jatRenderKardex(); showAlert('📋 ' + (d.n || cod), 'success'); }
+                else { inp.value = ''; jatRenderKardex(); showAlert('Ese código no está en el kardex. Escribe su nombre para agregarlo.', 'warning'); jatAbrirKardexModal(cod, null, 'kardex'); }
+            }));
+        }
+        const obs = new MutationObserver(ponerBoton);
+        const iniciar = () => { const m = document.getElementById('mainContent'); if (m) { obs.observe(m, { childList: true, subtree: true }); ponerBoton(); } };
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar); else iniciar();
+    })();
     </script>
     <!-- ====================================================================
          NOTAS DE AUDITORÍA — SEGUNDA PASADA (Jorge reportó: "cámara no funciona")
