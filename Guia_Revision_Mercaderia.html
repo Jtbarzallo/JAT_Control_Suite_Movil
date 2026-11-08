@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b2440">
+<link rel="icon" href="icon-192.png">
+<title>Guía — JAT Revisión de Mercadería</title>
+<style>
+:root{--bg:#eef2f7;--card:#fff;--ink:#13202f;--muted:#5b6b7f;--line:#dbe3ec;--brand:#0b2440;--blue:#1667c7;--red:#d62f3a;
+  --ok:#15803d;--okbg:#dcfce7;--warn:#b45309;--warnbg:#fef3c7;--bad:#b91c1c;--badbg:#fee2e2;--vio:#7c3aed;--viobg:#f3e8ff}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);line-height:1.55;font-size:16px}
+header{background:var(--brand);color:#fff;padding:28px 18px 24px;padding-top:calc(28px + env(safe-area-inset-top))}
+header .in{max-width:760px;margin:0 auto}
+header h1{margin:0 0 6px;font-size:1.5rem;line-height:1.2}
+header p{margin:0;color:#cbd5e1}
+.cta{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.cta a{flex:1;min-width:150px;text-align:center;text-decoration:none;font-weight:700;border-radius:12px;padding:13px 14px}
+.cta .a1{background:var(--red);color:#fff}.cta .a2{background:rgba(255,255,255,.14);color:#fff}
+nav.idx{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid var(--line);overflow-x:auto;white-space:nowrap;scrollbar-width:none}
+nav.idx .in{max-width:760px;margin:0 auto;padding:8px 12px;display:flex;gap:6px}
+nav.idx a{display:inline-block;text-decoration:none;color:var(--ink);font-size:.85rem;border:1px solid var(--line);border-radius:999px;padding:6px 12px}
+main{max-width:760px;margin:0 auto;padding:14px 12px 60px}
+section{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 16px;margin-bottom:14px;scroll-margin-top:60px}
+h2{margin:0 0 10px;font-size:1.2rem;display:flex;align-items:center;gap:10px}
+h2 .num{flex:none;width:32px;height:32px;border-radius:50%;background:var(--brand);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:.95rem}
+h3{margin:16px 0 6px;font-size:1rem}
+p{margin:8px 0}
+ol,ul{margin:8px 0;padding-left:22px}li{margin:4px 0}
+.note{background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:10px 12px;font-size:.92rem;margin:10px 0}
+.warn{background:var(--warnbg);border:1px solid #fcd34d;border-radius:12px;padding:10px 12px;font-size:.92rem;margin:10px 0;color:#713f12}
+.k{display:inline-block;background:#e2e8f0;border-radius:6px;padding:0 6px;font-weight:600;font-size:.9em}
+.k.red{background:var(--red);color:#fff}
+/* teléfonos de ejemplo */
+.phones{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:12px 0 4px}
+.ph{background:#f1f5f9;border-radius:14px;padding:8px}
+.sc{background:#fff;border:1px solid var(--line);border-radius:14px;height:230px;overflow:hidden;display:flex;flex-direction:column;font-size:11px;position:relative}
+.cap{font-size:.85rem;margin:8px 2px 0;line-height:1.35}
+.cap b{display:block}
+.cap span{color:var(--muted);font-size:.8rem}
+.bar{height:26px;display:flex;align-items:center;gap:6px;padding:0 8px;color:#fff;background:var(--brand);font-weight:600}
+.wa{background:#e7f6ec;color:#14532d}
+.mark{outline:2px dashed var(--red);outline-offset:2px;border-radius:8px}
+.pdf{margin:10px 8px;border-radius:10px;padding:8px;background:#dcf8c6;display:flex;gap:8px;align-items:center;color:#14532d}
+.pdf i{font-style:normal;background:#dc2626;color:#fff;border-radius:4px;padding:2px 4px;font-size:9px;font-weight:700}
+.tip{color:var(--red);text-align:center;font-weight:600;margin-top:10px}
+.apps{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:8px}
+.app{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9.5px;text-align:center}
+.app .ic{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.row{border:1px solid var(--line);border-left:5px solid #cbd5e1;border-radius:8px;padding:5px 7px;margin:5px 8px;display:flex;justify-content:space-between;align-items:center;gap:6px}
+.row.ok{border-left-color:var(--ok);background:#f6fef8}.row.part{border-left-color:#f59e0b}.row.over{border-left-color:var(--bad);background:#fff7f7}.row.extra{border-left-color:var(--vio);background:#faf5ff}
+.qb{display:flex;align-items:center;gap:4px;font-weight:700}
+.qb s{text-decoration:none;width:18px;height:18px;border-radius:5px;background:#e2e8f0;display:inline-flex;align-items:center;justify-content:center}
+.fab{position:absolute;width:36px;height:36px;border-radius:50%;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700}
+.trig{position:absolute;right:8px;bottom:8px;width:52px;height:52px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ff6b5b,#b52a1c 70%);border:3px solid #fff;color:#fff;font-size:7.5px;font-weight:800;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(120,20,10,.4)}
+.cam{margin:6px 8px;height:84px;border-radius:10px;background:#1f2937;position:relative;overflow:hidden}
+.cam .aim{position:absolute;left:12%;right:12%;top:30%;height:40%;border:2px solid #ff4b3a;border-radius:6px}
+.cam .las{position:absolute;left:12%;right:12%;top:50%;height:2px;background:#ff2a1a;box-shadow:0 0 6px 2px rgba(255,42,26,.7)}
+.cam .code{position:absolute;left:30%;right:30%;top:38%;height:24%;background:repeating-linear-gradient(90deg,#fff 0 2px,#fff0 2px 4px,#fff 4px 5px,#fff0 5px 8px)}
+.legend{display:grid;grid-template-columns:1fr;gap:6px;margin:10px 0}
+.legend div{display:flex;align-items:center;gap:10px;font-size:.92rem;border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.legend span.c{flex:none;width:8px;height:28px;border-radius:4px}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:14px 14px 0 0;box-shadow:0 -4px 14px rgba(0,0,0,.12);padding:8px}
+.op{background:#f4f6f9;border-radius:8px;padding:6px 7px;margin-bottom:4px;font-size:10px;font-weight:600}
+.op.d{background:var(--red);color:#fff}
+details{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:8px 0}
+details summary{font-weight:600;cursor:pointer}
+footer{text-align:center;color:var(--muted);font-size:.85rem;padding:10px 12px 40px}
+</style>
+</head>
+<body>
+
+<header><div class="in">
+  <h1>📦 JAT Revisión de Mercadería</h1>
+  <p>Guía rápida para revisar egresos con el celular. Versión de prueba de 15 días.</p>
+  <div class="cta">
+    <a class="a1" href="JAT_Revision_Mercaderia.html">Abrir el programa</a>
+    <a class="a2" href="#opinion">Dar mi opinión</a>
+  </div>
+</div></header>
+
+<nav class="idx"><div class="in">
+  <a href="#que">Qué es</a><a href="#instalar">Instalar</a><a href="#cargar">Cargar egreso</a><a href="#escanear">Escanear</a>
+  <a href="#colores">Colores</a><a href="#finalizar">Finalizar</a><a href="#kardex">Kardex</a><a href="#opinion">Opinión</a><a href="#faq">Preguntas</a>
+</div></nav>
+
+<main>
+
+<section id="que">
+  <h2>¿Qué hace?</h2>
+  <p>Compara la mercadería que tienes en la mano contra lo que dice el egreso. Escaneas cada producto y el programa te dice al instante si está bien, si falta o si sobra.</p>
+  <ul>
+    <li>✅ Avisa con pitido y vibración cada lectura.</li>
+    <li>❌ Avisa en rojo si un producto <b>no está en el egreso</b>.</li>
+    <li>📊 Al final te da el resumen de <b>faltantes y sobrantes</b>, en Excel o por WhatsApp.</li>
+    <li>🗂️ Trae el <b>kardex</b> para saber el nombre de un producto con solo escanear su código.</li>
+  </ul>
+  <div class="note">Todo lo que revisas se guarda <b>en tu celular</b>. Puedes salir y volver: la revisión sigue donde la dejaste.</div>
+</section>
+
+<section id="instalar">
+  <h2><span class="num">1</span>Instalar la app</h2>
+  <p>Se hace una sola vez. Así queda con su ícono, como cualquier app, y aparece en la lista de <b>Compartir</b> de WhatsApp.</p>
+  <ol>
+    <li>Abre el enlace del programa en <b>Chrome</b>.</li>
+    <li>Escribe tu <b>nombre</b> y tu <b>área</b> (Bodega o Almacén) y toca <b>Empezar</b>.</li>
+    <li>Toca el recuadro azul <span class="k">📲 Instalar ahora</span> y luego <b>Instalar</b>.</li>
+    <li>Cuando abras la cámara por primera vez, toca <b>Permitir</b>.</li>
+  </ol>
+  <div class="phones">
+    <div class="ph"><div class="sc">
+      <div class="bar">JAT Revisión de Mercadería</div>
+      <div style="margin:8px;background:var(--brand);color:#fff;border-radius:10px;padding:8px">
+        <b style="font-size:12px">📲 Instala la app</b><div style="opacity:.8;margin:3px 0 6px">Queda como una app en tu celular</div>
+        <div class="mark" style="background:var(--red);border-radius:8px;text-align:center;padding:6px;font-weight:700">Instalar ahora</div>
+      </div>
+      <div style="margin:8px;border:1px solid var(--line);border-radius:10px;padding:8px"><b>Mis revisiones</b><div style="color:var(--muted);margin-top:4px">Toca ＋ para cargar un egreso</div></div>
+    </div><p class="cap"><b>Toca "Instalar ahora"</b><span>Aparece en la pantalla de inicio</span></p></div>
+    <div class="ph"><div class="sc" style="background:#64748b">
+      <div style="margin:auto 10px;background:#fff;border-radius:12px;padding:12px">
+        <b style="font-size:12px">¿Instalar app?</b>
+        <div style="display:flex;gap:8px;align-items:center;margin:8px 0"><div style="width:28px;height:28px;border-radius:8px;background:var(--brand)"></div>JAT Revisión</div>
+        <div style="display:flex;justify-content:flex-end;gap:12px;font-weight:700;color:var(--blue)"><span>Cancelar</span><span class="mark">Instalar</span></div>
+      </div>
+    </div><p class="cap"><b>Confirma con "Instalar"</b><span>Listo: ya tienes el ícono</span></p></div>
+  </div>
+  <div class="warn">📱 <b>iPhone:</b> Apple no permite instalar con botón. Abre el enlace en Safari → botón Compartir ⬆️ → <b>Agregar a pantalla de inicio</b>.</div>
+</section>
+
+<section id="cargar">
+  <h2><span class="num">2</span>Cargar el egreso</h2>
+  <h3>La forma más rápida: compartir desde WhatsApp</h3>
+  <p>Sin descargar ni buscar el archivo. Necesitas tener la app <b>instalada</b> (paso 1).</p>
+  <div class="phones">
+    <div class="ph"><div class="sc">
+      <div class="bar wa">← Bodega</div>
+      <div class="pdf mark"><i>PDF</i><span>EGR-001-…pdf<br><span style="opacity:.7">2 págs</span></span></div>
+      <div class="tip">👆 mantener presionado</div>
+    </div><p class="cap"><b>1. Mantén presionado el PDF</b><span>En el chat donde llegó</span></p></div>
+    <div class="ph"><div class="sc">
+      <div class="bar wa" style="justify-content:space-between"><span>✕ 1</span><span style="display:flex;gap:8px"><span>☆</span><span>🗑</span><span class="mark" style="padding:0 3px">⤴</span><span>⋮</span></span></div>
+      <div class="pdf" style="background:#dbeafe;color:#1e3a8a"><i>PDF</i><span>EGR-001-…pdf</span></div>
+      <div class="tip">toca ⤴ Compartir</div>
+    </div><p class="cap"><b>2. Toca Compartir</b><span>Arriba o en el menú ⋮</span></p></div>
+    <div class="ph"><div class="sc">
+      <div style="flex:1;background:#f1f5f9"></div>
+      <div style="border-top:1px solid var(--line)"><div style="padding:6px 8px 0;color:var(--muted)">Compartir con</div>
+      <div class="apps">
+        <div class="app"><div class="ic" style="background:#dcfce7">💬</div>Chat</div>
+        <div class="app"><div class="ic" style="background:#fef3c7">📁</div>Archivos</div>
+        <div class="app mark"><div class="ic" style="background:var(--brand);color:#fff">▥</div>JAT Revisión</div>
+      </div></div>
+    </div><p class="cap"><b>3. Elige "JAT Revisión"</b><span>Si no está, toca "Más"</span></p></div>
+    <div class="ph"><div class="sc">
+      <div class="bar">JAT Revisión</div>
+      <div style="margin:6px 8px;background:#dbeafe;color:#1e3a8a;border-radius:8px;padding:5px 7px">📥 Egreso recibido</div>
+      <div style="margin:4px 8px;height:6px;background:#e2e8f0;border-radius:9px"></div>
+      <div style="margin:0 8px;color:var(--muted)">0 / 5 unidades</div>
+      <div class="row"><span>ADT108 Plug</span><span class="qb"><s>−</s>0<s>+</s></span></div>
+      <div class="row"><span>KY578 Unión</span><span class="qb"><s>−</s>0<s>+</s></span></div>
+    </div><p class="cap"><b>4. ¡Listo para escanear!</b><span>Los productos ya están cargados</span></p></div>
+  </div>
+
+  <h3>Otras formas (botón ＋ rojo)</h3>
+  <ul>
+    <li><span class="k">📄 PDF del egreso</span> — si ya tienes el PDF descargado.</li>
+    <li><span class="k">📊 Excel o CSV</span> — con columnas Código y Producto.</li>
+    <li><span class="k">📋 Pegar texto</span> — copias el texto del egreso y lo pegas.</li>
+    <li><span class="k">🔎 Revisión libre</span> — sin documento: escaneas y el programa arma la lista con los nombres del kardex. Útil para contar lo que llegó.</li>
+  </ul>
+  <div class="note">Si el egreso ya estaba en revisión, el programa <b>continúa donde te quedaste</b>.</div>
+</section>
+
+<section id="escanear">
+  <h2><span class="num">3</span>Escanear los productos</h2>
+  <div class="phones">
+    <div class="ph"><div class="sc">
+      <div class="bar">← &nbsp;Escanea o escribe… &nbsp;📷</div>
+      <div class="cam"><div class="code"></div><div class="aim"></div><div class="las"></div></div>
+      <div style="margin:0 8px;background:var(--okbg);color:#14532d;border-radius:8px;padding:5px 7px">✅ ADT108 Plug — 1 de 2</div>
+      <div class="fab" style="left:8px;bottom:12px">＋</div>
+      <div class="trig mark">⦿<br>ESCANEAR</div>
+    </div><p class="cap"><b>Gatillo rojo = pistola lectora</b><span>＋ a la izquierda, gatillo a la derecha</span></p></div>
+  </div>
+  <h3>🎯 Con el gatillo (recomendado)</h3>
+  <ul>
+    <li><b>Mantén apretado</b> el botón rojo <span class="k red">ESCANEAR</span>: se enciende el láser y lee <b>un</b> código. Suelta y vuelve a apretar para el siguiente.</li>
+    <li><b>Toque corto:</b> queda leyendo 2,5 segundos o hasta leer un código.</li>
+    <li>También puedes <b>tocar la imagen de la cámara</b> como gatillo.</li>
+    <li>Solo lee lo que está <b>dentro del recuadro</b>: así no lee el código del producto de al lado.</li>
+  </ul>
+  <h3>🔁 Modo continuo</h3>
+  <p>Lee todo lo que pase por el recuadro sin apretar nada. Se cambia en la esquina de la cámara o en <span class="k">＋</span> → <b>Cámara: cambiar a continuo</b>.</p>
+  <h3>🔫 Lector USB o Bluetooth</h3>
+  <p>Funciona directo: escanea y el código entra solo. No se abre el teclado del celular.</p>
+  <h3>✍️ Contar a mano</h3>
+  <ul>
+    <li>Botones <span class="k">−</span> y <span class="k">+</span> de cada producto.</li>
+    <li>Toca el <b>nombre o la cantidad</b> para escribir la cantidad exacta y una <b>observación</b> (caja golpeada, serie, etc.).</li>
+    <li><span class="k">＋</span> → <b>Deshacer</b> quita el último conteo.</li>
+    <li>Para buscar un producto por nombre: toca el buscador de arriba y escribe.</li>
+  </ul>
+  <div class="note">La lista se queda <b>quieta</b> mientras la deslizas; los productos pendientes aparecen primero.</div>
+</section>
+
+<section id="colores">
+  <h2><span class="num">4</span>¿Qué significa cada color?</h2>
+  <div class="legend">
+    <div><span class="c" style="background:#cbd5e1"></span><span><b>Gris:</b> pendiente, aún no lo escaneas.</span></div>
+    <div><span class="c" style="background:#f59e0b"></span><span><b>Naranja:</b> incompleto, faltan unidades.</span></div>
+    <div><span class="c" style="background:var(--ok)"></span><span><b>Verde:</b> completo, cuadra con el egreso.</span></div>
+    <div><span class="c" style="background:var(--bad)"></span><span><b>Rojo:</b> sobra, hay más de lo que dice el egreso.</span></div>
+    <div><span class="c" style="background:var(--vio)"></span><span><b>Morado:</b> no está en el egreso (se anota como sobrante).</span></div>
+  </div>
+  <p>Arriba ves la barra de avance y los filtros: <span class="k">Pendientes</span> <span class="k">Completos</span> <span class="k">Diferencias</span> <span class="k">No están en el egreso</span>.</p>
+</section>
+
+<section id="finalizar">
+  <h2><span class="num">5</span>Finalizar y enviar</h2>
+  <div class="phones">
+    <div class="ph"><div class="sc" style="background:#64748b">
+      <div class="sheet">
+        <b style="font-size:11px">Revisión</b>
+        <div class="op d mark" style="margin-top:6px">✅ Finalizar revisión</div>
+        <div class="op">↩️ Deshacer</div><div class="op">⌨️ Escribir código</div><div class="op">📊 Exportar a Excel</div><div class="op">💬 Enviar por WhatsApp</div><div class="op">🏠 Guardar y salir</div>
+      </div>
+    </div><p class="cap"><b>＋ → Finalizar revisión</b><span>Todas las acciones están en el ＋</span></p></div>
+    <div class="ph"><div class="sc">
+      <div style="padding:8px"><b style="font-size:12px">Resumen de la revisión</b>
+      <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:4px 0"><span>Revisado</span><b>23 / 25</b></div>
+      <div style="color:var(--bad);font-weight:700;margin-top:6px">Faltan (1)</div>
+      <div style="display:flex;justify-content:space-between;padding:3px 0"><span>KY578 Unión</span><b>−2</b></div>
+      <div style="color:var(--vio);font-weight:700;margin-top:4px">Sobran (1)</div>
+      <div style="display:flex;justify-content:space-between;padding:3px 0"><span>CBL-HDMI 3m</span><b>+1</b></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:8px"><div class="op" style="text-align:center">📊 Excel</div><div class="op d" style="text-align:center">💬 WhatsApp</div></div></div>
+    </div><p class="cap"><b>Resumen de diferencias</b><span>Envíalo o descárgalo</span></p></div>
+  </div>
+  <ol>
+    <li>Toca <span class="k">＋</span> → <b>Finalizar revisión</b>.</li>
+    <li>Revisa los <b>faltantes y sobrantes</b>. Si quieres, escribe una observación general.</li>
+    <li>Envía con <span class="k">💬 WhatsApp</span> o descarga el <span class="k">📊 Excel</span>.</li>
+    <li>Toca <b>Cerrar revisión</b>. Queda guardada en <b>Mis revisiones</b>.</li>
+  </ol>
+  <div class="note">¿Te interrumpieron? <span class="k">＋</span> → <b>Guardar y salir</b> (o el botón atrás del celular). Luego la abres desde <b>Mis revisiones</b>.</div>
+</section>
+
+<section id="kardex">
+  <h2><span class="num">6</span>Kardex</h2>
+  <p>En la pestaña <span class="k">🗂️ Kardex</span> puedes saber qué producto es un código, o buscar el código de un producto. Solo muestra <b>código de barras y nombre</b>, sin cantidades.</p>
+  <ul>
+    <li><span class="k">＋</span> → <b>Escanear un código</b> para ver su nombre.</li>
+    <li>Toca el buscador y escribe parte del nombre (ej.: <i>plug adaptador</i>).</li>
+  </ul>
+</section>
+
+<section id="opinion">
+  <h2>💬 Tu opinión (muy importante)</h2>
+  <p>Estamos probando el programa <b>15 días</b>. Tu opinión decide qué se mejora.</p>
+  <ol>
+    <li>Ve a la pestaña <span class="k">💬 Opinión</span>.</li>
+    <li>Califica con estrellas y escribe qué te gustó, qué falla y qué le agregarías.</li>
+    <li>Toca <b>Enviar por WhatsApp</b>. Puedes enviarla las veces que quieras.</li>
+  </ol>
+  <div class="note">El día 15 el programa te recordará enviar tu opinión. Se envía con un resumen de cuánto lo usaste (sin datos de productos).</div>
+</section>
+
+<section id="faq">
+  <h2>❓ Preguntas frecuentes</h2>
+  <details><summary>No aparece "JAT Revisión" al compartir desde WhatsApp</summary><p>La app tiene que estar <b>instalada</b> (paso 1). Si la instalaste antes del 8 de noviembre, desinstálala y vuelve a instalarla. En iPhone no está disponible: usa ＋ → PDF del egreso.</p></details>
+  <details><summary>La cámara no abre</summary><p>Revisa que diste permiso: en Chrome toca el candado junto a la dirección → <b>Permisos</b> → <b>Cámara: Permitir</b>. Cierra y vuelve a abrir el programa.</p></details>
+  <details><summary>No lee un código</summary><p>Aleja un poco el producto (unos 15–20 cm), ponlo dentro del recuadro y que no tenga reflejo de luz. Si no lo lee, toca el buscador y escribe el código.</p></details>
+  <details><summary>Dice que un producto no está en el egreso</summary><p>Puede ser un producto equivocado o un código distinto al del egreso. Queda anotado en morado como sobrante y aparece en el resumen.</p></details>
+  <details><summary>El PDF no se lee bien</summary><p>Usa ＋ → <b>Pegar texto</b>: abre el PDF, copia todo el texto y pégalo. Si sigue fallando, cuéntalo en tu opinión.</p></details>
+  <details><summary>¿Se pierden mis revisiones?</summary><p>Se guardan en tu celular (las últimas 40). Solo se pierden si borras los datos de Chrome o desinstalas la app.</p></details>
+  <details><summary>¿Necesito internet?</summary><p>Sí, para abrir el programa y cargar el kardex.</p></details>
+</section>
+
+<div class="cta" style="margin-top:4px"><a class="a1" href="JAT_Revision_Mercaderia.html">Abrir el programa</a></div>
+</main>
+<footer>JAT Revisión de Mercadería · versión de prueba</footer>
+</body>
+</html>

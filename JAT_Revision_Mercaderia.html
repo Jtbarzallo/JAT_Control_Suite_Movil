@@ -242,7 +242,7 @@ body.en-verif #toast{right:116px}
 <!-- Modales -->
 <div class="modal" id="mPerfil"><div class="sheet">
   <h3>👋 Bienvenido</h3>
-  <p class="hint">Este programa es para revisar mercadería contra el egreso. Escribe tu nombre para que tus revisiones y tu opinión salgan con tu nombre.</p>
+  <p class="hint">Este programa es para revisar mercadería contra el egreso. Escribe tu nombre para que tus revisiones y tu opinión salgan con tu nombre. <a href="Guia_Revision_Mercaderia.html">📘 Ver cómo se usa</a></p>
   <label class="lb">Tu nombre</label><input class="field" id="pfNombre" placeholder="Nombre y apellido">
   <label class="lb">Tu área</label>
   <select class="field" id="pfArea"><option>Bodega</option><option>Almacén</option><option>Otra</option></select>
@@ -1090,7 +1090,8 @@ function accionesDe(v){
     { ico:'📊', txt:'Excel o CSV', sub:'Debe tener columnas Código y Producto', directo:true, fn:() => $('#fileOtro').click() },
     { ico:'📋', txt:'Pegar texto del egreso', sub:'Copiado del PDF o del sistema', fn:() => { abrirModal('mPegar'); } },
     { ico:'🔎', txt:'Revisión libre', sub:'Sin documento: escaneas y se arma la lista con el kardex', fn:revisionLibre },
-    !esApp() && { ico:'📲', txt:'Instalar la app en este celular', sub:'Queda con su ícono, como una app', directo:true, fn:instalarApp }
+    !esApp() && { ico:'📲', txt:'Instalar la app en este celular', sub:'Queda con su ícono, como una app', directo:true, fn:instalarApp },
+    { ico:'📘', txt:'Cómo se usa', sub:'Guía con los pasos', directo:true, fn:() => { location.href = 'Guia_Revision_Mercaderia.html'; } }
   ]};
   if (v === 'verif'){
     const cerrada = rev?.finalizada;
@@ -1113,7 +1114,8 @@ function accionesDe(v){
   if (v === 'opinion') return { t:'Opinión', ops:[
     { ico:'💬', txt:'Enviar mi opinión por WhatsApp', dest:true, fn:enviarOpinion },
     { ico:'✏️', txt:'Cambiar nombre o área', fn:abrirPerfil },
-    !esApp() && { ico:'📲', txt:'Instalar la app en este celular', directo:true, fn:instalarApp }
+    !esApp() && { ico:'📲', txt:'Instalar la app en este celular', directo:true, fn:instalarApp },
+    { ico:'📘', txt:'Cómo se usa', sub:'Guía con los pasos', directo:true, fn:() => { location.href = 'Guia_Revision_Mercaderia.html'; } }
   ]};
   return null;
 }
