@@ -2,7 +2,13 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#061b34">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
     <title>JAT Control Suite 2.0 - Verificador Profesional</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -450,6 +456,33 @@
     .ini-pct{font-weight:800;font-size:.95rem;min-width:46px;text-align:right;}
     .ini-vacio{text-align:center;padding:26px 10px;color:#7f8c8d;font-size:.9rem;}
     .ini-mas{border:none;background:none;color:#2d6aa3;font-weight:600;padding:8px;cursor:pointer;font-family:inherit;}
+
+    /* ===== v9: menú ＋ organizado y pantalla completa en celular ===== */
+    .jat-fab-ini{display:none;}
+    .jat-lanz{display:none;}
+    @media(max-width:720px){
+      .ini-nav{display:none!important;}
+      .top-bar{height:46px!important;padding:0 14px!important;}
+      .top-bar .badge,.top-bar .user-area,.top-bar .brand-emblem{display:none!important;}
+      .content-area{padding-bottom:96px!important;}
+      .jat-fab-ini{display:flex;position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:8500;width:64px;height:64px;border-radius:50%;border:3px solid #fff;background:linear-gradient(145deg,#1a3a5c,#061b34);color:#e9c987;font-size:2.3rem;line-height:1;align-items:center;justify-content:center;box-shadow:0 8px 22px rgba(6,27,52,.4);cursor:pointer;-webkit-tap-highlight-color:transparent;}
+      body.ini-en-verificador .jat-fab-ini,body.jat-lanz-abierto .jat-fab-ini{display:none;}
+      body.jat-lanz-abierto .jat-lanz{display:flex;}
+      .jat-lanz{position:fixed;inset:0;z-index:9500;flex-direction:column;background:#081a33;color:#fff;padding:calc(10px + env(safe-area-inset-top)) 14px calc(14px + env(safe-area-inset-bottom));}
+      .jat-lanz-top{display:flex;align-items:center;justify-content:space-between;padding:4px 2px 10px;}
+      .jat-lanz-top b{font-size:1.15rem;letter-spacing:1px;color:#e9c987;}
+      .jat-lanz-top small{display:block;font-size:.75rem;color:#9fb3c8;font-weight:400;max-width:62vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+      .jat-lanz-x{width:52px;height:52px;border-radius:50%;border:none;background:#c0392b;color:#fff;font-size:1.6rem;cursor:pointer;}
+      .jat-lanz-cuerpo{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+      .jat-lanz h5{margin:12px 2px 8px;font-size:.72rem;letter-spacing:1.5px;text-transform:uppercase;color:#c99a4a;}
+      .jat-lanz-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+      .jl{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:88px;padding:8px 4px;border:none;border-radius:16px;background:#12335a;color:#fff;font-family:inherit;font-size:.78rem;font-weight:700;line-height:1.15;text-align:center;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+      .jl:active{transform:scale(.96);filter:brightness(1.2);}
+      .jl .i{font-size:1.75rem;line-height:1;}
+      .jl.grande{grid-column:span 3;flex-direction:row;justify-content:flex-start;gap:14px;min-height:70px;padding:12px 18px;font-size:1rem;}
+      .jl.rojo{background:#b8392b;} .jl.verde{background:#1e8e4e;} .jl.oro{background:#9a7428;} .jl.azul{background:#2d6aa3;}
+      .jl[hidden]{display:none;}
+    }
     /* Barra inferior fija (celular) */
     .ini-nav{display:none;}
     body.ini-en-verificador .ini-nav{display:none!important;}
@@ -496,7 +529,7 @@
     <div class="top-bar">
         <div class="logo-area">
             <div class="brand-block">
-                <img src="assets/JAT_logo_aprobado.png" class="brand-emblem" alt="JAT Jorge Andrés Toledo">
+                <img src="assets/JAT_logo_aprobado.png" class="brand-emblem" alt="" onerror="this.style.display='none'">
                 <div class="brand-text">
                     <div class="brand-main">JAT</div>
                     <div class="brand-sub">Control Suite</div>
@@ -563,6 +596,48 @@
     </div>
 
 
+    <!-- ===== Botón ＋ y menú organizado (celular) ===== -->
+    <button type="button" class="jat-fab-ini" id="jatFabIni" aria-label="Abrir menú">＋</button>
+    <div class="jat-lanz" id="jatLanz" role="dialog" aria-label="Menú">
+        <div class="jat-lanz-top">
+            <div><b>JAT · MENÚ</b><small id="jlEgreso"></small></div>
+            <button type="button" class="jat-lanz-x" id="jatLanzX" aria-label="Cerrar">✕</button>
+        </div>
+        <div class="jat-lanz-cuerpo">
+            <div class="jat-lanz-grid">
+                <button class="jl grande azul" data-go="continuar" id="jlContinuar" hidden><span class="i">▶️</span><span id="jlContinuarTxt">Continuar egreso</span></button>
+            </div>
+            <h5>Trabajo diario</h5>
+            <div class="jat-lanz-grid">
+                <button class="jl" data-go="inicio"><span class="i">🏠</span>Inicio</button>
+                <button class="jl rojo" data-go="cargar"><span class="i">📄</span>Cargar egreso PDF</button>
+                <button class="jl verde" data-go="ingresar"><span class="i">📦</span>Ingresar mercadería</button>
+                <button class="jl oro" data-go="abrir"><span class="i">📂</span>Abrir archivo</button>
+                <button class="jl" data-go="egresos"><span class="i">🔍</span>Mis egresos</button>
+                <button class="jl" data-a="historial"><span class="i">📋</span>Historial / avances</button>
+            </div>
+            <h5>Egreso abierto</h5>
+            <div class="jat-lanz-grid">
+                <button class="jl" data-a="guardarAhora"><span class="i">💾</span>Guardar</button>
+                <button class="jl" data-a="guardarComo"><span class="i">📁</span>Guardar como</button>
+                <button class="jl" data-a="imprimir"><span class="i">🖨️</span>Imprimir</button>
+                <button class="jl" data-a="exportarPdf"><span class="i">📕</span>Exportar PDF</button>
+                <button class="jl" data-a="buscarEgresos"><span class="i">🔎</span>Buscar egresos locales</button>
+                <button class="jl" data-a="constancias"><span class="i">📝</span>Cartas de constancia</button>
+            </div>
+            <h5>Bodega</h5>
+            <div class="jat-lanz-grid">
+                <button class="jl verde" data-go="salida"><span class="i">📍</span>Salida y ubicaciones</button>
+                <button class="jl" data-a="kardexExcel"><span class="i">📊</span>Kardex desde Excel</button>
+                <button class="jl" data-a="carpetaTrabajo"><span class="i">🗂️</span>Carpeta de trabajo</button>
+            </div>
+            <h5>Pantalla</h5>
+            <div class="jat-lanz-grid">
+                <button class="jl azul" data-go="instalar" id="jlInstalar"><span class="i">📲</span>Instalar como app</button>
+                <button class="jl" data-go="pantalla" id="jlPantalla"><span class="i">⛶</span>Pantalla completa: SÍ</button>
+            </div>
+        </div>
+    </div>
     <div class="ini-velo" onclick="document.body.classList.remove('ini-menu-abierto')"></div>
     <nav class="ini-nav" id="iniNav">
         <button data-nav="inicio" onclick="irInicio()"><span class="ico">🏠</span>Inicio</button>
@@ -4071,7 +4146,7 @@
 
         // ---- PANTALLA COMPLETA — oculta la barra de direcciones de Chrome sin instalar nada ----
         function elementoParaPantallaCompleta() {
-            return document.getElementById('verificadorModal') || document.documentElement;
+            return document.documentElement;
         }
 
         function alternarPantallaCompleta() {
@@ -4703,5 +4778,76 @@
            - Confirmar que el hosting HTTPS que uses (GitHub Pages / Netlify)
              sirve el archivo sin bloquear la cámara.
     ==================================================================== -->
+<script>
+// ===== PANTALLA COMPLETA + APP INSTALABLE (sin barra del navegador ni franja inferior) =====
+(function () {
+    const enApp = () => matchMedia('(display-mode: fullscreen)').matches || matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+    const quiere = () => { try { return localStorage.getItem('jat_pantalla_completa') !== 'no'; } catch (_) { return true; } };
+    function pedir() {
+        if (enApp() || !quiere() || document.fullscreenElement || document.webkitFullscreenElement) return;
+        const el = document.documentElement, f = el.requestFullscreen || el.webkitRequestFullscreen;
+        if (!f) return;
+        try { const p = f.call(el, { navigationUI: 'hide' }); if (p && p.catch) p.catch(() => {}); } catch (_) {}
+    }
+    // Chrome solo deja entrar a pantalla completa con un toque: se pide en el primer toque y cada vez que se haya salido.
+    // No se pide en toques que abren el selector de archivos / guardar / compartir: Chrome los bloquearía.
+    const SIN_FS = 'input, select, textarea, label, [data-no-fs], .menu-item, .jl, .ini-cargar, .ini-abrir, #seleccionarPdfBtn, #leerPdfBtn, #elegirCarpetaBtn, #guardarComoBtn, #guardarCarpetaBtn, #camFotoFallbackBtn, #camLeerTextoBtn, #exportarExcelBtn, #descargarPdfBtn, #bAbrirArchivo, #bCargar, #bGuardar, #kExcel, #nGuardar';
+    document.addEventListener('click', ev => { if (!(ev.target.closest && ev.target.closest(SIN_FS))) pedir(); }, true);
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+    window.addEventListener('beforeinstallprompt', e => {
+        e.preventDefault();
+        window.JAT_INSTALAR = () => { e.prompt(); window.JAT_INSTALAR = null; };
+        document.dispatchEvent(new Event('jat-instalable'));
+    });
+    window.JAT_FS = {
+        pedir, quiere, enApp,
+        set(v) {
+            try { localStorage.setItem('jat_pantalla_completa', v ? 'si' : 'no'); } catch (_) {}
+            if (v) pedir(); else if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+        }
+    };
+})();
+
+// ===== Menú ＋ organizado =====
+(function () {
+    const $ = id => document.getElementById(id);
+    const accion = a => { const el = document.querySelector('.sidebar .menu-item[data-action="' + a + '"]'); if (el) el.click(); };
+    function abrir() {
+        const activo = typeof currentEgreso !== 'undefined' && currentEgreso && currentProductos.length;
+        $('jlContinuar').hidden = !activo;
+        if (activo) {
+            const nom = currentEgreso.nombre || currentEgreso.secuencial || 'egreso';
+            $('jlContinuarTxt').textContent = 'Continuar: ' + nom;
+            $('jlEgreso').textContent = 'Abierto: ' + nom;
+        } else $('jlEgreso').textContent = 'Ningún egreso abierto';
+        $('jlPantalla').innerHTML = '<span class="i">⛶</span>Pantalla completa: ' + (JAT_FS.quiere() ? 'SÍ' : 'NO');
+        $('jlInstalar').hidden = JAT_FS.enApp();
+        document.body.classList.add('jat-lanz-abierto');
+    }
+    const cerrar = () => document.body.classList.remove('jat-lanz-abierto');
+    $('jatFabIni').addEventListener('click', abrir);
+    $('jatLanzX').addEventListener('click', cerrar);
+    $('jatLanz').addEventListener('click', ev => {
+        const b = ev.target.closest('.jl'); if (!b) return;
+        const go = b.dataset.go, a = b.dataset.a;
+        if (go === 'pantalla') { JAT_FS.set(!JAT_FS.quiere()); abrir(); return; }
+        if (go === 'instalar') {
+            if (window.JAT_INSTALAR) window.JAT_INSTALAR();
+            else alert('Para que se abra siempre en pantalla completa, como una app:\n\n1. En Chrome toca ⋮ (arriba a la derecha).\n2. Elige "Agregar a la pantalla principal" o "Instalar app".\n3. Ábrela desde el ícono JAT de tu teléfono.');
+            return;
+        }
+        cerrar();
+        if (a) return accion(a);
+        if (go === 'inicio') irInicio();
+        else if (go === 'egresos') irInicio(true);
+        else if (go === 'cargar') irCargarEgreso();
+        else if (go === 'abrir') irAbrirArchivo();
+        else if (go === 'ingresar' || go === 'continuar') irIngresarMercaderia();
+        else if (go === 'salida') location.href = 'JAT_Salida_Mercaderia.html';
+    });
+    // El botón "atrás" del teléfono cierra el menú en vez de salir.
+    window.addEventListener('keydown', ev => { if (ev.key === 'Escape') cerrar(); });
+})();
+</script>
 </body>
 </html>

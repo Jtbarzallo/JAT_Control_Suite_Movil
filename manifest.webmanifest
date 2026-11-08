@@ -1,0 +1,16 @@
+{
+  "name": "JAT Control Suite",
+  "short_name": "JAT",
+  "description": "Verificación de egresos, ingreso de mercadería y ubicaciones de bodega",
+  "start_url": "JAT_Control_Suite_Movil.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "portrait",
+  "background_color": "#061b34",
+  "theme_color": "#061b34",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

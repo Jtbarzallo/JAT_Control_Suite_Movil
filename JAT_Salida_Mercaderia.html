@@ -3,6 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#061b34">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="icon-192.png">
+
 <title>JAT Salida de Mercadería</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -47,6 +53,7 @@ input[type=text],input[type=number],select{width:100%;padding:13px;border:1.5px 
 <header>
   <h1>📤 Salida de Mercadería</h1>
   <div class="bar">
+    <a class="btn small" href="JAT_Control_Suite_Movil.html" style="text-decoration:none" title="Volver a JAT Control Suite">🏠 JAT</a>
     <button class="btn small" id="bEgreso">📂 Egreso</button>
     <button class="btn small pri" id="bRegistrar">📍 Registrar</button>
     <button class="btn small" id="bKardex">📋 Kardex</button>
@@ -1022,6 +1029,36 @@ $('bCargar').onclick = () => $('fUbic').click();
 $('q').oninput = render;
 document.querySelectorAll('.chip[data-g]').forEach(c => c.onclick = () => { agrupar = c.dataset.g; document.querySelectorAll('.chip[data-g]').forEach(x => x.classList.toggle('on', x === c)); render(); });
 document.querySelectorAll('.chip[data-f]').forEach(c => c.onclick = () => { filtro = c.dataset.f; document.querySelectorAll('.chip[data-f]').forEach(x => x.classList.toggle('on', x === c)); render(); });
+</script>
+<script>
+// ===== PANTALLA COMPLETA + APP INSTALABLE (sin barra del navegador ni franja inferior) =====
+(function () {
+    const enApp = () => matchMedia('(display-mode: fullscreen)').matches || matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+    const quiere = () => { try { return localStorage.getItem('jat_pantalla_completa') !== 'no'; } catch (_) { return true; } };
+    function pedir() {
+        if (enApp() || !quiere() || document.fullscreenElement || document.webkitFullscreenElement) return;
+        const el = document.documentElement, f = el.requestFullscreen || el.webkitRequestFullscreen;
+        if (!f) return;
+        try { const p = f.call(el, { navigationUI: 'hide' }); if (p && p.catch) p.catch(() => {}); } catch (_) {}
+    }
+    // Chrome solo deja entrar a pantalla completa con un toque: se pide en el primer toque y cada vez que se haya salido.
+    // No se pide en toques que abren el selector de archivos / guardar / compartir: Chrome los bloquearía.
+    const SIN_FS = 'input, select, textarea, label, [data-no-fs], .menu-item, .jl, .ini-cargar, .ini-abrir, #seleccionarPdfBtn, #leerPdfBtn, #elegirCarpetaBtn, #guardarComoBtn, #guardarCarpetaBtn, #camFotoFallbackBtn, #camLeerTextoBtn, #exportarExcelBtn, #descargarPdfBtn, #bAbrirArchivo, #bCargar, #bGuardar, #kExcel, #nGuardar';
+    document.addEventListener('click', ev => { if (!(ev.target.closest && ev.target.closest(SIN_FS))) pedir(); }, true);
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+    window.addEventListener('beforeinstallprompt', e => {
+        e.preventDefault();
+        window.JAT_INSTALAR = () => { e.prompt(); window.JAT_INSTALAR = null; };
+        document.dispatchEvent(new Event('jat-instalable'));
+    });
+    window.JAT_FS = {
+        pedir, quiere, enApp,
+        set(v) {
+            try { localStorage.setItem('jat_pantalla_completa', v ? 'si' : 'no'); } catch (_) {}
+            if (v) pedir(); else if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+        }
+    };
+})();
 </script>
 </body>
 </html>
