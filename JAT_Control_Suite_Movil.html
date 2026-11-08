@@ -414,6 +414,60 @@
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style id="jatInicioCss">
+    /* ===== PANTALLA DE INICIO SIMPLE ===== */
+    .ini-wrap{max-width:760px;margin:0 auto;width:100%;display:flex;flex-direction:column;gap:14px;padding-bottom:90px;}
+    .ini-saludo{font-size:1.15rem;font-weight:700;color:#1a3a5c;margin:4px 2px 0;}
+    .ini-sub{font-size:.8rem;color:#6b7c8f;margin:0 2px;}
+    .ini-acciones{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    .ini-btn{border:none;border-radius:18px;padding:20px 14px;font-size:1.02rem;font-weight:700;color:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;box-shadow:0 4px 14px rgba(20,40,70,.15);min-height:110px;justify-content:center;font-family:inherit;}
+    .ini-btn .ico{font-size:2rem;line-height:1;}
+    .ini-btn small{font-weight:400;font-size:.72rem;opacity:.9;}
+    .ini-btn:active{transform:scale(.97);}
+    .ini-cargar{background:linear-gradient(135deg,#c0392b,#e15b4c);}
+    .ini-ingresar{background:linear-gradient(135deg,#1e8e4e,#2ecc71);}
+    .ini-continuar{grid-column:1/-1;background:linear-gradient(135deg,#1a3a5c,#2d6aa3);flex-direction:row;min-height:70px;gap:12px;justify-content:flex-start;text-align:left;padding:14px 18px;}
+    .ini-continuar .txt{display:flex;flex-direction:column;min-width:0;}
+    .ini-continuar .txt span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .ini-card{background:#fff;border:1px solid #e3e9ef;border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:10px;}
+    .ini-card h4{margin:0;font-size:.95rem;color:#1a3a5c;}
+    .ini-buscar{width:100%;padding:14px 16px;font-size:1rem;border:2px solid #cfd9e3;border-radius:14px;outline:none;font-family:inherit;}
+    .ini-buscar:focus{border-color:#2d6aa3;}
+    .ini-filtros{display:flex;gap:8px;flex-wrap:wrap;}
+    .ini-filtro{border:1.5px solid #cfd9e3;background:#fff;border-radius:30px;padding:7px 14px;font-size:.8rem;cursor:pointer;font-family:inherit;}
+    .ini-filtro.on{background:#1a3a5c;color:#fff;border-color:#1a3a5c;}
+    .ini-lista{display:flex;flex-direction:column;gap:8px;}
+    .ini-eg{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid #e3e9ef;border-radius:14px;cursor:pointer;background:#fafcfe;}
+    .ini-eg:active{background:#eef4fa;}
+    .ini-eg .info{flex:1;min-width:0;}
+    .ini-eg .nom{font-weight:700;font-size:.92rem;color:#1a3a5c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .ini-eg .det{font-size:.72rem;color:#6b7c8f;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .ini-bar{height:6px;background:#e6ecf2;border-radius:6px;margin-top:6px;overflow:hidden;}
+    .ini-bar>div{height:100%;border-radius:6px;}
+    .ini-pct{font-weight:800;font-size:.95rem;min-width:46px;text-align:right;}
+    .ini-vacio{text-align:center;padding:26px 10px;color:#7f8c8d;font-size:.9rem;}
+    .ini-mas{border:none;background:none;color:#2d6aa3;font-weight:600;padding:8px;cursor:pointer;font-family:inherit;}
+    /* Barra inferior fija (celular) */
+    .ini-nav{display:none;}
+    body.ini-en-verificador .ini-nav{display:none!important;}
+    .vf-home-btn{background:#1a3a5c;color:#fff;border:none;border-radius:12px;padding:8px 14px;font-weight:700;font-size:.85rem;cursor:pointer;font-family:inherit;}
+    @media(max-width:720px){
+      .sidebar{display:none;}
+      body.ini-menu-abierto .sidebar{display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;width:260px!important;z-index:9000;overflow:auto;box-shadow:4px 0 20px rgba(0,0,0,.35);}
+      body.ini-menu-abierto .sidebar .menu-parent .left,body.ini-menu-abierto .sidebar .menu-parent .arrow,body.ini-menu-abierto .sidebar .submenu .menu-item span:not(.icon),body.ini-menu-abierto .sidebar .menu-title{display:inline!important;}
+      body.ini-menu-abierto .sidebar .submenu .menu-item{font-size:.95rem;padding:12px 10px;width:auto;} body.ini-menu-abierto .sidebar .menu-section{margin:0 10px;} body.ini-menu-abierto .sidebar .submenu{padding-left:8px;}
+      .ini-velo{display:none;}
+      body.ini-menu-abierto .ini-velo{display:block;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:8999;}
+      .hat-statusline{display:none!important;}
+      .content-area{padding:12px!important;}
+      .ini-nav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:8000;background:#fff;border-top:1px solid #dde5ee;box-shadow:0 -4px 14px rgba(0,0,0,.08);padding:6px 4px calc(6px + env(safe-area-inset-bottom));}
+      .ini-nav button{flex:1;border:none;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:.7rem;color:#456;font-weight:600;padding:4px 2px;cursor:pointer;font-family:inherit;}
+      .ini-nav button .ico{font-size:1.35rem;}
+      .ini-nav button.on{color:#c0392b;}
+      .ini-btn{font-size:.95rem;min-height:104px;}
+    }
+    </style>
 </head>
 <body>
     <div class="top-bar">
@@ -437,6 +491,7 @@
     <div class="main-layout">
         <div class="sidebar">
             <div class="menu-title">JAT CONTROL SUITE</div>
+            <div class="menu-section open"><div class="submenu" style="display:block"><div class="menu-item" data-action="inicio"><span class="icon">🏠</span> <span>Inicio</span></div></div></div>
             <div class="menu-section open">
                 <button class="menu-parent" type="button"><span class="left">📂 Archivo</span><span class="arrow">▶</span></button>
                 <div class="submenu">
@@ -483,6 +538,15 @@
         <div class="content-area" id="mainContent"></div>
     </div>
 
+
+    <div class="ini-velo" onclick="document.body.classList.remove('ini-menu-abierto')"></div>
+    <nav class="ini-nav" id="iniNav">
+        <button data-nav="inicio" onclick="irInicio()"><span class="ico">🏠</span>Inicio</button>
+        <button data-nav="buscar" onclick="irInicio(true)"><span class="ico">🔍</span>Egresos</button>
+        <button data-nav="cargar" onclick="irCargarEgreso()"><span class="ico">📄</span>Cargar</button>
+        <button data-nav="ingresar" onclick="irIngresarMercaderia()"><span class="ico">📦</span>Ingresar</button>
+        <button data-nav="mas" onclick="document.body.classList.toggle('ini-menu-abierto')"><span class="ico">☰</span>Más</button>
+    </nav>
 
     <div class="hat-statusline" id="hatStatusLine">
         <span><b>JAT 2.0</b></span>
@@ -548,7 +612,7 @@
                 </div>
                 <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
                     <span class="badge-status" style="font-size:0.65rem;padding:3px 10px;">● Activo</span>
-                    <span class="close-modal" onclick="cerrarVerificador()" style="font-size:1.4rem;">&times;</span>
+                    <button class="vf-home-btn" onclick="cerrarVerificador();irInicio();">🏠 Inicio</button>
                 </div>
             </div>
 
@@ -1918,6 +1982,7 @@
         if (currentMultipleResults.length > 0 && currentMultiplePosition >= 0) mostrarNavegacionMultiple(currentMultipleResults.length);
         if (currentSelectedIndex >= 0) setTimeout(() => resaltarFilaVerificador(currentSelectedIndex, false), 120);
         document.getElementById('verificadorModal').style.display = 'flex';
+        document.body.classList.add('ini-en-verificador');
         setVerificadorViewMode(verificadorViewMode);
         setTimeout(() => {
             document.getElementById('scannerInput').focus();
@@ -2979,6 +3044,7 @@
         limpiarBusquedaMultiple();
         currentSelectedIndex = -1;
         document.getElementById('verificadorModal').style.display = 'none';
+        document.body.classList.remove('ini-en-verificador');
     }
 
     // ---- SIDEBAR EGRESO ACTIVO ----
@@ -3227,7 +3293,9 @@
                 document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
                 item.classList.add('active');
                 const action = item.dataset.action;
-                if (action === 'nuevoEgreso') cargarVistaNuevoEgreso(true);
+                document.body.classList.remove('ini-menu-abierto');
+                if (action === 'inicio') irInicio();
+                else if (action === 'nuevoEgreso') cargarVistaNuevoEgreso(true);
                 else if (action === 'abrirEgreso') abrirEgresoGuardado();
                 else if (action === 'guardarAhora') guardarActualSeguro();
                 else if (action === 'guardarComo') abrirGuardarComo();
@@ -3371,6 +3439,103 @@
         });
     });
 
+
+    // ===== PANTALLA DE INICIO SIMPLE =====
+    let iniFiltroEstado = 'todos';
+    let iniMostrarTodos = false;
+    function iniMarcarNav(k){ document.querySelectorAll('#iniNav button').forEach(b=>b.classList.toggle('on', b.dataset.nav===k)); }
+    function iniEstado(e){
+        const ev = e.estadoVerificacion || {};
+        let total = ev.total, ver = ev.verificados;
+        if (!total && Array.isArray(e.productos)) total = e.productos.length;
+        total = total || 0; ver = ver || 0;
+        const pct = total>0 ? Math.round(ver/total*100) : 0;
+        return {total, ver, pct};
+    }
+    function irInicio(enfocarBuscar){
+        document.body.classList.remove('ini-menu-abierto');
+        const vm = document.getElementById('verificadorModal');
+        if (vm && vm.style.display==='flex') cerrarVerificador();
+        document.querySelectorAll('.menu-item').forEach(m=>m.classList.toggle('active', m.dataset.action==='inicio'));
+        iniMarcarNav(enfocarBuscar ? 'buscar' : 'inicio');
+        const main = document.getElementById('mainContent');
+        const activo = currentEgreso && currentProductos.length;
+        let continuar = '';
+        if (activo){
+            const ver = currentProductos.filter(p=>p.verificado).length;
+            continuar = `<button class="ini-btn ini-continuar" onclick="irIngresarMercaderia()"><span class="ico">▶️</span><span class="txt"><span>Continuar: ${htmlSeguro(currentEgreso.nombre||currentEgreso.secuencial||'egreso')}</span><small>${ver}/${currentProductos.length} productos verificados</small></span></button>`;
+        }
+        main.innerHTML = `
+        <div class="ini-wrap">
+            <div><div class="ini-saludo">¿Qué vas a hacer?</div><div class="ini-sub">Toca una opción. Todo se guarda solo.</div></div>
+            <div class="ini-acciones">
+                ${continuar}
+                <button class="ini-btn ini-cargar" onclick="irCargarEgreso()"><span class="ico">📄</span>Cargar egreso<small>Desde el PDF</small></button>
+                <button class="ini-btn ini-ingresar" onclick="irIngresarMercaderia()"><span class="ico">📦</span>Ingresar mercadería<small>Escanear productos</small></button>
+            </div>
+            <div class="ini-card">
+                <h4>🔍 Mis egresos</h4>
+                <input id="iniBuscar" class="ini-buscar" type="search" placeholder="Buscar por nombre, número o bodega…" autocomplete="off">
+                <div class="ini-filtros">
+                    <button class="ini-filtro" data-f="todos">Todos</button>
+                    <button class="ini-filtro" data-f="pendientes">⏳ Pendientes</button>
+                    <button class="ini-filtro" data-f="completos">✅ Completos</button>
+                </div>
+                <div class="ini-lista" id="iniLista"></div>
+            </div>
+        </div>`;
+        const b = document.getElementById('iniBuscar');
+        b.addEventListener('input', ()=>{ iniMostrarTodos=false; renderIniLista(); });
+        document.querySelectorAll('.ini-filtro').forEach(f=>f.addEventListener('click', ()=>{ iniFiltroEstado=f.dataset.f; iniMostrarTodos=false; renderIniLista(); }));
+        renderIniLista();
+        if (enfocarBuscar) setTimeout(()=>{ b.focus(); b.scrollIntoView({behavior:'smooth',block:'center'}); }, 80);
+    }
+    function renderIniLista(){
+        const cont = document.getElementById('iniLista'); if (!cont) return;
+        document.querySelectorAll('.ini-filtro').forEach(f=>f.classList.toggle('on', f.dataset.f===iniFiltroEstado));
+        const q = (document.getElementById('iniBuscar')?.value||'').toLowerCase().trim();
+        let lista = (egresosGuardados||[]).slice().reverse().filter(e=>{
+            const txt = [e.nombre,e.secuencial,e.bodegaOrigen,e.bodegaDestino,e.fechaCreacion].filter(Boolean).join(' ').toLowerCase();
+            if (q && !q.split(/\s+/).every(w=>txt.includes(w))) return false;
+            const {pct,total} = iniEstado(e);
+            if (iniFiltroEstado==='pendientes' && total>0 && pct>=100) return false;
+            if (iniFiltroEstado==='completos' && !(total>0 && pct>=100)) return false;
+            return true;
+        });
+        if (!lista.length){
+            cont.innerHTML = (egresosGuardados||[]).length
+              ? '<div class="ini-vacio">No se encontró ningún egreso con esa búsqueda.</div>'
+              : '<div class="ini-vacio">📭 Todavía no hay egresos.<br>Toca <b>Cargar egreso</b> para empezar.</div>';
+            return;
+        }
+        const LIM = 15, total = lista.length;
+        if (!iniMostrarTodos) lista = lista.slice(0, LIM);
+        cont.innerHTML = lista.map(e=>{
+            const {total,ver,pct} = iniEstado(e);
+            const color = pct>=100 ? '#1e8e4e' : pct>0 ? '#e67e22' : '#2d6aa3';
+            const ruta = [e.bodegaOrigen, e.bodegaDestino].filter(Boolean).join(' → ');
+            return `<div class="ini-eg" onclick="cargarEgresoParaVerificar('${e.id}')">
+                <div class="info">
+                    <div class="nom">${pct>=100?'✅':'📋'} ${htmlSeguro(e.nombre||e.secuencial||'Egreso')}</div>
+                    <div class="det">${htmlSeguro(e.fechaCreacion||'')}${ruta?' · '+htmlSeguro(ruta):''} · ${ver}/${total}</div>
+                    <div class="ini-bar"><div style="width:${pct}%;background:${color}"></div></div>
+                </div>
+                <div class="ini-pct" style="color:${color}">${pct}%</div>
+            </div>`;
+        }).join('') + (!iniMostrarTodos && total>LIM ? `<button class="ini-mas" onclick="iniMostrarTodos=true;renderIniLista()">Ver los ${total} egresos</button>` : '');
+    }
+    function irCargarEgreso(){
+        document.body.classList.remove('ini-menu-abierto');
+        iniMarcarNav('cargar');
+        cargarVistaNuevoEgreso(true);
+    }
+    function irIngresarMercaderia(){
+        document.body.classList.remove('ini-menu-abierto');
+        if (currentEgreso && currentProductos.length){ iniMarcarNav('ingresar'); abrirVerificador(); return; }
+        showAlert('📦 Primero elige el egreso de la lista o carga uno nuevo', 'warning');
+        irInicio(true);
+    }
+
     // ---- INICIALIZAR ----
     cargarStorage();
     actualizarLineaUbicacion();
@@ -3379,7 +3544,7 @@
     iniciarOneDriveGuardado();
     initMenu();
     initKeyboardNavigation();
-    cargarVistaNuevoEgreso();
+    irInicio();
 
 
     // ---- PROTECCIÓN CONTRA CIERRE / APAGADO ----
