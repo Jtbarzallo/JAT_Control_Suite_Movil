@@ -542,14 +542,15 @@ function filasATabla(filas){
 }
 
 /* ---------- entrada de archivos ---------- */
-$('#filePdf').onchange = async e => {
-  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+async function abrirPDF(f){
   toast('Leyendo PDF…');
   try{ const t = await textoDesdePDF(f); crearDesdeTexto(t, f.name.replace(/\.pdf$/i,'')); }
   catch(err){ toast('❌ No se pudo leer el PDF. Prueba con "Pegar texto".', 'bad'); }
-};
-$('#fileOtro').onchange = async e => {
-  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+}
+$('#filePdf').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) abrirPDF(f); };
+$('#fileOtro').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) abrirArchivo(f); };
+async function abrirArchivo(f){
+  if (/\.pdf$/i.test(f.name) || f.type === 'application/pdf') return abrirPDF(f);
   try{
     let filas;
     if (/\.json$/i.test(f.name)){
@@ -571,7 +572,30 @@ $('#fileOtro').onchange = async e => {
     if (!prods.length) throw new Error('sin productos');
     crearRevision(prods, { secuencial: f.name.replace(/\.[^.]+$/,'') });
   }catch(err){ toast('❌ No reconocí el archivo. Debe tener columnas Código y Producto.', 'bad'); }
-};
+}
+
+/* ---------- Egreso compartido desde WhatsApp (u otra app) ----------
+   WhatsApp → mantener presionado el PDF → Compartir → JAT Revisión.
+   El service worker guarda el archivo y abre esta página con ?compartido=1 */
+async function recibirCompartido(){
+  const u = new URL(location.href);
+  if (!u.searchParams.has('compartido')) return;
+  history.replaceState(null, '', u.pathname);
+  try{
+    const cache = await caches.open('jatrev-compartido');
+    const resp = await cache.match('archivo');
+    const meta = await cache.match('meta').then(r => r ? r.json() : {}).catch(() => ({}));
+    await cache.delete('archivo'); await cache.delete('meta');
+    if (resp){
+      const blob = await resp.blob();
+      const f = new File([blob], meta.nombre || 'egreso.pdf', { type: meta.tipo || blob.type });
+      toast('📥 Egreso recibido: ' + f.name, 'info');
+      await abrirArchivo(f);
+    } else if (meta.texto){
+      crearDesdeTexto(meta.texto, '');
+    } else toast('No llegó ningún archivo. Vuelve a compartirlo.', 'warn');
+  }catch(e){ toast('No se pudo abrir el archivo compartido', 'bad'); }
+}
 function procesarPegado(){
   const t = $('#txtPegar').value;
   if (!t.trim()){ toast('Pega el texto primero', 'warn'); return; }
@@ -1239,6 +1263,7 @@ async function instalarApp(){
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 document.addEventListener('visibilitychange', () => { if (document.hidden) detenerCamara(); });
 registrarDiaUso(); pintarPiloto(); pintarLista(); cargarKardex(); pintarInstalar();
+setTimeout(recibirCompartido, 300);
 if (!perfil) abrirPerfil();
 else if (diaPiloto() >= DIAS_PILOTO && !ls.get('jatrev_aviso15', false)){
   ls.set('jatrev_aviso15', true);
