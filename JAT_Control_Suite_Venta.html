@@ -5856,8 +5856,13 @@
     function jatRepProducto(codIni) {
         const k = jatKardex();
         jatVista('📈 Kardex de un producto', 'reportes', `
-            <input type="search" id="rpBuscar" placeholder="Busca el producto por nombre o código" style="${JAT_INPUT}">
+            <div style="display:flex;gap:8px;"><input type="search" id="rpBuscar" placeholder="Busca por nombre o código" style="${JAT_INPUT};flex:1;min-width:0;"><button type="button" id="rpScan" aria-label="Escanear código" style="flex:none;width:56px;border:0;border-radius:12px;background:#1a3a5c;color:#fff;font-size:1.5rem;cursor:pointer;">📷</button></div>
             <div id="rpRes"></div><div id="rpDet"></div>`);
+        document.getElementById('rpScan').addEventListener('click', () => jatEscanearUnCodigo(cod => {
+            const kk = jatKardex();
+            if (kk[cod]) { document.getElementById('rpBuscar').value = cod; det(cod); }
+            else { document.getElementById('rpBuscar').value = cod; document.getElementById('rpDet').innerHTML = ''; document.getElementById('rpRes').innerHTML = `<div style="background:#fff4e5;border-radius:12px;padding:12px;font-size:.88rem;color:#8a5a00;">El código <b>${jatEsc(cod)}</b> no está en tu kardex.</div>`; }
+        }));
         const det = (cod) => {
             const it = k[cod] || {}; const ms = jatMovs().filter(m => m.cod === cod);
             document.getElementById('rpRes').innerHTML = '';
@@ -6532,6 +6537,60 @@
             return _tipo.apply(this, arguments);
         };
     })();
+
+    // ===== Escáner rápido: lee un solo código y lo devuelve =====
+    function jatEscanearUnCodigo(alLeer) {
+        const FMT = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'code_93', 'itf', 'codabar', 'qr_code', 'data_matrix'];
+        let stream = null, vivo = true, timer = null, zx = null;
+        const cont = document.fullscreenElement || document.body;
+        const ov = document.createElement('div');
+        ov.id = 'jatScanRapido';
+        ov.style.cssText = 'position:fixed;inset:0;z-index:100000;background:#000;display:flex;flex-direction:column;';
+        ov.innerHTML = `<div style="flex:1;position:relative;overflow:hidden;"><video playsinline muted autoplay style="width:100%;height:100%;object-fit:cover;"></video>
+            <div style="position:absolute;left:8%;right:8%;top:38%;height:22%;border:3px solid #2ecc71;border-radius:14px;box-shadow:0 0 0 2000px rgba(0,0,0,.35);"></div>
+            <div id="jsrMsg" style="position:absolute;top:16px;left:0;right:0;text-align:center;color:#fff;font-size:1rem;font-weight:600;text-shadow:0 1px 3px #000;">Apunta al código de barras</div></div>
+            <button type="button" id="jsrCerrar" style="min-height:64px;border:0;background:#c0392b;color:#fff;font-size:1.1rem;font-weight:700;">✕ Cancelar</button>`;
+        cont.appendChild(ov);
+        const video = ov.querySelector('video');
+        const cerrar = () => {
+            vivo = false; clearTimeout(timer);
+            try { zx && zx.reset(); } catch (e) {}
+            try { stream && stream.getTracks().forEach(t => t.stop()); } catch (e) {}
+            ov.remove();
+        };
+        const listo = (cod) => {
+            if (!vivo) return; cod = String(cod || '').trim(); if (!cod) return;
+            if (navigator.vibrate) navigator.vibrate(80);
+            cerrar(); alLeer(cod);
+        };
+        ov.querySelector('#jsrCerrar').addEventListener('click', cerrar);
+        (async () => {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
+                if (!vivo) { stream.getTracks().forEach(t => t.stop()); return; }
+                video.srcObject = stream; await video.play();
+                let det = null;
+                if ('BarcodeDetector' in window) {
+                    try { const sop = await BarcodeDetector.getSupportedFormats(); const f = FMT.filter(x => sop.includes(x)); det = new BarcodeDetector({ formats: f.length ? f : sop }); } catch (e) { det = null; }
+                }
+                if (det) {
+                    const ciclo = async () => {
+                        if (!vivo) return;
+                        try { const r = await det.detect(video); if (r && r.length) return listo(r[0].rawValue); } catch (e) {}
+                        timer = setTimeout(ciclo, 150);
+                    };
+                    ciclo();
+                } else {
+                    if (!window.ZXing) await new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js'; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
+                    if (!vivo) return;
+                    zx = new ZXing.BrowserMultiFormatReader();
+                    zx.decodeFromVideoElementContinuously(video, (res) => { if (res) listo(res.getText()); });
+                }
+            } catch (e) {
+                const m = ov.querySelector('#jsrMsg'); if (m) m.textContent = stream ? '⚠️ No se pudo cargar el lector de códigos. Revisa tu conexión a internet.' : '⚠️ No se pudo abrir la cámara. Revisa el permiso de cámara del navegador.';
+            }
+        })();
+    }
     </script>
     <!-- ====================================================================
          NOTAS DE AUDITORÍA — SEGUNDA PASADA (Jorge reportó: "cámara no funciona")
