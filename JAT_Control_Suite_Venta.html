@@ -6613,6 +6613,33 @@
         const iniciar = () => { const m = document.getElementById('mainContent'); if (m) { obs.observe(m, { childList: true, subtree: true }); ponerBoton(); } };
         if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar); else iniciar();
     })();
+
+    // ===== Buscar en el kardex con la cámara (opción del botón ＋ y del menú Más) =====
+    function jatBuscarKardexCamara() {
+        jatEscanearUnCodigo(cod => {
+            const d = jatKardexDato(cod);
+            if (d) jatRepProducto(cod);
+            else { jatIrTab('kardex'); showAlert('Ese código no está en el kardex. Escribe su nombre para agregarlo.', 'warning'); jatAbrirKardexModal(cod, null, 'kardex'); }
+        });
+    }
+    (function () {
+        const _ah2 = jatAbrirHoja;
+        jatAbrirHoja = function () {
+            _ah2.apply(this, arguments);
+            if (jatTabActual === 'kardex') document.getElementById('jatHojaOpciones').insertAdjacentHTML('afterbegin', '<button type="button" class="jat-hoja-op" data-op="kdx-buscar-cam"><span class="ic">🔍</span><span><b>Buscar con cámara</b><small>Escaneas un producto y ves su stock y movimientos</small></span></button>');
+        };
+        const _acc2 = jatAccionHoja;
+        jatAccionHoja = function (op) { if (op === 'kdx-buscar-cam') { jatCerrarHoja(); jatBuscarKardexCamara(); return; } return _acc2.apply(this, arguments); };
+        const _vm2 = cargarVistaMas;
+        cargarVistaMas = function () {
+            _vm2.apply(this, arguments);
+            const ref = document.querySelector('[data-mas="reportes"]');
+            if (ref && !document.querySelector('[data-mas="buscarcam"]')) {
+                ref.insertAdjacentHTML('beforebegin', '<button type="button" data-mas="buscarcam" style="display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:#fff;border:0;border-top:1px solid #edf2f7;padding:15px 16px;cursor:pointer;min-height:56px;"><span style="font-size:1.3rem;width:28px;text-align:center;">🔍</span><span style="flex:1;font-size:1rem;color:#1a2b3c;">Buscar producto con cámara</span><span style="color:#9aa7b2;font-size:1.3rem;">›</span></button>');
+                document.querySelector('[data-mas="buscarcam"]').addEventListener('click', jatBuscarKardexCamara);
+            }
+        };
+    })();
     </script>
     <!-- ====================================================================
          NOTAS DE AUDITORÍA — SEGUNDA PASADA (Jorge reportó: "cámara no funciona")
