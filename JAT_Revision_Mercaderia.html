@@ -174,7 +174,7 @@ body.en-verif #toast{right:116px}
     <div class="scanbar">
       <div class="scanrow">
         <button class="ib" onclick="salirVerificador()" title="Guardar y salir">←</button>
-        <input class="field" id="scanInput" placeholder="Escanea o escribe código / nombre" autocomplete="off" inputmode="search" enterkeyhint="done">
+        <form id="scanForm" style="flex:1;display:flex;margin:0" action="#" autocomplete="off"><input class="field" id="scanInput" placeholder="Escanea o escribe código / nombre" autocomplete="off" inputmode="search" enterkeyhint="go" style="width:100%"></form>
         <button class="ib" id="camBtn" onclick="toggleCamara()" title="Cámara">📷</button>
       </div>
       <div id="camBox"><video id="camVideo" playsinline muted></video><div class="aim"></div><div class="laser"></div><span class="st" id="camSt">Iniciando cámara…</span><button class="modo" id="camModoBtn" type="button"></button><button class="cl" onclick="detenerCamara()">✕</button></div>
@@ -331,15 +331,87 @@ function abrirModal(id){ $('#'+id).classList.add('on'); }
 function cerrarModal(id){ $('#'+id).classList.remove('on'); }
 
 let audioCtx;
-function beep(ok=true){
+/* Sonidos distintos para cada caso + vibración:
+   'ok'    → bip doble agudo + vibración corta
+   'warn'  → dos tonos medios + 2 vibraciones (sobra, código corto)
+   'error' → zumbido grave doble (CÓDIGO INCORRECTO) + vibración larga */
+function tono(ctx, t0, f1, f2, dur, tipo, vol){
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = tipo; o.frequency.setValueAtTime(f1, t0); if (f2) o.frequency.setValueAtTime(f2, t0 + dur / 2);
+  g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g).connect(ctx.destination); o.start(t0); o.stop(t0 + dur + 0.02);
+}
+function vibrar(patron){
+  try{ if (navigator.vibrate && ls.get('jatrev_vibrar', true)) navigator.vibrate(patron); }catch(e){}
+}
+function beep(tipo='ok'){
+  if (tipo === true) tipo = 'ok'; if (tipo === false) tipo = 'error';
   try{
     audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
-    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-    o.type = 'square'; o.frequency.value = ok ? 1250 : 260; g.gain.value = 0.07;
-    o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime + (ok ? 0.09 : 0.35));
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const t = audioCtx.currentTime + 0.01;
+    if (tipo === 'ok'){ tono(audioCtx, t, 880, 1320, 0.14, 'sine', 0.25); }
+    else if (tipo === 'warn'){ tono(audioCtx, t, 520, 0, 0.13, 'triangle', 0.3); tono(audioCtx, t + 0.17, 520, 0, 0.13, 'triangle', 0.3); }
+    else { tono(audioCtx, t, 180, 0, 0.22, 'sawtooth', 0.22); tono(audioCtx, t + 0.28, 140, 0, 0.32, 'sawtooth', 0.22); }
   }catch(e){}
-  try{ navigator.vibrate && navigator.vibrate(ok ? 40 : [120,60,120]); }catch(e){}
+  vibrar(tipo === 'ok' ? 90 : tipo === 'warn' ? [120, 80, 120] : [350, 120, 350]);
 }
+
+/* ---------- VOZ EN ESPAÑOL (dice "1 de 2", "Producto completo", "Código incorrecto"…) ---------- */
+let vozOn = ls.get('jatrev_voz', true);
+function elegirVoz(){
+  const vs = window.speechSynthesis?.getVoices?.() || []; if (!vs.length) return null;
+  const n = v => (v.lang || '').replace('_','-').toLowerCase();
+  for (const c of ['es-ec','es-mx','es-us','es-419','es-co','es-es']){ const v = vs.find(x => n(x) === c); if (v) return v; }
+  return vs.find(x => n(x).startsWith('es')) || null;
+}
+let vozLista = false;
+function desbloquearAudio(){
+  try{ audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume(); }catch(e){}
+  if (vozLista || !('speechSynthesis' in window)) return;
+  try{
+    const u = new SpeechSynthesisUtterance('.'); const v = elegirVoz();
+    if (v){ u.voice = v; u.lang = v.lang; } u.volume = 0.01; u.onstart = () => { vozLista = true; };
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+// Android pide un toque antes de permitir sonido y voz: se intenta en cada toque hasta que funcione
+['pointerdown','touchend','click','keydown'].forEach(ev => document.addEventListener(ev, desbloquearAudio, { passive:true }));
+if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = () => {};
+function hablar(texto){
+  if (!vozOn || !('speechSynthesis' in window)) return;
+  try{
+    const synth = speechSynthesis, voz = elegirVoz();
+    const crear = () => { const u = new SpeechSynthesisUtterance(texto); if (voz){ u.voice = voz; u.lang = voz.lang; } else u.lang = 'es-ES'; u.rate = 1.12; u.volume = 1; return u; };
+    let u = crear(), arranco = false;
+    u.onstart = () => { arranco = true; vozLista = true; };
+    window.__jatrevVoz = u; // Chrome descarta la frase si no queda guardada
+    const hablando = synth.speaking || synth.pending;
+    if (hablando) try{ synth.cancel(); }catch(e){}
+    // Android: cancel() seguido de speak() inmediato deja la voz muda; se espera un instante
+    setTimeout(() => {
+      try{ if (synth.paused) synth.resume(); synth.speak(u); }catch(e){}
+      setTimeout(() => { // si no arrancó, se reintenta una vez
+        if (arranco || synth.speaking) return;
+        try{ synth.cancel(); const u2 = crear(); u2.onstart = () => { vozLista = true; }; window.__jatrevVoz = u2; setTimeout(() => { try{ synth.resume(); synth.speak(u2); }catch(e){} }, 80); }catch(e){}
+      }, 700);
+    }, hablando ? 150 : 0);
+  }catch(e){}
+}
+function vozConteo(p){
+  if (rev.libre || p.extra) return fq(p.qty) + '.';
+  if (p.qty === p.expectedQty) return `${fq(p.qty)} de ${fq(p.expectedQty)}. Producto completo.`;
+  if (p.qty > p.expectedQty) return `Cantidad excedida. ${fq(p.qty)} de ${fq(p.expectedQty)}. Sobra ${fq(p.qty - p.expectedQty)}.`;
+  return `${fq(p.qty)} de ${fq(p.expectedQty)}.`;
+}
+function revisarTodoCompleto(antes){
+  if (!rev || rev.libre) return false;
+  const lineas = rev.productos.filter(p => !p.extra);
+  const ok = lineas.length && lineas.every(p => p.qty === p.expectedQty) && !rev.productos.some(p => p.extra && p.qty > 0);
+  if (ok && !antes){ setTimeout(() => { hablar('Revisión completada correctamente.'); toast('🎉 Todo cuadra con el egreso. Toca ＋ → Finalizar', 'ok'); }, 900); }
+  return ok;
+}
+function todoCompleto(){ return !!rev && !rev.libre && rev.productos.filter(p => !p.extra).every(p => p.qty === p.expectedQty) && !rev.productos.some(p => p.extra && p.qty > 0); }
 
 /* ---------- piloto y uso ---------- */
 function diaPiloto(){
@@ -680,6 +752,7 @@ function abrirRevision(id){
   $('#verTitulo').textContent = (rev.meta.secuencial || 'Egreso') + (ruta ? ' · ' + ruta : '') + (rev.finalizada ? ' · CERRADA' : '');
   $('#lastScan').className = 'last';
   irVista('verif'); pintarProductos();
+  if (!rev.libre && !rev.finalizada){ const t = totales(rev); hablar(`Egreso abierto. ${rev.productos.length} productos, ${fq(t.esp)} unidades.`); }
   setTimeout(() => $('#scanInput').focus({preventScroll:true}), 150);
 }
 function cerrarVerificador(){ detenerCamara(); rev = null; irVista('inicio'); }
@@ -725,11 +798,14 @@ function pintarProductos(resaltar=-1){
 function sumar(i, d){
   if (!rev || rev.finalizada){ toast('La revisión está cerrada', 'warn'); return; }
   const p = rev.productos[i]; const prev = p.qty;
+  if (d < 0 && prev <= 0){ beep(false); hablar('No se puede restar, ya está en cero.'); return; }
+  const antes = todoCompleto();
   p.qty = Math.max(0, +(p.qty + d).toFixed(3));
-  if (p.extra && p.qty === 0 && !rev.libre){ /* se mantiene para registro */ }
   historial.push({ i, prev });
-  if (p.qty > p.expectedQty && !p.extra && !rev.libre) toast('⚠️ Hay más de lo que dice el egreso', 'warn');
-  guardar(); pintarProductos(i);
+  const sobra = p.qty > p.expectedQty && !p.extra && !rev.libre;
+  beep(sobra ? 'warn' : 'ok'); hablar(vozConteo(p));
+  if (sobra) toast('⚠️ Hay más de lo que dice el egreso', 'warn');
+  guardar(); pintarProductos(i); revisarTodoCompleto(antes);
 }
 let cantIdx = -1;
 function pedirCantidad(i){
@@ -743,13 +819,15 @@ function pedirCantidad(i){
 function confirmarCantidad(){
   const p = rev.productos[cantIdx]; const v = parseFloat(String($('#cantInp').value).replace(',', '.'));
   if (isNaN(v) || v < 0){ toast('Cantidad no válida', 'warn'); return; }
+  const antes = todoCompleto();
   historial.push({ i:cantIdx, prev:p.qty }); p.qty = v; p.obs = $('#cantObs').value.trim();
-  cerrarModal('mCant'); guardar(); pintarProductos(cantIdx);
+  beep((p.qty > p.expectedQty && !p.extra && !rev.libre) ? 'warn' : 'ok'); hablar(vozConteo(p));
+  cerrarModal('mCant'); guardar(); pintarProductos(cantIdx); revisarTodoCompleto(antes);
 }
 $('#cantInp').addEventListener('keydown', e => { if (e.key === 'Enter') confirmarCantidad(); });
 function deshacer(){
   const h = historial.pop(); if (!h){ toast('Nada para deshacer', 'info'); return; }
-  rev.productos[h.i].qty = h.prev; guardar(); pintarProductos(h.i); toast('↩️ Deshecho', 'info');
+  rev.productos[h.i].qty = h.prev; guardar(); pintarProductos(h.i); toast('↩️ Deshecho', 'info'); hablar('Deshecho. ' + vozConteo(rev.productos[h.i]));
 }
 $$('#chips button').forEach(b => b.onclick = () => { filtro = b.dataset.f; $$('#chips button').forEach(x => x.classList.toggle('on', x === b)); pintarProductos(); });
 
@@ -766,25 +844,27 @@ function procesarCodigo(codigo){
   if (rev.finalizada){ toast('La revisión está cerrada', 'warn'); return; }
   uso.escaneos++; ls.set(K.uso, uso);
   let i = buscarIndicePorCodigo(codigo);
+  const antes = todoCompleto();
   if (i >= 0){
     const p = rev.productos[i];
     historial.push({ i, prev:p.qty }); p.qty = +(p.qty + 1).toFixed(3);
     const e = estadoProd(p);
-    if (e === 'over'){ beep(false); mostrarUltimo('bad', `⚠️ <b>SOBRA</b> · ${esc(p.productName)}<br>Contado ${fq(p.qty)} de ${fq(p.expectedQty)}`); }
+    hablar(vozConteo(p));
+    if (e === 'over'){ beep('warn'); mostrarUltimo('bad', `⚠️ <b>SOBRA</b> · ${esc(p.productName)}<br>Contado ${fq(p.qty)} de ${fq(p.expectedQty)}`); }
     else { beep(true); mostrarUltimo('ok', `✅ ${esc(p.productName)}<br>${rev.libre || p.extra ? 'Contado ' + fq(p.qty) : fq(p.qty) + ' de ' + fq(p.expectedQty)}${e === 'done' && !p.extra && !rev.libre ? ' · <b>COMPLETO</b>' : ''}`); }
-    guardar(); pintarProductos(i); return;
+    guardar(); pintarProductos(i); revisarTodoCompleto(antes); return;
   }
   // No está en la lista
   const nk = nombreKardex(codigo);
   if (rev.libre){
     rev.productos.unshift({ barcode:codigo, productName: nk || '(no está en el kardex)', expectedQty:0, qty:1, obs:'', extra:true });
     historial = historial.map(h => ({...h, i:h.i+1})); historial.push({ i:0, prev:0 });
-    beep(!!nk);
+    beep(nk ? 'ok' : 'warn'); hablar(nk ? '1.' : 'Código no está en el kardex. Verifique.');
     mostrarUltimo(nk ? 'ok' : 'warn', nk ? `✅ ${esc(nk)}<br>Contado 1` : `⚠️ Código ${esc(codigo)} no está en el kardex. Toca el producto para anotar una observación.`);
     guardar(); pintarProductos(0); return;
   }
   uso.noEncontrados++; ls.set(K.uso, uso);
-  beep(false);
+  beep(false); hablar('Código incorrecto. Verifique.');
   rev.productos.push({ barcode:codigo, productName: nk || '(no está en el kardex)', expectedQty:0, qty:1, obs:'', extra:true });
   historial.push({ i:rev.productos.length - 1, prev:0 });
   mostrarUltimo('bad', `❌ <b>NO ESTÁ EN EL EGRESO</b><br>${esc(nk || 'Código ' + codigo + ' (tampoco está en el kardex)')}<br><small>${esc(codigo)} · se anotó como sobrante</small>`);
@@ -792,13 +872,24 @@ function procesarCodigo(codigo){
 }
 const scanInput = $('#scanInput');
 let busqT;
+function enviarEscrito(){
+  const v = scanInput.value.trim(); if (!v || !rev) return;
+  // Es un código si es numérico o si coincide exacto con un código del egreso (aunque tenga letras)
+  if (/^\d{4,}$/.test(v) || buscarIndicePorCodigo(v) >= 0 || (/^[A-Za-z0-9\-_.]{4,}$/.test(v) && /\d/.test(v) && !/\s/.test(v) && nombreKardex(v))){
+    scanInput.value = ''; procesarCodigo(v);
+  } else if (/^\d{1,3}$/.test(v)){
+    beep('warn'); hablar('Código incompleto. Verifique.'); mostrarUltimo('warn', '⚠️ Código muy corto. Escribe el código completo.');
+  } else {
+    pintarProductos();
+    const vis = $$('#listaProd .prod').length;
+    if (!vis){ beep(false); hablar('Producto no encontrado.'); mostrarUltimo('bad', `❌ No se encontró "${esc(v)}" en el egreso`); }
+  }
+}
 scanInput.addEventListener('keydown', e => {
-  if (e.key !== 'Enter') return;
-  e.preventDefault();
-  const v = scanInput.value.trim();
-  if (/^\d{4,}$/.test(v)){ procesarCodigo(v); scanInput.value = ''; }
-  else if (v){ pintarProductos(); }
+  if (e.key === 'Enter' || e.keyCode === 13){ e.preventDefault(); enviarEscrito(); }
 });
+// Algunos teclados de Android no mandan "Enter": el formulario recibe el botón Ir/Listo
+$('#scanForm').addEventListener('submit', e => { e.preventDefault(); enviarEscrito(); });
 scanInput.addEventListener('input', () => { clearTimeout(busqT); busqT = setTimeout(() => { if (!/^\d+$/.test(scanInput.value.trim())) pintarProductos(); }, 200); });
 
 /* ---------- cámara ---------- */
@@ -890,7 +981,7 @@ function lecturaCamara(cod){
   if (!cod || (cod === camUlt && ahora - camUltT < 1600)) return;
   camUlt = cod; camUltT = ahora;
   if (modoGatilloActivo()) soltarDisparo();
-  if (camDestino === 'kx'){ $('#kxBuscar').value = cod; pintarKardex(); beep(!!nombreKardex(cod)); detenerCamara(); return; }
+  if (camDestino === 'kx'){ $('#kxBuscar').value = cod; pintarKardex(); beep(nombreKardex(cod) ? 'ok' : 'error'); if (!nombreKardex(cod)) hablar('Código no está en el kardex.'); detenerCamara(); return; }
   procesarCodigo(cod);
 }
 function detenerCamara(dejarCaja){
@@ -1039,7 +1130,7 @@ function exportarExcel(){
 function finalizarRevision(){
   rev.obs = $('#resObs').value.trim();
   if (!rev.finalizada){ rev.finalizada = true; uso.finalizadas++; ls.set(K.uso, uso); }
-  guardar(); toast('✅ Revisión cerrada', 'ok');
+  guardar(); toast('✅ Revisión cerrada', 'ok'); hablar('Revisión finalizada.');
   _cerrarModal('mResumen'); quitarAtrasSilencioso(salirVerificador);
 }
 
@@ -1101,6 +1192,8 @@ function accionesDe(v){
       !cerrada && { ico:'↩️', txt:'Deshacer', sub:'Quita el último conteo', fn:deshacer },
       !cerrada && { ico:'⌨️', txt:'Escribir código o buscar', sub:'Abre el teclado', teclado:true, fn:() => { const i = $('#scanInput'); i.removeAttribute('inputmode'); i.focus(); } },
       { ico: camGatillo ? '🔁' : '🎯', txt: camGatillo ? 'Cámara: cambiar a continuo' : 'Cámara: cambiar a gatillo', sub: camGatillo ? 'Lee sin apretar el gatillo' : 'Lee solo al apretar ESCANEAR', fn:() => { camGatillo = !camGatillo; ls.set('jatrev_modo_gatillo', camGatillo); aplicarModoCamara(); } },
+      { ico:'📳', txt:'Probar sonido y vibración', sub:'Correcto, advertencia y código incorrecto', fn:() => { beep('ok'); hablar('Correcto.'); setTimeout(() => beep('warn'), 1300); setTimeout(() => { beep('error'); hablar('Código incorrecto. Verifique.'); }, 2600); } },
+      { ico: vozOn ? '🔇' : '🔊', txt: vozOn ? 'Apagar la voz' : 'Encender la voz', sub: vozOn ? 'Solo quedará el pitido' : 'Dice 1 de 2, Producto completo, etc.', fn:() => { vozOn = !vozOn; ls.set('jatrev_voz', vozOn); toast(vozOn ? '🔊 Voz encendida' : '🔇 Voz apagada', 'info'); if (vozOn) hablar('Voz activada.'); } },
       { ico:'📊', txt:'Exportar a Excel', sub:'Con cantidades y diferencias', fn:() => { $('#resObs').value = rev.obs || ''; exportarExcel(); } },
       { ico:'💬', txt:'Enviar resumen por WhatsApp', fn:() => { $('#resObs').value = rev.obs || ''; compartirResumen(); } },
       { ico:'🏠', txt:'Guardar y salir', sub:'Lo retomas desde Mis revisiones', fn:() => { salirVerificador(); toast('💾 Guardado', 'ok'); } }
