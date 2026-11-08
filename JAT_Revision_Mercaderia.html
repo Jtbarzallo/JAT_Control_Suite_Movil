@@ -158,6 +158,11 @@ body.en-verif #toast{right:116px}
   <section class="view on" id="v-inicio">
     <input type="file" id="filePdf" accept="application/pdf,.pdf" hidden>
     <input type="file" id="fileOtro" accept=".xlsx,.xls,.csv,.txt,.json" hidden>
+    <div class="card" id="cardInstalar" style="display:none;background:#0b2440;color:#fff;border:0">
+      <h2 style="color:#fff">📲 Instala la app</h2>
+      <p style="color:#cbd5e1">Queda como una app en tu celular, se abre en pantalla completa y sin la barra del navegador.</p>
+      <div style="margin-top:10px"><button class="btn" style="background:#d62f3a" onclick="instalarApp()">Instalar ahora</button></div>
+    </div>
     <div class="card">
       <h2>Mis revisiones</h2>
       <ul class="list" id="listaRevisiones"></ul>
@@ -277,6 +282,11 @@ body.en-verif #toast{right:116px}
 <button type="button" class="gatillo" id="gatillo" aria-label="Mantén presionado para escanear"><span class="ico">⦿</span>ESCANEAR</button>
 <button type="button" class="fab" id="fab" aria-label="Más acciones"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
 <div class="hoja" id="hoja"><div class="fondo"></div><div class="panel"><div class="asa"></div><h4 id="hojaTit"></h4><div id="hojaOps"></div></div></div>
+<div class="modal" id="mInstalar"><div class="sheet">
+  <h3>📲 Instalar la app</h3>
+  <div id="instTxt"></div>
+  <div style="margin-top:14px"><button class="btn" onclick="cerrarModal('mInstalar')">Entendido</button></div>
+</div></div>
 <div id="toast"></div>
 
 <script>
@@ -1055,7 +1065,8 @@ function accionesDe(v){
     { ico:'📄', txt:'PDF del egreso', sub:'Lee el egreso directamente del PDF', dest:true, directo:true, fn:() => $('#filePdf').click() },
     { ico:'📊', txt:'Excel o CSV', sub:'Debe tener columnas Código y Producto', directo:true, fn:() => $('#fileOtro').click() },
     { ico:'📋', txt:'Pegar texto del egreso', sub:'Copiado del PDF o del sistema', fn:() => { abrirModal('mPegar'); } },
-    { ico:'🔎', txt:'Revisión libre', sub:'Sin documento: escaneas y se arma la lista con el kardex', fn:revisionLibre }
+    { ico:'🔎', txt:'Revisión libre', sub:'Sin documento: escaneas y se arma la lista con el kardex', fn:revisionLibre },
+    !esApp() && { ico:'📲', txt:'Instalar la app en este celular', sub:'Queda con su ícono, como una app', directo:true, fn:instalarApp }
   ]};
   if (v === 'verif'){
     const cerrada = rev?.finalizada;
@@ -1077,7 +1088,8 @@ function accionesDe(v){
   ]};
   if (v === 'opinion') return { t:'Opinión', ops:[
     { ico:'💬', txt:'Enviar mi opinión por WhatsApp', dest:true, fn:enviarOpinion },
-    { ico:'✏️', txt:'Cambiar nombre o área', fn:abrirPerfil }
+    { ico:'✏️', txt:'Cambiar nombre o área', fn:abrirPerfil },
+    !esApp() && { ico:'📲', txt:'Instalar la app en este celular', directo:true, fn:instalarApp }
   ]};
   return null;
 }
@@ -1186,11 +1198,47 @@ function salirVerificador(){ quitarAtrasSilencioso(cerrarVerificador); }
 })();
 
 /* =========================================================
+   INSTALAR LA APP (sin entrar al menú de Chrome)
+   ========================================================= */
+let promptInstalar = null;
+function esApp(){ return matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches || navigator.standalone === true; }
+function pintarInstalar(){ $('#cardInstalar').style.display = esApp() ? 'none' : 'block'; }
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); promptInstalar = e; pintarInstalar(); });
+window.addEventListener('appinstalled', () => { promptInstalar = null; $('#cardInstalar').style.display = 'none'; toast('✅ App instalada. Búscala en tu pantalla de inicio.', 'ok'); });
+async function instalarApp(){
+  if (promptInstalar){
+    promptInstalar.prompt();
+    const r = await promptInstalar.userChoice.catch(() => null);
+    promptInstalar = null;
+    if (r && r.outcome === 'accepted') { $('#cardInstalar').style.display = 'none'; return; }
+    toast('Puedes instalarla cuando quieras desde el ＋', 'info'); return;
+  }
+  // El celular no ofreció la instalación directa: mostrar los pasos según el equipo
+  const ua = navigator.userAgent;
+  let h;
+  if (/iPhone|iPad|iPod/i.test(ua)) {
+    h = `<p>En iPhone se instala desde <b>Safari</b>:</p><ol style="line-height:1.7;padding-left:20px">
+      <li>Abre este enlace en <b>Safari</b>.</li><li>Toca el botón <b>Compartir</b> (cuadro con flecha ⬆️).</li>
+      <li>Elige <b>"Agregar a pantalla de inicio"</b> y luego <b>Agregar</b>.</li></ol>`;
+  } else if (/SamsungBrowser/i.test(ua)) {
+    h = `<ol style="line-height:1.7;padding-left:20px"><li>Toca el menú <b>☰</b> abajo.</li><li>Elige <b>"Agregar página a"</b> → <b>"Pantalla de inicio"</b>.</li></ol>`;
+  } else if (/Android/i.test(ua) && !/Chrome/i.test(ua)) {
+    h = `<p>Abre este enlace en <b>Chrome</b> y vuelve a tocar <b>Instalar</b>.</p>`;
+  } else {
+    h = `<p>Si no apareció la ventana para instalar:</p><ol style="line-height:1.7;padding-left:20px">
+      <li>Toca los <b>3 puntos ⋮</b> de Chrome.</li><li>Elige <b>"Instalar app"</b> o <b>"Agregar a pantalla principal"</b>.</li></ol>
+      <p class="hint">Si ya la instalaste antes, búscala en tu pantalla de inicio como <b>JAT Revisión</b>.</p>`;
+  }
+  $('#instTxt').innerHTML = h;
+  abrirModal('mInstalar');
+}
+
+/* =========================================================
    INICIO
    ========================================================= */
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 document.addEventListener('visibilitychange', () => { if (document.hidden) detenerCamara(); });
-registrarDiaUso(); pintarPiloto(); pintarLista(); cargarKardex();
+registrarDiaUso(); pintarPiloto(); pintarLista(); cargarKardex(); pintarInstalar();
 if (!perfil) abrirPerfil();
 else if (diaPiloto() >= DIAS_PILOTO && !ls.get('jatrev_aviso15', false)){
   ls.set('jatrev_aviso15', true);
