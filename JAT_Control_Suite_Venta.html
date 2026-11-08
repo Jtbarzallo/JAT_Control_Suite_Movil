@@ -400,6 +400,40 @@
         .brand-main{font-family:Georgia,'Times New Roman',serif;font-size:1.34rem;letter-spacing:4px;color:#f4d391;font-weight:600;}
         .brand-sub{font-size:.62rem;letter-spacing:2px;color:#dbe8f7;text-transform:uppercase;}
         @media(max-width:900px){.sidebar{width:240px}.hat-statusline{left:240px}.top-bar .user-area strong{display:none}}
+        /* ---- navegación tipo app ---- */
+        #jatNav{display:none}
+        #jatFab{position:fixed;right:22px;bottom:46px;width:64px;height:64px;border-radius:50%;border:0;background:#d62f3a;color:#fff;font-size:34px;line-height:1;display:none;align-items:center;justify-content:center;box-shadow:0 10px 24px rgba(214,47,58,.4);z-index:4250;cursor:pointer;-webkit-tap-highlight-color:transparent}
+        #jatFab.abierto{display:none!important}
+        #jatHoja{position:fixed;inset:0;z-index:4300;display:none}
+        #jatHoja.on{display:block}
+        #jatHoja .fondo{position:absolute;inset:0;background:rgba(6,20,36,.55)}
+        #jatHoja .panel{position:absolute;left:0;right:0;bottom:0;background:#b8262f;padding:26px 18px calc(22px + env(safe-area-inset-bottom,0px));border-radius:22px 22px 0 0;animation:jatSube .18s ease-out}
+        @keyframes jatSube{from{transform:translateY(40px);opacity:.4}}
+        @media (prefers-reduced-motion:reduce){#jatHoja .panel{animation:none}}
+        #jatHoja .cerrar{position:absolute;right:18px;top:-30px;width:60px;height:60px;border-radius:50%;border:0;background:#fff;color:#d62f3a;font-size:26px;box-shadow:0 8px 20px rgba(0,0,0,.25);cursor:pointer}
+        #jatHojaTitulo{color:#fde8ea;font-size:.95rem;margin:0 0 14px 4px}
+        #jatHojaTitulo strong{color:#fff}
+        .jat-hoja-op{display:flex;align-items:center;gap:16px;width:100%;text-align:left;background:#da333e;border:0;border-radius:14px;padding:16px 18px;margin-bottom:10px;color:#fff;cursor:pointer;min-height:64px}
+        .jat-hoja-op:active{background:#c22a34}
+        .jat-hoja-op .ic{font-size:28px;flex:none;width:36px;text-align:center}
+        .jat-hoja-op b{display:block;font-size:1.05rem}
+        .jat-hoja-op small{display:block;font-size:.8rem;color:#fde0e3;margin-top:2px}
+        .jat-volver{flex:none;width:44px;height:44px;border-radius:12px;border:1.5px solid #dce3ea;background:#fff;color:#1a3a5c;font-size:22px;cursor:pointer}
+        #jatAvanzado,#jatCarpeta{margin:10px 0;border:1px solid #e3e9f0;border-radius:14px;padding:10px 14px;background:#fafcfe}
+        #jatAvanzado summary,#jatCarpeta summary{cursor:pointer;font-weight:600;color:#1a3a5c;font-size:.9rem;min-height:30px;display:flex;align-items:center}
+        #jatCarpeta{display:flex;flex-direction:column;gap:8px}
+        @media(max-width:760px){
+          #jatNav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:4100;background:#fff;border-top:1px solid #e3e9f0;padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px));box-shadow:0 -6px 20px rgba(6,27,52,.06)}
+          #jatNav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:0;color:#6b7c8f;font-size:.74rem;font-weight:600;padding:6px 0;min-height:52px;cursor:pointer}
+          #jatNav button span{font-size:1.35rem;filter:grayscale(1);opacity:.75}
+          #jatNav button.on{color:#d62f3a}
+          #jatNav button.on span{filter:none;opacity:1}
+          #jatFab{bottom:calc(80px + env(safe-area-inset-bottom,0px));right:18px}
+          .hat-statusline{display:none!important}
+          .menu-toggle{display:none!important}
+          .content-area{padding-bottom:90px!important}
+          .sidebar{bottom:66px!important}
+        }
         .menu-toggle,.menu-overlay{display:none}
         .scanner-section{flex-wrap:wrap!important}
         .scan-row{display:flex;gap:6px;align-items:center;flex:1 1 100%;min-width:0}
@@ -500,7 +534,7 @@
             <div class="menu-section open">
                 <button class="menu-parent" type="button"><span class="left">📂 Archivo</span><span class="arrow">▶</span></button>
                 <div class="submenu">
-                    <div class="menu-item active" data-action="nuevoEgreso"><span class="icon">📄</span> Nuevo egreso</div>
+                    <div class="menu-item active" data-action="nuevoEgreso"><span class="icon">📄</span> Egreso desde PDF o Excel</div>
                     <div class="menu-item" data-action="registrarSalida"><span class="icon">🛒</span> Registrar salida sin egreso</div>
                     <div class="menu-item" data-action="kardex"><span class="icon">📋</span> Kardex de productos</div>
                     <div class="menu-item" data-action="egresoKardex"><span class="icon">🧾</span> Egreso desde el kardex</div>
@@ -3371,7 +3405,7 @@
                 else if (action === 'kardex') cargarVistaKardex();
                 else if (action === 'misEgresos') cargarVistaMisEgresos();
                 else if (action === 'egresoKardex') cargarVistaEgresoKardex();
-                else if (action === 'registrarSalida') { cargarVistaNuevoEgreso(false); setTimeout(() => document.querySelector('.reg-box')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150); }
+                else if (action === 'registrarSalida') cargarVistaRegistroSalida();
                 else if (action === 'abrirEgreso') abrirEgresoGuardado();
                 else if (action === 'guardarAhora') guardarActualSeguro();
                 else if (action === 'guardarComo') abrirGuardarComo();
@@ -4774,7 +4808,7 @@
         const t = (document.getElementById('kdxBuscar')?.value || '').trim().toLowerCase();
         const filtrados = cods.filter(c => !t || (c + ' ' + k[c].n + ' ' + k[c].c).toLowerCase().includes(t)).sort((a, b) => k[a].n.localeCompare(k[b].n, 'es'));
         document.getElementById('kdxTotal').textContent = cods.length + ' productos';
-        if (!cods.length) { lista.innerHTML = '<p style="font-size:.85rem;color:#6b7c8f;padding:20px 0;text-align:center;">El kardex está vacío. Agrega productos, importa un Excel o registra una salida escaneando.</p>'; return; }
+        if (!cods.length) { lista.innerHTML = '<p style="font-size:.85rem;color:#6b7c8f;padding:20px 0;text-align:center;"><span style="display:block;font-size:64px;margin:20px 0 10px;">📋</span><strong style="display:block;font-size:1.1rem;color:#1a2b3c;">Tu kardex está vacío</strong><span style="display:block;margin-top:8px;">Toca el botón <b style="color:#d62f3a;">＋</b> para agregar tu primer producto</span></p>'; return; }
         lista.innerHTML = filtrados.slice(0, 300).map(c => `
             <div style="display:flex;gap:10px;align-items:center;border-bottom:1px solid #edf2f7;padding:10px 0;">
                 <div style="flex:1;min-width:0;">
@@ -5131,7 +5165,7 @@
             return !t || ((e.nombre || '') + ' ' + (e.bodegaDestino || '')).toLowerCase().includes(t);
         });
         document.getElementById('misTotal').textContent = egresosGuardados.length + ' guardados';
-        if (!lista.length) { box.innerHTML = `<p style="font-size:.85rem;color:#6b7c8f;padding:16px 0;text-align:center;">${egresosGuardados.length ? 'Ningún egreso coincide.' : 'Todavía no tienes egresos guardados. Crea uno desde el kardex, registra una salida o carga un PDF o Excel.'}</p>`; return; }
+        if (!lista.length) { box.innerHTML = `<p style="font-size:.85rem;color:#6b7c8f;padding:16px 0;text-align:center;">${egresosGuardados.length ? 'Ningún egreso coincide.' : '<span style="display:block;font-size:64px;margin:30px 0 10px;">📦</span><strong style="display:block;font-size:1.1rem;color:#1a2b3c;">Aquí no hay egresos todavía</strong><span style="display:block;margin-top:8px;">Toca el botón <b style="color:#d62f3a;">＋</b> para crear el primero</span>'}</p>`; return; }
         box.innerHTML = lista.map(e => {
             const tp = jatTipoEgreso(e);
             const total = (e.productos || []).reduce((a, p) => a + getExpectedQty(p), 0), ver = (e.productos || []).reduce((a, p) => a + getVerifiedQty(p), 0);
@@ -5165,9 +5199,7 @@
         if (fin) { currentEgreso = null; currentProductos = []; try { actualizarSidebarEgresoActivo(); } catch (e) {} }
         if (!desdeAtras && jatVerifEnHistorial && history.state && history.state.jatVerif) { jatIgnorarPop = true; history.back(); }
         jatVerifEnHistorial = false;
-        cargarVistaNuevoEgreso(false);
-        document.querySelectorAll('.menu-item').forEach(i => i.classList.toggle('active', i.dataset.action === 'nuevoEgreso'));
-        document.getElementById('mainContent')?.scrollTo?.(0, 0);
+        jatIrTab('egresos');
         showAlert(fin ? '✅ Egreso cerrado y guardado. Listo para el siguiente.' : (nombre ? '💾 Guardado. Lo retomas en 📁 Mis egresos.' : '💾 Listo'), 'success');
     }
     const _jatAbrirVerifHist = abrirVerificador;
@@ -5188,6 +5220,170 @@
         }
         if (document.getElementById('verificadorModal')?.style.display !== 'none') { jatVerifEnHistorial = false; jatGuardarYSalir(true); }
     });
+
+    // ===== Navegación tipo app: pestañas abajo + botón "+" con hoja de opciones =====
+    let jatTabActual = 'egresos';
+    function jatCabeceraVolver(titulo, volverA, derecha) {
+        return `<div style="padding:12px 16px;border-bottom:1px solid #edf2f7;display:flex;justify-content:space-between;align-items:center;gap:10px;">
+            <div style="display:flex;align-items:center;gap:8px;min-width:0;">
+                <button type="button" class="jat-volver" data-volver="${volverA}" aria-label="Volver">←</button>
+                <h3 style="font-size:1.05rem;color:#1a3a5c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${titulo}</h3>
+            </div>${derecha || ''}</div>`;
+    }
+    function jatIrTab(tab) {
+        jatTabActual = tab;
+        document.querySelectorAll('#jatNav [data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+        document.body.classList.remove('menu-abierto');
+        jatCerrarHoja();
+        if (tab === 'egresos') cargarVistaMisEgresos();
+        else if (tab === 'kardex') cargarVistaKardex();
+        else if (tab === 'verificar') {
+            if (currentProductos.length && currentEgreso) { abrirVerificador(); }
+            else { showAlert('No tienes un egreso abierto. Elige uno de la lista o crea uno con ＋', 'info'); jatIrTab('egresos'); return; }
+            document.querySelectorAll('#jatNav [data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === 'egresos'));
+            jatTabActual = 'egresos';
+        }
+        else if (tab === 'menu') { document.body.classList.add('menu-abierto'); document.querySelectorAll('#jatNav [data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === 'menu')); }
+        jatActualizarFab();
+    }
+    function jatActualizarFab() {
+        const f = document.getElementById('jatFab'); if (!f) return;
+        f.style.display = (jatTabActual === 'egresos' || jatTabActual === 'kardex') && document.getElementById('jatVistaTab') ? 'flex' : 'none';
+    }
+    function jatAbrirHoja() {
+        const h = document.getElementById('jatHoja');
+        const esKardex = jatTabActual === 'kardex';
+        document.getElementById('jatHojaTitulo').innerHTML = esKardex ? 'Agregar al <strong>kardex</strong>' : 'Crear un <strong>egreso</strong>';
+        const op = esKardex ? [
+            ['kdx-scan', '📷', 'Agregar escaneando', 'Escaneas y le pones nombre'],
+            ['kdx-escribir', '✍️', 'Agregar escribiendo', 'Escribes el código y el nombre'],
+            ['kdx-excel', '📊', 'Importar desde Excel', 'Todos los productos de una vez'],
+            ['kdx-egresos', '📁', 'Traer de mis egresos', 'Los productos que ya cargaste']
+        ] : [
+            ['eg-pdf', '📄', 'Desde un PDF', 'El documento de egreso de tu sistema'],
+            ['eg-excel', '📊', 'Desde un Excel o CSV', 'Eliges las columnas del archivo'],
+            ['eg-kardex', '🧾', 'Desde el kardex', 'Eliges productos y cantidades'],
+            ['eg-salida', '🛒', 'Registrar salida sin egreso', 'Escaneas lo que sale']
+        ];
+        document.getElementById('jatHojaOpciones').innerHTML = op.map(o => `<button type="button" class="jat-hoja-op" data-op="${o[0]}"><span class="ic">${o[1]}</span><span><b>${o[2]}</b><small>${o[3]}</small></span></button>`).join('');
+        h.classList.add('on');
+        document.getElementById('jatFab').classList.add('abierto');
+    }
+    function jatCerrarHoja() {
+        document.getElementById('jatHoja')?.classList.remove('on');
+        document.getElementById('jatFab')?.classList.remove('abierto');
+    }
+    function jatAccionHoja(op) {
+        jatCerrarHoja();
+        if (op === 'eg-pdf') { cargarVistaDocumento(); document.getElementById('pdfEgresoInput')?.click(); }
+        else if (op === 'eg-excel') { cargarVistaDocumento(); window.jatExcelDestino = ''; document.getElementById('excelEgresoInput')?.click(); }
+        else if (op === 'eg-kardex') cargarVistaEgresoKardex();
+        else if (op === 'eg-salida') cargarVistaRegistroSalida();
+        else if (op === 'kdx-scan') jatIniciarModoKardex();
+        else if (op === 'kdx-escribir') { cargarVistaKardex(); jatKardexNuevo(); }
+        else if (op === 'kdx-excel') { window.jatExcelDestino = 'kardex'; document.getElementById('kdxExcelInput').click(); }
+        else if (op === 'kdx-egresos') { cargarVistaKardex(); jatKardexDesdeEgresos(); }
+        jatActualizarFab();
+    }
+    // Pantalla: egreso desde documento (PDF / Excel / tabla pegada)
+    function cargarVistaDocumento() {
+        cargarVistaNuevoEgreso(false);
+        jatActualizarFab();
+    }
+    // Pantalla: registrar salida sin egreso
+    function cargarVistaRegistroSalida() {
+        const main = document.getElementById('mainContent');
+        main.innerHTML = `<div style="background:white;border-radius:20px;border:1px solid #e8ecf0;overflow:hidden;flex:1;display:flex;flex-direction:column;min-height:0;">
+            ${jatCabeceraVolver('🛒 Registrar salida', 'egresos')}
+            <div style="padding:18px 16px;display:flex;flex-direction:column;gap:14px;overflow:auto;">
+                <p style="font-size:.88rem;color:#4a5f78;line-height:1.5;">Para cuando no hay documento de egreso. Escaneas cada producto que sale y pones la cantidad. La app arma la lista, guarda el reporte y recuerda los nombres en el kardex.</p>
+                <input type="text" id="jatRegDestino" placeholder="Para quién es (cliente o destino) — opcional" autocomplete="off" style="width:100%;padding:14px;border:1.5px solid #dce3ea;border-radius:12px;font-size:16px;box-sizing:border-box;">
+                <button id="jatIniciarRegistroBtn" class="btn btn-primary" type="button" style="min-height:54px;font-size:1.05rem;">🛒 Empezar a registrar</button>
+            </div></div>`;
+        document.getElementById('jatIniciarRegistroBtn').addEventListener('click', () => jatIniciarRegistro());
+        jatActualizarFab();
+    }
+    // Las pantallas de lista llevan marca para mostrar el "+"
+    const _jatVistaMis = cargarVistaMisEgresos;
+    cargarVistaMisEgresos = function () {
+        _jatVistaMis.apply(this, arguments);
+        jatTabActual = 'egresos';
+        document.querySelectorAll('#jatNav [data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === 'egresos'));
+        const card = document.querySelector('#mainContent > div'); if (card) card.id = 'jatVistaTab';
+        const h = document.querySelector('#mainContent h3'); if (h) h.textContent = '🧾 Egresos';
+        document.getElementById('misArchivoBtn')?.setAttribute('style', 'background:transparent;border:0;color:#6b7c8f;font-size:.85rem;text-decoration:underline;min-height:40px;');
+        jatActualizarFab();
+    };
+    const _jatVistaKdx = cargarVistaKardex;
+    cargarVistaKardex = function () {
+        _jatVistaKdx.apply(this, arguments);
+        jatTabActual = 'kardex';
+        document.querySelectorAll('#jatNav [data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === 'kardex'));
+        const card = document.querySelector('#mainContent > div'); if (card) card.id = 'jatVistaTab';
+        // las acciones de agregar pasan al botón "+"; aquí quedan crear egreso, exportar y kardex nuevo
+        ['kdxEscanearBtn', 'kdxNuevoBtn', 'kdxExcelBtn', 'kdxEgresosBtn'].forEach(id => { const b = document.getElementById(id); if (b) b.style.display = 'none'; });
+        const csv = document.getElementById('kdxCsvBtn');
+        if (csv && !document.getElementById('kdxVaciarVistaBtn')) {
+            const nb = document.createElement('button'); nb.className = 'btn'; nb.id = 'kdxVaciarVistaBtn'; nb.type = 'button'; nb.textContent = '🆕 Kardex nuevo';
+            nb.addEventListener('click', jatPedirCrearKardex); csv.after(nb);
+        }
+        jatActualizarFab();
+    };
+    // Las demás pantallas llevan flecha de volver
+    const _jatVistaEgK = cargarVistaEgresoKardex;
+    cargarVistaEgresoKardex = function () {
+        _jatVistaEgK.apply(this, arguments);
+        const head = document.querySelector('#mainContent > div > div'); if (head) head.outerHTML = jatCabeceraVolver('🧾 Egreso desde el kardex', 'egresos', '<span id="egkTotal" style="background:#eaf2fb;color:#1a3a5c;padding:4px 12px;border-radius:40px;font-size:0.72rem;white-space:nowrap;">0 productos</span>');
+        jatEgRender();
+        jatActualizarFab();
+    };
+    const _jatVistaNuevo = cargarVistaNuevoEgreso;
+    cargarVistaNuevoEgreso = function () {
+        _jatVistaNuevo.apply(this, arguments);
+        const main = document.getElementById('mainContent');
+        const head = main.querySelector(':scope > div > div'); if (head) head.outerHTML = jatCabeceraVolver('📄 Egreso desde PDF o Excel', 'egresos');
+        main.querySelector('.kdx-box')?.remove();
+        main.querySelector('.reg-box')?.remove();
+        const intro = main.querySelector('p'); if (intro) intro.textContent = 'Carga el documento del egreso. La app lee los productos y cantidades, y después los verificas escaneando.';
+        // tabla pegada y carpeta: opciones avanzadas plegadas
+        const ta = document.getElementById('tablaEgresoInput');
+        const procesar = document.getElementById('procesarTablaBtn');
+        if (ta && procesar && !document.getElementById('jatAvanzado')) {
+            const det = document.createElement('details'); det.id = 'jatAvanzado';
+            det.innerHTML = '<summary>✍️ Pegar la tabla a mano</summary>';
+            ta.parentNode.insertBefore(det, ta); det.appendChild(ta); det.appendChild(procesar);
+            procesar.style.marginTop = '10px';
+            const det2 = document.createElement('details'); det2.id = 'jatCarpeta';
+            det2.innerHTML = '<summary>📂 Carpeta de respaldo</summary>';
+            const fila = document.getElementById('elegirCarpetaBtn')?.parentNode;
+            if (fila) { fila.parentNode.insertBefore(det2, fila.nextSibling); ['elegirCarpetaBtn', 'guardarCarpetaBtn', 'oneDriveStatus'].forEach(id => { const el = document.getElementById(id); if (el) det2.appendChild(el); }); }
+        }
+        jatTabActual = 'egresos';
+        jatActualizarFab();
+    };
+    (function jatInitNav() {
+        const nav = document.createElement('nav'); nav.id = 'jatNav';
+        nav.innerHTML = `<button type="button" data-tab="egresos" class="on"><span>🧾</span>Egresos</button>
+            <button type="button" data-tab="verificar"><span>🎯</span>Verificar</button>
+            <button type="button" data-tab="kardex"><span>📋</span>Kardex</button>
+            <button type="button" data-tab="menu"><span>☰</span>Más</button>`;
+        document.body.appendChild(nav);
+        const fab = document.createElement('button'); fab.id = 'jatFab'; fab.type = 'button'; fab.setAttribute('aria-label', 'Crear'); fab.innerHTML = '<span>＋</span>';
+        document.body.appendChild(fab);
+        const hoja = document.createElement('div'); hoja.id = 'jatHoja';
+        hoja.innerHTML = '<div class="fondo"></div><div class="panel"><button type="button" class="cerrar" aria-label="Cerrar">✕</button><p id="jatHojaTitulo"></p><div id="jatHojaOpciones"></div></div>';
+        document.body.appendChild(hoja);
+        nav.addEventListener('click', (e) => { const b = e.target.closest('[data-tab]'); if (b) jatIrTab(b.dataset.tab); });
+        fab.addEventListener('click', () => document.getElementById('jatHoja').classList.contains('on') ? jatCerrarHoja() : jatAbrirHoja());
+        hoja.querySelector('.fondo').addEventListener('click', jatCerrarHoja);
+        hoja.querySelector('.cerrar').addEventListener('click', jatCerrarHoja);
+        hoja.addEventListener('click', (e) => { const b = e.target.closest('[data-op]'); if (b) jatAccionHoja(b.dataset.op); });
+        document.addEventListener('click', (e) => { const v = e.target.closest('[data-volver]'); if (v) jatIrTab(v.dataset.volver); });
+        // al cerrar el menú lateral, la pestaña vuelve a la vista actual
+        document.getElementById('menuOverlay')?.addEventListener('click', () => document.querySelectorAll('#jatNav [data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === jatTabActual)));
+        document.querySelectorAll('.menu-item').forEach(it => it.addEventListener('click', () => setTimeout(() => { document.querySelectorAll('#jatNav [data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === jatTabActual)); jatActualizarFab(); }, 50)));
+        jatIrTab('egresos');
+    })();
     </script>
     <!-- ====================================================================
          NOTAS DE AUDITORÍA — SEGUNDA PASADA (Jorge reportó: "cámara no funciona")
