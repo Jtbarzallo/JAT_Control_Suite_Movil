@@ -400,6 +400,19 @@
         .brand-main{font-family:Georgia,'Times New Roman',serif;font-size:1.34rem;letter-spacing:4px;color:#f4d391;font-weight:600;}
         .brand-sub{font-size:.62rem;letter-spacing:2px;color:#dbe8f7;text-transform:uppercase;}
         @media(max-width:900px){.sidebar{width:240px}.hat-statusline{left:240px}.top-bar .user-area strong{display:none}}
+        #jatPrintArea{display:none}
+        @media print{
+          body.jat-imprimiendo > *:not(#jatPrintArea){display:none!important}
+          body.jat-imprimiendo #jatPrintArea{display:grid!important;background:#fff}
+          #jatPrintArea.a4{grid-template-columns:repeat(3,1fr);gap:4mm;padding:6mm}
+          #jatPrintArea.rollo{grid-template-columns:1fr}
+          #jatPrintArea .eti{border:1px dashed #bbb;padding:2mm;text-align:center;break-inside:avoid;color:#000;font-family:Arial,sans-serif}
+          #jatPrintArea.rollo .eti{width:50mm;height:25mm;box-sizing:border-box;border:0;page-break-after:always;padding:1mm}
+          #jatPrintArea .eti svg{max-width:100%;height:auto}
+          #jatPrintArea .nom{font-size:8pt;font-weight:bold;line-height:1.1;margin-bottom:1mm;overflow:hidden;max-height:2.3em}
+          #jatPrintArea .pre{font-size:11pt;font-weight:bold}
+          @page{margin:6mm}
+        }
         /* ---- navegación tipo app ---- */
         #jatNav{display:none}
         #jatFab{position:fixed;right:22px;bottom:46px;width:64px;height:64px;border-radius:50%;border:0;background:#d62f3a;color:#fff;font-size:34px;line-height:1;display:none;align-items:center;justify-content:center;box-shadow:0 10px 24px rgba(214,47,58,.4);z-index:4250;cursor:pointer;-webkit-tap-highlight-color:transparent}
@@ -624,6 +637,23 @@
             <div id="jatKdxAviso" style="display:none;background:#fff4e5;border:1px solid #f5c98a;color:#7a4a00;border-radius:12px;padding:8px 12px;font-size:.84rem;margin:6px 0 4px;"></div>
             <label for="jatKdxCategoria" style="display:block;font-size:.85rem;color:#1a3a5c;margin-top:6px;font-weight:600;">Categoría (opcional)</label>
             <input id="jatKdxCategoria" type="text" placeholder="Ej: Herramientas" autocomplete="off" style="font-size:16px;padding:12px;margin:6px 0;">
+            <details id="jatKdxMas" style="margin-top:6px;border:1px solid #e3e9f0;border-radius:12px;padding:8px 12px;">
+                <summary style="cursor:pointer;font-weight:600;color:#1a3a5c;font-size:.88rem;min-height:30px;display:flex;align-items:center;">➕ Más datos: stock, precio, ubicación, foto</summary>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+                    <label style="font-size:.78rem;color:#1a3a5c;">Stock actual<input id="jatKdxStock" type="text" inputmode="decimal" placeholder="0" style="font-size:16px;padding:10px;margin:4px 0 0;"></label>
+                    <label style="font-size:.78rem;color:#1a3a5c;">Stock mínimo<input id="jatKdxMin" type="text" inputmode="decimal" placeholder="Ej: 5" style="font-size:16px;padding:10px;margin:4px 0 0;"></label>
+                    <label style="font-size:.78rem;color:#1a3a5c;">Precio (USD)<input id="jatKdxPrecio" type="text" inputmode="decimal" placeholder="0.00" style="font-size:16px;padding:10px;margin:4px 0 0;"></label>
+                    <label style="font-size:.78rem;color:#1a3a5c;">Ubicación<input id="jatKdxUbic" type="text" placeholder="Pasillo 2" style="font-size:16px;padding:10px;margin:4px 0 0;"></label>
+                </div>
+                <label style="display:block;font-size:.78rem;color:#1a3a5c;margin-top:8px;">Proveedor<input id="jatKdxProv" type="text" placeholder="Opcional" style="font-size:16px;padding:10px;margin:4px 0 0;"></label>
+                <div style="display:flex;gap:10px;align-items:center;margin-top:10px;">
+                    <img id="jatKdxFotoImg" alt="Foto del producto" style="display:none;width:70px;height:70px;object-fit:cover;border-radius:12px;">
+                    <input type="file" id="jatKdxFotoInput" accept="image/*" capture="environment" style="display:none;">
+                    <button type="button" class="btn" id="jatKdxFotoBtn" style="min-height:44px;">📷 Foto</button>
+                    <button type="button" class="btn" id="jatKdxQuitarFoto" style="min-height:44px;display:none;">Quitar</button>
+                </div>
+                <p style="font-size:.74rem;color:#6b7c8f;margin-top:6px;">Si cambias el stock, queda registrado como ajuste en el historial.</p>
+            </details>
             <div style="display:flex;gap:10px;margin-top:12px;">
                 <button class="btn" id="jatKdxCerrarBtn" type="button" style="flex:1;min-height:52px;">Cerrar</button>
                 <button class="btn btn-success" id="jatKdxGuardarBtn" type="button" style="flex:2;min-height:52px;">💾 Guardar en kardex</button>
@@ -5383,6 +5413,596 @@
         document.getElementById('menuOverlay')?.addEventListener('click', () => document.querySelectorAll('#jatNav [data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === jatTabActual)));
         document.querySelectorAll('.menu-item').forEach(it => it.addEventListener('click', () => setTimeout(() => { document.querySelectorAll('#jatNav [data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === jatTabActual)); jatActualizarFab(); }, 50)));
         jatIrTab('egresos');
+    })();
+
+    // =====================================================================
+    // ===== EXISTENCIAS, MOVIMIENTOS, REPORTES, EMPRESA, ETIQUETAS =====
+    // =====================================================================
+    const JAT_CAMPOS = ['n', 'c', 'f', 's', 'min', 'p', 'u', 'prov'];
+    jatKardex = function () {
+        let c = {};
+        try { c = JSON.parse(localStorage.getItem('jatv_catalogo') || '{}') || {}; } catch (e) {}
+        const out = {};
+        Object.keys(c).forEach(k => {
+            const v = c[k];
+            if (typeof v === 'string') { out[k] = { n: v, c: '' }; return; }
+            const o = {}; JAT_CAMPOS.forEach(f => { if (v[f] !== undefined && v[f] !== null && v[f] !== '') o[f] = v[f]; });
+            o.n = o.n || ''; o.c = o.c || '';
+            out[k] = o;
+        });
+        return out;
+    };
+    jatKardexGuardar = function (codigo, datos) {
+        const k = jatKardex();
+        const prev = k[codigo] || { n: '', c: '' };
+        const nuevo = Object.assign({}, prev);
+        Object.keys(datos || {}).forEach(f => { if (datos[f] !== undefined) nuevo[f] = datos[f]; });
+        nuevo.f = new Date().toISOString().slice(0, 10);
+        k[codigo] = nuevo;
+        return jatKardexEscribir(k);
+    };
+    const jatDinero = v => '$' + (Number(v) || 0).toFixed(2);
+    const jatNum = v => { const n = jatNumero(v); return n === null ? null : n; };
+    function jatLeerJSON(key, def) { try { const v = JSON.parse(localStorage.getItem(key) || 'null'); return v ?? def; } catch (e) { return def; } }
+    function jatEscribirJSON(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); return true; } catch (e) { showAlert('No hay espacio para guardar en este celular. Haz una copia de seguridad y borra fotos.', 'error'); return false; } }
+    function jatFechaCorta(iso) { try { const d = new Date(iso); return d.toLocaleDateString('es-EC', { day: '2-digit', month: '2-digit', year: '2-digit' }) + ' ' + d.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' }); } catch (e) { return iso || ''; } }
+    function jatDescargar(nombre, texto, tipo) {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([texto], { type: tipo || 'text/csv;charset=utf-8' }));
+        a.download = nombre; document.body.appendChild(a); a.click();
+        setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 800);
+    }
+    function jatCsv(nombre, filas) {
+        const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+        const emp = jatEmpresa();
+        const cab = emp.nombre ? q(emp.nombre + (emp.ruc ? ' · RUC ' + emp.ruc : '')) + '\n' : '';
+        jatDescargar(nombre + '_' + new Date().toISOString().slice(0, 10) + '.csv', '﻿' + cab + filas.map(f => f.map(q).join(';')).join('\n'));
+    }
+
+    // ---- movimientos ----
+    function jatMovs() { return jatLeerJSON('jatv_movs', []); }
+    function jatRegistrarMov(cod, nombre, cantidad, tipo, ref) {
+        const k = jatKardex();
+        const it = k[cod] || { n: nombre || cod, c: '' };
+        if (!it.n && nombre) it.n = nombre;
+        it.s = Math.round(((Number(it.s) || 0) + cantidad) * 1000) / 1000;
+        k[cod] = it; jatKardexEscribir(k);
+        const m = jatMovs();
+        m.push({ t: new Date().toISOString(), tipo, cod, n: it.n || nombre || cod, q: cantidad, saldo: it.s, ref: ref || '', user: obtenerUsuarioActual() });
+        if (m.length > 8000) m.splice(0, m.length - 8000);
+        jatEscribirJSON('jatv_movs', m);
+        return it.s;
+    }
+    function jatAplicarStock(eg, tipo) {
+        if (!eg || eg.stockAplicado) return 0;
+        const signo = tipo === 'ingreso' ? 1 : -1;
+        const ref = (eg.bodegaDestino ? eg.bodegaDestino + ' · ' : '') + (eg.nombre || '');
+        let n = 0;
+        (eg.productos || currentProductos || []).forEach(p => {
+            const q = getVerifiedQty(p); if (!q) return;
+            jatRegistrarMov(String(p.barcode), p.productName, signo * q, tipo, ref); n++;
+        });
+        eg.stockAplicado = true; eg.tipoMovimiento = tipo;
+        const i = egresosGuardados.findIndex(e => e.id === eg.id);
+        if (i >= 0) { egresosGuardados[i].stockAplicado = true; egresosGuardados[i].tipoMovimiento = tipo; guardarEgresosStorage(); }
+        return n;
+    }
+    // cierre seguro de un egreso: descuenta del stock lo verificado
+    const _jatFinalizarOriginal = finalizarEgresoSeguro;
+    finalizarEgresoSeguro = function () {
+        const r = _jatFinalizarOriginal.apply(this, arguments);
+        if (currentEgreso && currentEgreso.estadoOperativo === 'FINALIZADO' && !currentEgreso.stockAplicado) {
+            const tipo = (currentProductos[0] && currentProductos[0].fuenteOrden === 'ingreso') ? 'ingreso' : 'salida';
+            currentEgreso.productos = currentProductos;
+            const n = jatAplicarStock(currentEgreso, tipo);
+            if (n) { autoGuardarEgreso(); showAlert(`📦 Stock actualizado: ${n} productos ${tipo === 'ingreso' ? 'sumados' : 'descontados'}`, 'success'); }
+        }
+        return r;
+    };
+    document.getElementById('confirmarCierreBtn')?.addEventListener('click', () => {
+        if (currentEgreso && currentEgreso.estadoOperativo === 'FINALIZADO' && !currentEgreso.stockAplicado) {
+            const tipo = (currentProductos[0] && currentProductos[0].fuenteOrden === 'ingreso') ? 'ingreso' : 'salida';
+            currentEgreso.productos = currentProductos;
+            const n = jatAplicarStock(currentEgreso, tipo);
+            if (n) { autoGuardarEgreso(); showAlert(`📦 Stock actualizado: ${n} productos ${tipo === 'ingreso' ? 'sumados' : 'descontados'}`, 'success'); }
+        }
+    });
+    // salida registrada guardada: descuenta del stock
+    document.getElementById('jatRegListoBtn')?.addEventListener('click', () => {
+        if (!currentEgreso) return;
+        currentEgreso.productos = currentProductos;
+        const n = jatAplicarStock(currentEgreso, 'salida');
+        if (n) { autoGuardarEgreso(); showAlert(`📦 Salida guardada y stock descontado (${n} productos)`, 'success'); }
+    });
+
+    // ---- ingreso de mercadería (suma stock escaneando) ----
+    window.jatModoIngreso = false;
+    function jatIniciarIngreso() {
+        jatIniciarRegistro();
+        window.jatModoIngreso = true;
+        const d = new Date(), z = n => String(n).padStart(2, '0');
+        metadataEgresoActual = { secuencial: `INGRESO_${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}_${z(d.getHours())}${z(d.getMinutes())}`, bodegaDestino: (document.getElementById('jatIngProv')?.value || '').trim() };
+        jatActualizarBanner();
+        showAlert('📥 Escanea cada producto que llega y pon la cantidad', 'info');
+    }
+    const _jatGuardarRegIng = jatGuardarRegistroProducto;
+    jatGuardarRegistroProducto = function () {
+        const r = _jatGuardarRegIng.apply(this, arguments);
+        if (window.jatModoIngreso) currentProductos.forEach(p => { p.fuenteOrden = 'ingreso'; });
+        return r;
+    };
+    const _jatBannerIng = jatActualizarBanner;
+    jatActualizarBanner = function () {
+        _jatBannerIng.apply(this, arguments);
+        if (window.jatModoIngreso) { const t = document.querySelector('#jatRegBanner strong'); if (t) t.textContent = '📥 Ingreso de mercadería'; }
+    };
+    const _jatSalirRegIng = jatSalirRegistro;
+    jatSalirRegistro = function () { window.jatModoIngreso = false; return _jatSalirRegIng.apply(this, arguments); };
+    document.addEventListener('click', (e) => {
+        if (e.target && e.target.id === 'jatRegTerminarBtn' && window.jatModoIngreso) {
+            e.stopImmediatePropagation();
+            if (currentEgreso && currentProductos.length) {
+                currentProductos.forEach(p => { p.fuenteOrden = 'ingreso'; });
+                currentEgreso.productos = currentProductos;
+                currentEgreso.estadoOperativo = 'FINALIZADO';
+                autoGuardarEgreso();
+                const n = jatAplicarStock(currentEgreso, 'ingreso');
+                autoGuardarEgreso();
+                showAlert(`📥 Ingreso guardado: ${n} productos sumados al stock`, 'success');
+            }
+            jatSalirRegistro(); cerrarVerificador(); jatIrTab('kardex');
+        }
+    }, true);
+    function cargarVistaIngreso() {
+        const main = document.getElementById('mainContent');
+        main.innerHTML = `<div style="background:white;border-radius:20px;border:1px solid #e8ecf0;overflow:hidden;flex:1;display:flex;flex-direction:column;min-height:0;">
+            ${jatCabeceraVolver('📥 Ingreso de mercadería', 'kardex')}
+            <div style="padding:18px 16px;display:flex;flex-direction:column;gap:14px;overflow:auto;">
+                <p style="font-size:.88rem;color:#4a5f78;line-height:1.5;">Para la mercadería que llega a la bodega. Escaneas cada producto y pones cuántos llegaron. Al terminar se suman al stock del kardex.</p>
+                <input type="text" id="jatIngProv" list="jatDestinosList" placeholder="Proveedor o de dónde viene — opcional" autocomplete="off" style="width:100%;padding:14px;border:1.5px solid #dce3ea;border-radius:12px;font-size:16px;box-sizing:border-box;">
+                <button id="jatIngIniciarBtn" class="btn btn-success" type="button" style="min-height:54px;font-size:1.05rem;">📥 Empezar ingreso</button>
+            </div></div>`;
+        document.getElementById('jatIngIniciarBtn').addEventListener('click', jatIniciarIngreso);
+        jatActualizarFab();
+    }
+    const _jatTipoEgOriginal = jatTipoEgreso;
+    jatTipoEgreso = function (e) {
+        const f = (e.productos && e.productos[0] && e.productos[0].fuenteOrden) || '';
+        if (f === 'ingreso') return { id: 'ingreso', t: '📥 Ingreso', c: '#5b3fa0', bg: '#f1ecfb' };
+        return _jatTipoEgOriginal.apply(this, arguments);
+    };
+
+    // ---- fotos de productos ----
+    function jatFotos() { return jatLeerJSON('jatv_fotos', {}); }
+    function jatGuardarFoto(cod, dataUrl) { const f = jatFotos(); if (dataUrl) f[cod] = dataUrl; else delete f[cod]; return jatEscribirJSON('jatv_fotos', f); }
+    function jatReducirFoto(file) {
+        return new Promise((ok, mal) => {
+            const img = new Image(); const url = URL.createObjectURL(file);
+            img.onload = () => {
+                const max = 260, esc = Math.min(1, max / Math.max(img.width, img.height));
+                const cv = document.createElement('canvas'); cv.width = Math.round(img.width * esc); cv.height = Math.round(img.height * esc);
+                cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+                URL.revokeObjectURL(url); ok(cv.toDataURL('image/jpeg', 0.72));
+            };
+            img.onerror = () => { URL.revokeObjectURL(url); mal(new Error('imagen')); };
+            img.src = url;
+        });
+    }
+
+    // ---- campos extra en la ventana de producto ----
+    let jatFotoPendiente;
+    const _jatAbrirKdxExtra = jatAbrirKardexModal;
+    jatAbrirKardexModal = function (codigo, d) {
+        _jatAbrirKdxExtra.apply(this, arguments);
+        const k = jatKardex()[codigo] || {};
+        jatLlenarExtras(k, codigo);
+    };
+    function jatLlenarExtras(k, codigo) {
+        const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = (v ?? '') === '' ? '' : v; };
+        set('jatKdxStock', k.s); set('jatKdxMin', k.min); set('jatKdxPrecio', k.p); set('jatKdxUbic', k.u); set('jatKdxProv', k.prov);
+        jatFotoPendiente = undefined;
+        const f = codigo ? jatFotos()[codigo] : '';
+        const img = document.getElementById('jatKdxFotoImg');
+        if (img) { img.src = f || ''; img.style.display = f ? 'block' : 'none'; }
+        document.getElementById('jatKdxQuitarFoto').style.display = f ? '' : 'none';
+        const det = document.getElementById('jatKdxMas'); if (det) det.open = !!(k.s || k.p || k.u || k.prov || k.min || f);
+    }
+    const _jatKardexNuevoExtra = jatKardexNuevo;
+    jatKardexNuevo = function () {
+        _jatKardexNuevoExtra.apply(this, arguments); jatLlenarExtras({}, '');
+        const box = document.getElementById('jatKdxCodigo');
+        if (box && !document.getElementById('jatKdxGenCodBtn')) {
+            box.insertAdjacentHTML('beforeend', '<button type="button" class="btn" id="jatKdxGenCodBtn" style="margin-top:6px;min-height:42px;">🔢 Generar código (producto sin código)</button>');
+            document.getElementById('jatKdxGenCodBtn').addEventListener('click', () => { const i = document.getElementById('jatKdxCodigoInput'); if (i) i.value = jatGenerarCodigo(); });
+        }
+    };
+    const _jatGuardarKdxExtra = jatGuardarKardexModal;
+    jatGuardarKardexModal = function () {
+        const m = document.getElementById('jatKdxModal');
+        const cod = m.dataset.codigo;
+        const antes = (jatKardex()[cod] || {});
+        const val = id => (document.getElementById(id)?.value || '').trim();
+        const extras = { min: jatNum(val('jatKdxMin')) ?? undefined, p: jatNum(val('jatKdxPrecio')) ?? undefined, u: val('jatKdxUbic') || undefined, prov: val('jatKdxProv') || undefined };
+        const stockNuevo = val('jatKdxStock') === '' ? null : jatNum(val('jatKdxStock'));
+        const foto = jatFotoPendiente;
+        _jatGuardarKdxExtra.apply(this, arguments);
+        if (m.style.display !== 'none' || !cod) return;
+        const k = jatKardex(); if (!k[cod]) return;
+        ['min', 'p', 'u', 'prov'].forEach(f => { if (extras[f] === undefined) delete k[cod][f]; else k[cod][f] = extras[f]; });
+        jatKardexEscribir(k);
+        const sAntes = Number(antes.s) || 0;
+        if (stockNuevo !== null && stockNuevo !== sAntes) jatRegistrarMov(cod, k[cod].n, stockNuevo - sAntes, 'ajuste', 'manual');
+        if (foto !== undefined) jatGuardarFoto(cod, foto);
+        if (document.getElementById('kdxLista')) jatRenderKardex();
+    };
+    (function jatInitExtras() {
+        document.getElementById('jatKdxFotoInput')?.addEventListener('change', async (e) => {
+            const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
+            try { jatFotoPendiente = await jatReducirFoto(f); const img = document.getElementById('jatKdxFotoImg'); img.src = jatFotoPendiente; img.style.display = 'block'; document.getElementById('jatKdxQuitarFoto').style.display = ''; }
+            catch (er) { showAlert('No se pudo leer la foto', 'error'); }
+        });
+        document.getElementById('jatKdxFotoBtn')?.addEventListener('click', () => document.getElementById('jatKdxFotoInput').click());
+        document.getElementById('jatKdxQuitarFoto')?.addEventListener('click', () => { jatFotoPendiente = ''; document.getElementById('jatKdxFotoImg').style.display = 'none'; document.getElementById('jatKdxQuitarFoto').style.display = 'none'; });
+    })();
+    function jatGenerarCodigo() {
+        const k = jatKardex(); let c;
+        do {
+            const base = '20' + String(Math.floor(Math.random() * 1e10)).padStart(10, '0');
+            let s = 0; for (let i = 0; i < 12; i++) s += (+base[i]) * (i % 2 ? 3 : 1);
+            c = base + ((10 - s % 10) % 10);
+        } while (k[c]);
+        return c;
+    }
+
+    // ---- lista del kardex con stock, precio, ubicación y foto ----
+    jatRenderKardex = function () {
+        const lista = document.getElementById('kdxLista'); if (!lista) return;
+        const k = jatKardex(); const fotos = jatFotos(); const cods = Object.keys(k);
+        const t = (document.getElementById('kdxBuscar')?.value || '').trim().toLowerCase();
+        const filtrados = cods.filter(c => !t || [c, k[c].n, k[c].c, k[c].u, k[c].prov].join(' ').toLowerCase().includes(t)).sort((a, b) => (k[a].n || '').localeCompare(k[b].n || '', 'es'));
+        const unidades = cods.reduce((a, c) => a + (Number(k[c].s) || 0), 0);
+        document.getElementById('kdxTotal').textContent = `${cods.length} productos · ${formatearQty(unidades)} u.`;
+        if (!cods.length) { lista.innerHTML = '<p style="font-size:.85rem;color:#6b7c8f;padding:20px 0;text-align:center;"><span style="display:block;font-size:64px;margin:20px 0 10px;">📋</span><strong style="display:block;font-size:1.1rem;color:#1a2b3c;">Tu kardex está vacío</strong><span style="display:block;margin-top:8px;">Toca el botón <b style="color:#d62f3a;">＋</b> para agregar tu primer producto</span></p>'; return; }
+        lista.innerHTML = filtrados.slice(0, 300).map(c => {
+            const it = k[c]; const s = Number(it.s) || 0; const bajo = it.min !== undefined && s <= Number(it.min);
+            const col = s < 0 ? '#c0392b' : bajo ? '#b9770e' : '#1E7F4A';
+            return `<div style="display:flex;gap:10px;align-items:center;border-bottom:1px solid #edf2f7;padding:10px 0;">
+                ${fotos[c] ? `<img src="${fotos[c]}" alt="" style="width:48px;height:48px;border-radius:10px;object-fit:cover;flex:none;">` : '<div style="width:48px;height:48px;border-radius:10px;background:#f1f4f8;flex:none;display:flex;align-items:center;justify-content:center;font-size:22px;">📦</div>'}
+                <div style="flex:1;min-width:0;">
+                    <div style="font-weight:600;font-size:.9rem;color:#1a2b3c;overflow-wrap:anywhere;">${jatEsc(it.n || '(sin nombre)')}</div>
+                    <div style="font-family:monospace;font-size:.74rem;color:#6b7c8f;overflow-wrap:anywhere;">${jatEsc(c)}${it.c ? ' · ' + jatEsc(it.c) : ''}${it.u ? ' · 📍' + jatEsc(it.u) : ''}${it.p !== undefined ? ' · ' + jatDinero(it.p) : ''}</div>
+                </div>
+                <div style="flex:none;text-align:right;min-width:52px;"><div style="font-weight:800;font-size:1rem;color:${col};">${formatearQty(s)}</div><div style="font-size:.66rem;color:${col};">${s < 0 ? 'negativo' : bajo ? 'stock bajo' : 'en stock'}</div></div>
+                <button type="button" class="scan-tool" data-kdx="edit" data-cod="${jatEsc(c)}" aria-label="Editar">✏️</button>
+                <button type="button" class="scan-tool" data-kdx="del" data-cod="${jatEsc(c)}" aria-label="Borrar" style="width:auto;padding:0 8px;">🗑️</button>
+            </div>`;
+        }).join('') + (filtrados.length > 300 ? `<p style="font-size:.78rem;color:#6b7c8f;padding:10px 0;">Mostrando 300 de ${filtrados.length}. Usa el buscador.</p>` : '') + (!filtrados.length ? '<p style="font-size:.85rem;color:#6b7c8f;padding:14px 0;">Nada coincide con la búsqueda.</p>' : '');
+    };
+
+    // ---- empresa, usuario y clientes ----
+    function jatEmpresa() { return jatLeerJSON('jatv_empresa', {}); }
+    function jatClientes() { return jatLeerJSON('jatv_clientes', []); }
+    function jatActualizarDatalist() {
+        let dl = document.getElementById('jatDestinosList');
+        if (!dl) { dl = document.createElement('datalist'); dl.id = 'jatDestinosList'; document.body.appendChild(dl); }
+        dl.innerHTML = jatClientes().map(c => `<option value="${jatEsc(c.nombre)}"></option>`).join('');
+        ['jatRegDestino', 'egkDestino', 'jatIngProv'].forEach(id => document.getElementById(id)?.setAttribute('list', 'jatDestinosList'));
+    }
+    function jatRecordarCliente(nombre) {
+        nombre = (nombre || '').trim(); if (!nombre) return;
+        const l = jatClientes(); if (l.some(c => c.nombre.toLowerCase() === nombre.toLowerCase())) return;
+        l.push({ nombre, dir: '', tel: '', tipo: 'Cliente' }); jatEscribirJSON('jatv_clientes', l);
+    }
+    const _jatGuardarAutoCli = guardarAutomaticoDesdeCabecera;
+    guardarAutomaticoDesdeCabecera = function (meta) {
+        try { if (meta && meta.bodegaDestino && /^(EGRESO|SALIDA|INGRESO)_/.test(meta.secuencial || '')) jatRecordarCliente(meta.bodegaDestino); } catch (e) {}
+        return _jatGuardarAutoCli.apply(this, arguments);
+    };
+
+    function jatVista(titulo, volver, cuerpo, derecha) {
+        const main = document.getElementById('mainContent');
+        main.innerHTML = `<div style="background:white;border-radius:20px;border:1px solid #e8ecf0;overflow:hidden;flex:1;display:flex;flex-direction:column;min-height:0;">
+            ${jatCabeceraVolver(titulo, volver, derecha)}
+            <div style="padding:16px;display:flex;flex-direction:column;gap:12px;overflow:auto;">${cuerpo}</div></div>`;
+        jatActualizarFab();
+        return main;
+    }
+    const JAT_INPUT = 'width:100%;padding:13px 14px;border:1.5px solid #dce3ea;border-radius:12px;font-size:16px;box-sizing:border-box;';
+    function cargarVistaPerfil() {
+        const e = jatEmpresa();
+        const campo = (id, label, v, ph, tipo) => `<label for="${id}" style="font-size:.82rem;font-weight:600;color:#1a3a5c;">${label}</label><input id="${id}" type="${tipo || 'text'}" value="${jatEsc(v || '')}" placeholder="${ph || ''}" autocomplete="off" style="${JAT_INPUT}margin-top:-6px;">`;
+        jatVista('👤 Usuario y empresa', 'mas', `
+            <h4 style="color:#1a3a5c;font-size:.95rem;">👤 Quién usa este celular</h4>
+            ${campo('pfUsuario', 'Tu nombre', obtenerUsuarioActual() === 'Administrador' ? '' : obtenerUsuarioActual(), 'Ej: Carlos Pérez')}
+            <p style="font-size:.78rem;color:#6b7c8f;margin-top:-4px;">Aparece en el historial de movimientos y en los cierres.</p>
+            <h4 style="color:#1a3a5c;font-size:.95rem;margin-top:8px;">🏢 Datos de la empresa</h4>
+            ${campo('pfEmpresa', 'Nombre de la empresa', e.nombre, 'Ej: Ferretería El Tornillo')}
+            ${campo('pfRuc', 'RUC', e.ruc, '0190000000001', 'text')}
+            ${campo('pfDir', 'Dirección', e.dir, 'Ej: Av. España y Turuhuayco')}
+            ${campo('pfTel', 'Teléfono', e.tel, '099 000 0000', 'tel')}
+            ${campo('pfMail', 'Correo', e.mail, 'ventas@empresa.com', 'email')}
+            <button class="btn btn-success" id="pfGuardar" type="button" style="min-height:52px;">💾 Guardar</button>`);
+        document.getElementById('pfGuardar').addEventListener('click', () => {
+            const v = id => document.getElementById(id).value.trim();
+            try { localStorage.setItem('jatv_hat_usuario_actual', v('pfUsuario') || 'Administrador'); } catch (er) {}
+            jatEscribirJSON('jatv_empresa', { nombre: v('pfEmpresa'), ruc: v('pfRuc'), dir: v('pfDir'), tel: v('pfTel'), mail: v('pfMail') });
+            showAlert('✅ Datos guardados', 'success'); cargarVistaMas();
+        });
+    }
+    function cargarVistaClientes() {
+        jatVista('📍 Clientes y destinos', 'mas', `
+            <p style="font-size:.82rem;color:#6b7c8f;">Se agregan solos cuando escribes para quién es un egreso. Aparecen como sugerencia al escribir.</p>
+            <div style="display:flex;flex-direction:column;gap:8px;border:1px solid #e3e9f0;border-radius:14px;padding:12px;">
+                <input id="clNombre" placeholder="Nombre del cliente o bodega" autocomplete="off" style="${JAT_INPUT}">
+                <input id="clDir" placeholder="Dirección (opcional)" autocomplete="off" style="${JAT_INPUT}">
+                <input id="clTel" type="tel" placeholder="Teléfono (opcional)" autocomplete="off" style="${JAT_INPUT}">
+                <button class="btn btn-primary" id="clAgregar" type="button">➕ Agregar</button>
+            </div>
+            <div id="clLista"></div>`);
+        const render = () => {
+            const l = jatClientes();
+            document.getElementById('clLista').innerHTML = l.length ? l.map((c, i) => `<div style="display:flex;gap:10px;align-items:center;border-bottom:1px solid #edf2f7;padding:10px 0;">
+                <div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:.9rem;overflow-wrap:anywhere;">${jatEsc(c.nombre)}</div><div style="font-size:.76rem;color:#6b7c8f;overflow-wrap:anywhere;">${jatEsc([c.dir, c.tel].filter(Boolean).join(' · ') || 'Sin datos')}</div></div>
+                <button type="button" class="scan-tool" data-cldel="${i}" aria-label="Borrar">🗑️</button></div>`).join('') : '<p style="text-align:center;color:#6b7c8f;font-size:.85rem;padding:20px 0;">Todavía no hay clientes.</p>';
+        };
+        document.getElementById('clAgregar').addEventListener('click', () => {
+            const n = document.getElementById('clNombre').value.trim(); if (!n) { showAlert('Escribe el nombre', 'warning'); return; }
+            const l = jatClientes().filter(c => c.nombre.toLowerCase() !== n.toLowerCase());
+            l.push({ nombre: n, dir: document.getElementById('clDir').value.trim(), tel: document.getElementById('clTel').value.trim(), tipo: 'Cliente' });
+            l.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')); jatEscribirJSON('jatv_clientes', l);
+            ['clNombre', 'clDir', 'clTel'].forEach(id => document.getElementById(id).value = ''); render(); jatActualizarDatalist();
+        });
+        document.getElementById('clLista').addEventListener('click', (e) => {
+            const b = e.target.closest('[data-cldel]'); if (!b) return;
+            if (b.dataset.ok !== '1') { b.dataset.ok = '1'; b.textContent = '¿Borrar?'; b.style.width = 'auto'; b.style.padding = '0 8px'; return; }
+            const l = jatClientes(); l.splice(+b.dataset.cldel, 1); jatEscribirJSON('jatv_clientes', l); render(); jatActualizarDatalist();
+        });
+        render();
+    }
+
+    // ---- REPORTES ----
+    function cargarVistaReportes() {
+        const op = [
+            ['rep-movs', '🕘', 'Historial de movimientos', 'Ingresos, salidas y ajustes: quién, qué y cuándo.'],
+            ['rep-resumen', '📦', 'Resumen de inventario', 'Unidades y valor del stock, por categoría.'],
+            ['rep-bajo', '⚠️', 'Stock bajo', 'Productos que llegaron a su stock mínimo o están en negativo.'],
+            ['rep-producto', '📈', 'Kardex de un producto', 'Entradas, salidas y saldo de un producto.'],
+            ['rep-clientes', '🧾', 'Despachos por cliente', 'Cuántos egresos y unidades salieron para cada cliente.']
+        ];
+        jatVista('📊 Reportes', 'mas', op.map(o => `<button type="button" data-rep="${o[0]}" style="display:flex;gap:14px;align-items:flex-start;text-align:left;width:100%;background:#fff;border:0;border-bottom:1px solid #edf2f7;padding:16px 4px;cursor:pointer;">
+            <span style="font-size:1.5rem;flex:none;">${o[1]}</span><span style="flex:1;"><b style="display:block;font-size:1rem;color:#1a2b3c;">${o[2]}</b><span style="display:block;font-size:.84rem;color:#6b7c8f;margin-top:3px;">${o[3]}</span></span><span style="color:#9aa7b2;font-size:1.3rem;">›</span></button>`).join(''));
+        document.querySelectorAll('#mainContent [data-rep]').forEach(b => b.addEventListener('click', () => {
+            ({ 'rep-movs': jatRepMovs, 'rep-resumen': jatRepResumen, 'rep-bajo': jatRepBajo, 'rep-producto': () => jatRepProducto(), 'rep-clientes': jatRepClientes })[b.dataset.rep]();
+        }));
+    }
+    const JAT_TIPOS = { ingreso: ['📥 Ingreso', '#5b3fa0'], salida: ['📤 Salida', '#c0392b'], ajuste: ['✏️ Ajuste', '#1a6392'] };
+    function jatBotonCsv(id) { return `<button type="button" class="scan-tool" id="${id}" style="width:auto;padding:0 12px;font-size:.85rem;font-weight:700;">⬇️ CSV</button>`; }
+    function jatRepMovs() {
+        let filtro = 'todos';
+        jatVista('🕘 Historial de movimientos', 'reportes', `
+            <input type="search" id="rmBuscar" placeholder="Buscar producto, cliente o usuario" style="${JAT_INPUT}">
+            <div id="rmChips" style="display:flex;gap:8px;overflow-x:auto;flex:none;">${[['todos', 'Todos'], ['ingreso', '📥 Ingresos'], ['salida', '📤 Salidas'], ['ajuste', '✏️ Ajustes']].map(c => `<button type="button" data-f="${c[0]}">${c[1]}</button>`).join('')}</div>
+            <div id="rmLista"></div>`, jatBotonCsv('rmCsv'));
+        const lista = () => { const t = document.getElementById('rmBuscar').value.trim().toLowerCase(); return jatMovs().slice().reverse().filter(m => (filtro === 'todos' || m.tipo === filtro) && (!t || [m.n, m.cod, m.ref, m.user].join(' ').toLowerCase().includes(t))); };
+        const render = () => {
+            document.querySelectorAll('#rmChips [data-f]').forEach(b => { const on = b.dataset.f === filtro; b.style.cssText = `flex:none;font-weight:600;font-size:13px;padding:9px 14px;white-space:nowrap;border-radius:999px;border:1.5px solid ${on ? '#0b223d' : '#dce3ea'};background:${on ? '#0b223d' : '#fff'};color:${on ? '#fff' : '#1a3a5c'};cursor:pointer;`; });
+            const l = lista();
+            document.getElementById('rmLista').innerHTML = l.length ? l.slice(0, 400).map(m => { const tp = JAT_TIPOS[m.tipo] || [m.tipo, '#333']; return `<div style="display:flex;gap:10px;border-bottom:1px solid #edf2f7;padding:10px 0;">
+                <div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:.88rem;overflow-wrap:anywhere;">${jatEsc(m.n)}</div>
+                <div style="font-size:.74rem;color:#6b7c8f;overflow-wrap:anywhere;">${tp[0]} · ${jatFechaCorta(m.t)} · ${jatEsc(m.user || '')}${m.ref ? '<br>' + jatEsc(m.ref) : ''}</div></div>
+                <div style="text-align:right;flex:none;"><div style="font-weight:800;color:${m.q < 0 ? '#c0392b' : '#1E7F4A'};">${m.q > 0 ? '+' : ''}${formatearQty(m.q)}</div><div style="font-size:.7rem;color:#6b7c8f;">saldo ${formatearQty(m.saldo)}</div></div></div>`; }).join('') : '<p style="text-align:center;color:#6b7c8f;font-size:.85rem;padding:24px 0;">No hay movimientos todavía. Se registran al cerrar egresos, guardar salidas, hacer ingresos o ajustar el stock.</p>';
+        };
+        document.getElementById('rmBuscar').addEventListener('input', render);
+        document.getElementById('rmChips').addEventListener('click', e => { const b = e.target.closest('[data-f]'); if (b) { filtro = b.dataset.f; render(); } });
+        document.getElementById('rmCsv').addEventListener('click', () => jatCsv('movimientos', [['Fecha', 'Tipo', 'Código', 'Producto', 'Cantidad', 'Saldo', 'Referencia', 'Usuario'], ...lista().map(m => [jatFechaCorta(m.t), m.tipo, m.cod, m.n, m.q, m.saldo, m.ref, m.user])]));
+        render();
+    }
+    function jatRepResumen() {
+        const k = jatKardex(); const cods = Object.keys(k);
+        const porCat = {};
+        cods.forEach(c => { const it = k[c]; const cat = it.c || 'Sin categoría'; const s = Number(it.s) || 0; const v = s * (Number(it.p) || 0); porCat[cat] = porCat[cat] || { prod: 0, u: 0, v: 0 }; porCat[cat].prod++; porCat[cat].u += s; porCat[cat].v += v; });
+        const tot = Object.values(porCat).reduce((a, x) => ({ prod: a.prod + x.prod, u: a.u + x.u, v: a.v + x.v }), { prod: 0, u: 0, v: 0 });
+        const conPrecio = cods.filter(c => k[c].p !== undefined).length;
+        const tarjeta = (n, t) => `<div style="flex:1;min-width:120px;background:#f5f8fb;border-radius:14px;padding:14px;"><div style="font-size:1.4rem;font-weight:800;color:#1a3a5c;">${n}</div><div style="font-size:.78rem;color:#6b7c8f;">${t}</div></div>`;
+        const filas = Object.keys(porCat).sort().map(c => [c, porCat[c].prod, porCat[c].u, porCat[c].v]);
+        jatVista('📦 Resumen de inventario', 'reportes', `
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">${tarjeta(tot.prod, 'productos')}${tarjeta(formatearQty(tot.u), 'unidades en stock')}${tarjeta(jatDinero(tot.v), 'valor del stock')}</div>
+            ${conPrecio < cods.length ? `<p style="font-size:.78rem;color:#b9770e;">${cods.length - conPrecio} productos no tienen precio; no suman al valor.</p>` : ''}
+            <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:.84rem;"><tr style="text-align:left;color:#6b7c8f;"><th style="padding:8px 4px;">Categoría</th><th style="padding:8px 4px;text-align:right;">Productos</th><th style="padding:8px 4px;text-align:right;">Unidades</th><th style="padding:8px 4px;text-align:right;">Valor</th></tr>
+            ${filas.map(f => `<tr style="border-top:1px solid #edf2f7;"><td style="padding:9px 4px;">${jatEsc(f[0])}</td><td style="padding:9px 4px;text-align:right;">${f[1]}</td><td style="padding:9px 4px;text-align:right;">${formatearQty(f[2])}</td><td style="padding:9px 4px;text-align:right;">${jatDinero(f[3])}</td></tr>`).join('')}</table></div>
+            ${!cods.length ? '<p style="text-align:center;color:#6b7c8f;font-size:.85rem;">El kardex está vacío.</p>' : ''}`, jatBotonCsv('rsCsv'));
+        document.getElementById('rsCsv').addEventListener('click', () => jatCsv('inventario', [['Código', 'Producto', 'Categoría', 'Stock', 'Stock mínimo', 'Precio', 'Valor', 'Ubicación', 'Proveedor'], ...cods.map(c => { const it = k[c]; return [c, it.n, it.c, it.s || 0, it.min ?? '', it.p ?? '', ((Number(it.s) || 0) * (Number(it.p) || 0)).toFixed(2), it.u || '', it.prov || '']; })]));
+    }
+    function jatRepBajo() {
+        const k = jatKardex();
+        const l = Object.keys(k).filter(c => { const s = Number(k[c].s) || 0; return s < 0 || (k[c].min !== undefined && s <= Number(k[c].min)); }).sort((a, b) => (Number(k[a].s) || 0) - (Number(k[b].s) || 0));
+        jatVista('⚠️ Stock bajo', 'reportes', `
+            <p style="font-size:.82rem;color:#6b7c8f;">Productos en o bajo su stock mínimo, y los que quedaron en negativo. El mínimo se pone al editar cada producto (✏️ → Más datos).</p>
+            ${l.length ? l.map(c => { const it = k[c], s = Number(it.s) || 0; return `<div style="display:flex;gap:10px;align-items:center;border-bottom:1px solid #edf2f7;padding:10px 0;">
+                <div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:.9rem;overflow-wrap:anywhere;">${jatEsc(it.n)}</div><div style="font-size:.74rem;color:#6b7c8f;">${jatEsc(c)}${it.prov ? ' · ' + jatEsc(it.prov) : ''}</div></div>
+                <div style="text-align:right;"><div style="font-weight:800;color:${s < 0 ? '#c0392b' : '#b9770e'};">${formatearQty(s)}</div><div style="font-size:.7rem;color:#6b7c8f;">mín. ${it.min ?? '—'}</div></div></div>`; }).join('') : '<p style="text-align:center;font-size:.9rem;padding:30px 0;"><span style="font-size:48px;display:block;">✅</span>Ningún producto está en stock bajo.</p>'}`, jatBotonCsv('rbCsv'));
+        document.getElementById('rbCsv').addEventListener('click', () => jatCsv('stock_bajo', [['Código', 'Producto', 'Stock', 'Stock mínimo', 'Proveedor'], ...l.map(c => [c, k[c].n, k[c].s || 0, k[c].min ?? '', k[c].prov || ''])]));
+    }
+    function jatRepProducto(codIni) {
+        const k = jatKardex();
+        jatVista('📈 Kardex de un producto', 'reportes', `
+            <input type="search" id="rpBuscar" placeholder="Busca el producto por nombre o código" style="${JAT_INPUT}">
+            <div id="rpRes"></div><div id="rpDet"></div>`);
+        const det = (cod) => {
+            const it = k[cod] || {}; const ms = jatMovs().filter(m => m.cod === cod);
+            document.getElementById('rpRes').innerHTML = '';
+            document.getElementById('rpDet').innerHTML = `<div style="background:#f5f8fb;border-radius:14px;padding:14px;"><div style="font-weight:700;">${jatEsc(it.n || cod)}</div><div style="font-size:.78rem;color:#6b7c8f;">${jatEsc(cod)} · Stock actual <b>${formatearQty(Number(it.s) || 0)}</b></div></div>
+                <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:.8rem;min-width:420px;"><tr style="text-align:left;color:#6b7c8f;"><th style="padding:8px 4px;">Fecha</th><th style="padding:8px 4px;">Detalle</th><th style="padding:8px 4px;text-align:right;">Entrada</th><th style="padding:8px 4px;text-align:right;">Salida</th><th style="padding:8px 4px;text-align:right;">Saldo</th></tr>
+                ${ms.map(m => `<tr style="border-top:1px solid #edf2f7;"><td style="padding:8px 4px;white-space:nowrap;">${jatFechaCorta(m.t)}</td><td style="padding:8px 4px;">${(JAT_TIPOS[m.tipo] || [m.tipo])[0]} ${jatEsc(m.ref || '')}</td><td style="padding:8px 4px;text-align:right;color:#1E7F4A;">${m.q > 0 ? formatearQty(m.q) : ''}</td><td style="padding:8px 4px;text-align:right;color:#c0392b;">${m.q < 0 ? formatearQty(-m.q) : ''}</td><td style="padding:8px 4px;text-align:right;font-weight:700;">${formatearQty(m.saldo)}</td></tr>`).join('') || '<tr><td colspan="5" style="padding:14px 4px;color:#6b7c8f;">Sin movimientos registrados.</td></tr>'}</table></div>
+                ${jatBotonCsv('rpCsv')}`;
+            document.getElementById('rpCsv').addEventListener('click', () => jatCsv('kardex_' + cod, [['Fecha', 'Tipo', 'Referencia', 'Entrada', 'Salida', 'Saldo', 'Usuario'], ...ms.map(m => [jatFechaCorta(m.t), m.tipo, m.ref, m.q > 0 ? m.q : '', m.q < 0 ? -m.q : '', m.saldo, m.user])]));
+        };
+        document.getElementById('rpBuscar').addEventListener('input', (e) => {
+            const t = e.target.value.trim().toLowerCase(); document.getElementById('rpDet').innerHTML = '';
+            const r = t ? Object.keys(k).filter(c => (c + ' ' + k[c].n).toLowerCase().includes(t)).slice(0, 30) : [];
+            document.getElementById('rpRes').innerHTML = r.map(c => `<button type="button" data-rp="${jatEsc(c)}" style="display:block;width:100%;text-align:left;background:#fff;border:0;border-bottom:1px solid #edf2f7;padding:12px 4px;cursor:pointer;"><b style="font-size:.9rem;">${jatEsc(k[c].n)}</b><br><span style="font-family:monospace;font-size:.75rem;color:#6b7c8f;">${jatEsc(c)}</span></button>`).join('');
+        });
+        document.getElementById('rpRes').addEventListener('click', (e) => { const b = e.target.closest('[data-rp]'); if (b) det(b.dataset.rp); });
+        if (codIni) det(codIni);
+    }
+    function jatRepClientes() {
+        const g = {};
+        egresosGuardados.forEach(e => {
+            const tipo = jatTipoEgreso(e).id; if (tipo === 'ingreso') return;
+            const cli = (e.bodegaDestino || 'Sin cliente').trim();
+            const u = (e.productos || []).reduce((a, p) => a + getVerifiedQty(p), 0);
+            g[cli] = g[cli] || { n: 0, u: 0, ult: '' }; g[cli].n++; g[cli].u += u;
+            const f = e.fechaModificacion || e.fechaCreacion || ''; if (f > g[cli].ult) g[cli].ult = f;
+        });
+        const l = Object.keys(g).sort((a, b) => g[b].u - g[a].u);
+        jatVista('🧾 Despachos por cliente', 'reportes', l.length ? `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:.84rem;"><tr style="text-align:left;color:#6b7c8f;"><th style="padding:8px 4px;">Cliente</th><th style="padding:8px 4px;text-align:right;">Egresos</th><th style="padding:8px 4px;text-align:right;">Unidades</th></tr>
+            ${l.map(c => `<tr style="border-top:1px solid #edf2f7;"><td style="padding:9px 4px;">${jatEsc(c)}<div style="font-size:.7rem;color:#6b7c8f;">Último: ${jatEsc(g[c].ult)}</div></td><td style="padding:9px 4px;text-align:right;">${g[c].n}</td><td style="padding:9px 4px;text-align:right;font-weight:700;">${formatearQty(g[c].u)}</td></tr>`).join('')}</table></div>` : '<p style="text-align:center;color:#6b7c8f;font-size:.85rem;padding:24px 0;">Todavía no hay egresos guardados.</p>', jatBotonCsv('rcCsv'));
+        document.getElementById('rcCsv').addEventListener('click', () => jatCsv('despachos_por_cliente', [['Cliente', 'Egresos', 'Unidades verificadas', 'Último'], ...l.map(c => [c, g[c].n, g[c].u, g[c].ult])]));
+    }
+
+    // ---- ETIQUETAS con código de barras ----
+    function jatCargarJsBarcode() {
+        if (window.JsBarcode) return Promise.resolve();
+        return new Promise((ok, mal) => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js'; s.onload = ok; s.onerror = () => mal(new Error('sin conexión')); document.head.appendChild(s); });
+    }
+    let jatEtiSel = {};
+    function cargarVistaEtiquetas() {
+        jatEtiSel = {};
+        jatVista('🏷️ Crear etiquetas', 'mas', `
+            <p style="font-size:.82rem;color:#6b7c8f;">Elige los productos y cuántas etiquetas de cada uno. Se imprimen o se guardan en PDF desde Chrome. Para productos sin código, al crearlos usa <b>🔢 Generar código</b>.</p>
+            <input type="search" id="etBuscar" placeholder="Buscar producto" style="${JAT_INPUT}">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                <label style="display:flex;gap:6px;align-items:center;font-size:.85rem;"><input type="checkbox" id="etPrecio" style="width:22px;height:22px;"> Mostrar precio</label>
+                <select id="etFormato" style="padding:10px;border:1.5px solid #dce3ea;border-radius:10px;font-size:15px;"><option value="a4">Hoja A4 (3 por fila)</option><option value="rollo">Rollo 50 × 25 mm</option></select>
+            </div>
+            <div id="etLista"></div>
+            <button class="btn btn-success" id="etGenerar" type="button" style="min-height:52px;position:sticky;bottom:0;">🏷️ Imprimir etiquetas</button>`);
+        const render = () => {
+            const k = jatKardex(); const t = document.getElementById('etBuscar').value.trim().toLowerCase();
+            const l = Object.keys(k).filter(c => !t || (c + ' ' + k[c].n).toLowerCase().includes(t)).sort((a, b) => (k[a].n || '').localeCompare(k[b].n || '', 'es')).slice(0, 200);
+            document.getElementById('etLista').innerHTML = l.length ? l.map(c => `<div style="display:flex;gap:10px;align-items:center;border-bottom:1px solid #edf2f7;padding:8px 0;">
+                <div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:.88rem;overflow-wrap:anywhere;">${jatEsc(k[c].n)}</div><div style="font-family:monospace;font-size:.74rem;color:#6b7c8f;">${jatEsc(c)}</div></div>
+                <button type="button" class="scan-tool" data-et="${jatEsc(c)}" data-d="-1">−</button><span style="min-width:28px;text-align:center;font-weight:800;">${jatEtiSel[c] || 0}</span><button type="button" class="scan-tool" data-et="${jatEsc(c)}" data-d="1">＋</button></div>`).join('') : '<p style="text-align:center;color:#6b7c8f;font-size:.85rem;">El kardex está vacío.</p>';
+            const tot = Object.values(jatEtiSel).reduce((a, b) => a + b, 0);
+            document.getElementById('etGenerar').textContent = tot ? `🏷️ Imprimir ${tot} etiquetas` : '🏷️ Imprimir etiquetas';
+        };
+        document.getElementById('etBuscar').addEventListener('input', render);
+        document.getElementById('etLista').addEventListener('click', (e) => { const b = e.target.closest('[data-et]'); if (!b) return; const c = b.dataset.et; jatEtiSel[c] = Math.max(0, (jatEtiSel[c] || 0) + (+b.dataset.d)); if (!jatEtiSel[c]) delete jatEtiSel[c]; render(); });
+        document.getElementById('etGenerar').addEventListener('click', jatImprimirEtiquetas);
+        render();
+    }
+    async function jatImprimirEtiquetas() {
+        const sel = Object.keys(jatEtiSel); if (!sel.length) { showAlert('Elige al menos un producto con ＋', 'warning'); return; }
+        try { await jatCargarJsBarcode(); } catch (e) { showAlert('Necesitas internet la primera vez para crear códigos de barras', 'error'); return; }
+        const k = jatKardex(); const conPrecio = document.getElementById('etPrecio').checked; const rollo = document.getElementById('etFormato').value === 'rollo';
+        let area = document.getElementById('jatPrintArea');
+        if (!area) { area = document.createElement('div'); area.id = 'jatPrintArea'; document.body.appendChild(area); }
+        area.className = rollo ? 'rollo' : 'a4';
+        area.innerHTML = '';
+        sel.forEach(c => { for (let i = 0; i < jatEtiSel[c]; i++) {
+            const d = document.createElement('div'); d.className = 'eti';
+            d.innerHTML = `<div class="nom">${jatEsc((k[c].n || '').substring(0, 48))}</div><svg></svg>${conPrecio && k[c].p !== undefined ? `<div class="pre">${jatDinero(k[c].p)}</div>` : ''}`;
+            area.appendChild(d);
+            const esEan = /^\d{13}$/.test(c);
+            try { JsBarcode(d.querySelector('svg'), c, { format: esEan ? 'EAN13' : 'CODE128', width: rollo ? 1.4 : 1.6, height: rollo ? 34 : 42, fontSize: 12, margin: 0, displayValue: true }); }
+            catch (e) { JsBarcode(d.querySelector('svg'), c, { format: 'CODE128', width: 1.4, height: 36, fontSize: 12, margin: 0 }); }
+        } });
+        document.body.classList.add('jat-imprimiendo');
+        setTimeout(() => { window.print(); setTimeout(() => document.body.classList.remove('jat-imprimiendo'), 500); }, 150);
+    }
+
+    // ---- COPIA DE SEGURIDAD ----
+    function jatExportarTodo() {
+        const datos = {};
+        for (let i = 0; i < localStorage.length; i++) { const key = localStorage.key(i); if (key && key.startsWith('jatv_')) datos[key] = localStorage.getItem(key); }
+        jatDescargar('JAT_copia_' + new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-') + '.json', JSON.stringify({ app: 'JAT Control Suite', fecha: new Date().toISOString(), datos }), 'application/json');
+        showAlert('⬇️ Copia descargada. Guárdala en OneDrive o envíatela por correo.', 'success');
+    }
+    function jatRestaurar(file) {
+        const r = new FileReader();
+        r.onload = () => {
+            try {
+                const j = JSON.parse(r.result); if (!j || !j.datos) throw new Error('formato');
+                Object.keys(j.datos).forEach(k => { if (k.startsWith('jatv_')) localStorage.setItem(k, j.datos[k]); });
+                showAlert('✅ Copia restaurada. Recargando…', 'success'); setTimeout(() => location.reload(), 900);
+            } catch (e) { showAlert('Ese archivo no es una copia de JAT', 'error'); }
+        };
+        r.readAsText(file);
+    }
+
+    // ---- PANTALLA "MÁS" ----
+    function cargarVistaMas() {
+        const emp = jatEmpresa(); const usr = obtenerUsuarioActual();
+        const grupo = (items) => `<div style="background:#fff;border:1px solid #e8ecf0;border-radius:16px;overflow:hidden;">${items.map((it, i) => `<button type="button" data-mas="${it[0]}" style="display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:#fff;border:0;${i ? 'border-top:1px solid #edf2f7;' : ''}padding:15px 16px;cursor:pointer;min-height:56px;"><span style="font-size:1.3rem;width:28px;text-align:center;">${it[1]}</span><span style="flex:1;font-size:1rem;color:#1a2b3c;">${it[2]}${it[3] ? `<span style="display:block;font-size:.76rem;color:#6b7c8f;">${jatEsc(it[3])}</span>` : ''}</span><span style="color:#9aa7b2;font-size:1.3rem;">›</span></button>`).join('')}</div>`;
+        const main = document.getElementById('mainContent');
+        main.innerHTML = `<div style="flex:1;display:flex;flex-direction:column;gap:14px;overflow:auto;padding-bottom:10px;">
+            <h3 style="font-size:1.5rem;color:#1a2b3c;padding:4px 4px 0;">Más</h3>
+            ${grupo([['perfil', '👤', 'Usuario y empresa', (usr !== 'Administrador' ? usr : 'Sin nombre') + (emp.nombre ? ' · ' + emp.nombre : '')], ['clientes', '📍', 'Clientes y destinos']])}
+            ${grupo([['reportes', '📊', 'Reportes'], ['ingreso', '📥', 'Ingreso de mercadería'], ['importar', '📊', 'Importar productos desde Excel'], ['etiquetas', '🏷️', 'Crear etiquetas']])}
+            ${grupo([['respaldo', '⬇️', 'Copia de seguridad', 'Descarga todos tus datos en un archivo'], ['restaurar', '⬆️', 'Restaurar una copia'], ['carpeta', '☁️', 'Carpeta de trabajo (computadora)']])}
+            ${grupo([['menu', '☰', 'Menú completo'], ['ayuda', '❓', 'Ayuda y soporte', 'WhatsApp 099 506 0978']])}
+            <input type="file" id="masRestaurarInput" accept=".json,application/json" style="display:none;">
+        </div>`;
+        document.getElementById('masRestaurarInput').addEventListener('change', (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) jatRestaurar(f); });
+        main.querySelectorAll('[data-mas]').forEach(b => b.addEventListener('click', () => {
+            const a = b.dataset.mas;
+            if (a === 'perfil') cargarVistaPerfil();
+            else if (a === 'clientes') cargarVistaClientes();
+            else if (a === 'reportes') cargarVistaReportes();
+            else if (a === 'ingreso') cargarVistaIngreso();
+            else if (a === 'importar') { window.jatExcelDestino = 'kardex'; document.getElementById('kdxExcelInput').click(); }
+            else if (a === 'etiquetas') cargarVistaEtiquetas();
+            else if (a === 'respaldo') jatExportarTodo();
+            else if (a === 'restaurar') document.getElementById('masRestaurarInput').click();
+            else if (a === 'carpeta') cargarVistaAjustes();
+            else if (a === 'menu') document.body.classList.add('menu-abierto');
+            else if (a === 'ayuda') cargarVistaAyuda();
+        }));
+        jatTabActual = 'mas';
+        document.querySelectorAll('#jatNav [data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === 'mas'));
+        jatActualizarFab();
+    }
+    function cargarVistaAyuda() {
+        const paso = (t, d) => `<div style="border-bottom:1px solid #edf2f7;padding:12px 0;"><b style="font-size:.95rem;">${t}</b><p style="font-size:.85rem;color:#4a5f78;margin-top:4px;line-height:1.5;">${d}</p></div>`;
+        jatVista('❓ Ayuda', 'mas', `
+            ${paso('1. Arma tu kardex', 'En la pestaña Kardex toca ＋ y agrega tus productos escaneándolos, escribiéndolos o importando un Excel. En ✏️ → Más datos pones stock, mínimo, precio, ubicación y foto.')}
+            ${paso('2. Ingresa mercadería', 'Más → Ingreso de mercadería. Escaneas lo que llega y se suma al stock.')}
+            ${paso('3. Crea y verifica egresos', 'En Egresos toca ＋: desde un PDF, un Excel, el kardex, o registra una salida sin documento. Luego verificas escaneando.')}
+            ${paso('4. Cierra el egreso', 'En el verificador toca 🧾 Cierre → Finalizar. Lo verificado se descuenta del stock y queda en el historial.')}
+            ${paso('5. Revisa reportes', 'Más → Reportes: historial, inventario, stock bajo, kardex por producto y despachos por cliente.')}
+            ${paso('6. Haz copias de seguridad', 'Los datos se guardan en este celular. Más → Copia de seguridad, y guarda el archivo en OneDrive o tu correo.')}
+            <div style="background:#eafaf1;border-radius:14px;padding:14px;font-size:.9rem;">¿Necesitas ayuda? Escribe por WhatsApp a <b style="user-select:all;">099 506 0978</b>.</div>`);
+    }
+
+    // ---- integrar con la navegación ----
+    const _jatIrTabFull = jatIrTab;
+    jatIrTab = function (tab) {
+        if (tab === 'mas' || tab === 'menu') { jatCerrarHoja(); document.body.classList.remove('menu-abierto'); cargarVistaMas(); return; }
+        if (tab === 'reportes') { cargarVistaReportes(); return; }
+        return _jatIrTabFull.apply(this, arguments);
+    };
+    const _jatAccionHojaFull = jatAccionHoja;
+    jatAccionHoja = function (op) {
+        if (op === 'kdx-ingreso') { jatCerrarHoja(); cargarVistaIngreso(); return; }
+        return _jatAccionHojaFull.apply(this, arguments);
+    };
+    const _jatAbrirHojaFull = jatAbrirHoja;
+    jatAbrirHoja = function () {
+        _jatAbrirHojaFull.apply(this, arguments);
+        if (jatTabActual === 'kardex') document.getElementById('jatHojaOpciones').insertAdjacentHTML('afterbegin', '<button type="button" class="jat-hoja-op" data-op="kdx-ingreso"><span class="ic">📥</span><span><b>Ingreso de mercadería</b><small>Escaneas lo que llega y se suma al stock</small></span></button>');
+    };
+    (function jatInitFull() {
+        const b = document.querySelector('#jatNav [data-tab="menu"]'); if (b) { b.dataset.tab = 'mas'; b.innerHTML = '<span>☰</span>Más'; }
+        jatActualizarDatalist();
+        // sugerencias de clientes en los campos de destino
+        new MutationObserver(() => jatActualizarDatalist()).observe(document.getElementById('mainContent'), { childList: true });
+        // en el kardex: botón Reportes
+        const _vk = cargarVistaKardex;
+        cargarVistaKardex = function () {
+            _vk.apply(this, arguments);
+            const csv = document.getElementById('kdxCsvBtn');
+            if (csv && !document.getElementById('kdxRepBtn')) { const nb = document.createElement('button'); nb.className = 'btn'; nb.id = 'kdxRepBtn'; nb.type = 'button'; nb.textContent = '📊 Reportes'; nb.addEventListener('click', cargarVistaReportes); csv.before(nb); }
+        };
     })();
     </script>
     <!-- ====================================================================
