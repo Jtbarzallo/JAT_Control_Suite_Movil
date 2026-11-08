@@ -526,6 +526,7 @@
                 <div class="submenu">
                     <div class="menu-item" data-action="configOneDrive"><span class="icon">☁️</span> Carpeta de trabajo</div>
                     <div class="menu-item" data-action="bodegas"><span class="icon">🏬</span> Bodegas</div>
+                    <div class="menu-item" data-action="kardexExcel"><span class="icon">📊</span> Kardex desde Excel</div>
                 </div>
             </div>
             <div class="menu-hint">Selecciona una <strong>Carpeta de trabajo</strong>. Si está en OneDrive, tus egresos, avances y respaldos estarán disponibles en otra computadora.</div>
@@ -2049,10 +2050,119 @@
         ['Hogar', ['silla', 'mesa', 'lampara', 'ventilador', 'cobija', 'sabana', 'almohada', 'cortina']]
     ];
     // Categorías reales del kardex (archivo kardex_categorias.json junto a este programa): código de barras → artículo
-    let KARDEX_CATS = null;
+    let KARDEX_CATS = null, KARDEX_PROPIO = false;
     fetch('kardex_categorias.json').then(r => r.ok ? r.json() : null).then(j => {
-        if (j && j.c && j.m) { KARDEX_CATS = j; if (typeof renderVerificadorTablaProgramado === 'function') renderVerificadorTablaProgramado(); }
+        if (j && j.c && j.m && !KARDEX_PROPIO) { KARDEX_CATS = j; if (typeof renderVerificadorTablaProgramado === 'function') renderVerificadorTablaProgramado(); }
     }).catch(() => {});
+    // ===== KARDEX DESDE EXCEL — lee el reporte de inventario tal como sale del sistema (tabla dinámica) =====
+    // Busca sola la fila de encabezados (la que tiene "codigo_de_barra"), salta las filas del filtro de arriba,
+    // rellena hacia abajo la categoría (producto_articulo), ignora la fila TOT y toma el stock total de la bodega
+    // de la columna marcada "bodega" (en el reporte es la G = RIC). Se guarda en el teléfono (IndexedDB) y lo
+    // comparten Salida de Mercadería y Control Suite Móvil.
+    const JATKX = (() => {
+      const nh = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '');
+      const txt = v => v === null || v === undefined ? '' : typeof v === 'number' ? (Number.isInteger(v) ? v.toFixed(0) : String(v)) : String(v).replace(/\s+/g, ' ').trim();
+      const letra = i => { let s = ''; i++; while (i > 0) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; };
+      const RE_COD = /^(codigodebarras?|codigosdebarras?|codigobarras?|codbarras?|ean|barcode)$/;
+      function sheetjs() {
+        if (window.XLSX) return Promise.resolve();
+        return new Promise((ok, mal) => {
+          const sc = document.createElement('script');
+          sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+          sc.onload = () => ok(); sc.onerror = () => mal(new Error('No se pudo cargar el lector de Excel (revisa la conexión a internet)'));
+          document.head.appendChild(sc);
+        });
+      }
+      function db(modo, valor) {
+        return new Promise((ok, mal) => {
+          let r; try { r = indexedDB.open('jat_kardex', 1); } catch (e) { mal(e); return; }
+          r.onupgradeneeded = () => r.result.createObjectStore('k');
+          r.onerror = () => mal(r.error);
+          r.onsuccess = () => {
+            const base = r.result, tx = base.transaction('k', modo === 'get' ? 'readonly' : 'readwrite'), st = tx.objectStore('k');
+            const q = modo === 'get' ? st.get('actual') : st.put(valor, 'actual');
+            q.onsuccess = () => ok(q.result); q.onerror = () => mal(q.error);
+            tx.oncomplete = () => base.close();
+          };
+        });
+      }
+      async function leer(file) {
+        await sheetjs();
+        const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+        for (const hoja of wb.SheetNames) {
+          const filas = XLSX.utils.sheet_to_json(wb.Sheets[hoja], { header: 1, raw: true, defval: null });
+          let h = -1;
+          for (let i = 0; i < Math.min(filas.length, 30); i++) if ((filas[i] || []).some(c => RE_COD.test(nh(c)))) { h = i; break; }
+          if (h < 0) continue;
+          const enc = filas[h].map(nh);
+          const col = (...res) => { for (const re of res) { const i = enc.findIndex(c => re.test(c)); if (i >= 0) return i; } return -1; };
+          const cCod = col(RE_COD);
+          const cNom = col(/^producto$/, /^(descripcion|nombre|nombredelproducto)$/, /produc|descrip|nombre/);
+          const cCat = col(/^productoarticulo$/, /^(articulo|categoria)$/, /articulo|categoria/, /^productogrupo$/);
+          // Stock total de la bodega: la columna que tiene "bodega" en las filas de arriba (en el reporte: G = RIC).
+          let cSt = -1;
+          for (let k = h - 1; k >= Math.max(0, h - 3) && cSt < 0; k--) cSt = (filas[k] || []).findIndex(c => nh(c) === 'bodega');
+          if (cSt < 0) cSt = col(/^(stock|stocktotal|stockbodega|existencia|existencias|saldo)$/);
+          if (cSt < 0) cSt = 6; // columna G
+          const c = [], ci = new Map(), m = {}, n = {}, s = {};
+          let ultCat = '', total = 0, conStock = 0, sinCodigo = 0;
+          for (let i = h + 1; i < filas.length; i++) {
+            const f = filas[i] || [];
+            if (cCat >= 0 && txt(f[cCat])) ultCat = txt(f[cCat]);
+            const cod = txt(f[cCod]);
+            if (!cod) { if (txt(f[cNom])) sinCodigo++; continue; }       // fila TOT, filas vacías o productos sin código
+            if (RE_COD.test(nh(cod))) continue;                          // encabezado repetido
+            if (m[cod] !== undefined) continue;                           // código repetido: se queda el primero
+            const cat = ultCat || 'Sin categoría';
+            if (!ci.has(cat)) { ci.set(cat, c.length); c.push(cat); }
+            m[cod] = ci.get(cat);
+            n[cod] = cNom >= 0 ? txt(f[cNom]) : '';
+            const v = f[cSt];
+            const q = typeof v === 'number' ? v : (v !== null && v !== '' && !isNaN(parseFloat(String(v).replace(',', '.'))) ? parseFloat(String(v).replace(',', '.')) : null);
+            s[cod] = q === null ? 0 : Math.round(q * 100) / 100; if (q > 0) conStock++;   // celda vacía en la tabla dinámica = 0
+            total++;
+          }
+          if (!total) continue;
+          return {
+            tipo: 'jat_kardex_excel', version: 1, archivo: file.name, hoja, fecha: new Date().toISOString(),
+            columnas: { codigo: letra(cCod), producto: cNom >= 0 ? letra(cNom) : '', categoria: cCat >= 0 ? letra(cCat) : '', stock: letra(cSt), stockTitulo: txt(filas[h][cSt]) },
+            filaEncabezados: h + 1, total, conStock, sinCodigo, c, m, n, s
+          };
+        }
+        throw new Error('No encontré la columna de código de barras en ninguna hoja');
+      }
+      return { leer, guardar: d => db('put', d), cargar: () => db('get') };
+    })();
+
+    // Kardex cargado desde el Excel de inventario (lo comparte con Salida de Mercadería / ubicaciones)
+    JATKX.cargar().then(d => {
+        if (d && d.m) { KARDEX_PROPIO = true; KARDEX_CATS = { c: d.c, m: d.m }; if (typeof renderVerificadorTablaProgramado === 'function') renderVerificadorTablaProgramado(); }
+    }).catch(() => {});
+    function jatElegirKardexExcel() {
+        let inp = document.getElementById('fKardexMovil');
+        if (!inp) {
+            inp = document.createElement('input'); inp.type = 'file'; inp.id = 'fKardexMovil'; inp.style.display = 'none';
+            inp.accept = '.xlsx,.xls,.xlsm,.ods,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel';
+            document.body.appendChild(inp);
+            inp.addEventListener('change', async e => {
+                const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+                try {
+                    showAlert('Leyendo ' + f.name + '…', 'info');
+                    const d = await JATKX.leer(f), cols = d.columnas;
+                    if (!confirm('Kardex encontrado en la hoja "' + d.hoja + '" (encabezados en la fila ' + d.filaEncabezados + '):\n\n' +
+                        '• Código de barras: columna ' + cols.codigo + '\n• Producto: columna ' + (cols.producto || '—') + '\n• Categoría: columna ' + (cols.categoria || '—') +
+                        '\n• Stock total bodega: columna ' + cols.stock + (cols.stockTitulo ? ' (' + cols.stockTitulo + ')' : '') + '\n\n' +
+                        d.total.toLocaleString('es') + ' productos · ' + d.conStock.toLocaleString('es') + ' con stock mayor a 0' + (d.sinCodigo ? ' · ' + d.sinCodigo + ' sin código (no se cargan)' : '') +
+                        '\n\n¿Reemplazar el kardex?')) return;
+                    try { await JATKX.guardar(d); } catch (_) { showAlert('⚠️ No se pudo guardar en el teléfono; se usará solo mientras esté abierta la página', 'warning'); }
+                    KARDEX_PROPIO = true; KARDEX_CATS = { c: d.c, m: d.m };
+                    if (typeof renderVerificadorTablaProgramado === 'function') renderVerificadorTablaProgramado();
+                    showAlert('✅ Kardex actualizado: ' + d.total.toLocaleString('es') + ' productos (' + d.conStock.toLocaleString('es') + ' con stock). También queda listo en Salida de Mercadería para las ubicaciones.', 'success');
+                } catch (err) { showAlert('❌ No se pudo leer el Excel: ' + (err.message || err), 'error'); }
+            });
+        }
+        inp.click();
+    }
     function categoriaKardex(p) {
         if (!KARDEX_CATS) return null;
         const b = String(p.barcode || '').trim();
@@ -3328,6 +3438,7 @@
                 else if (action === 'constancias') cargarVistaConstancias();
                 else if (action === 'reportes') showAlert('Módulo de reportes preparado para una siguiente versión', 'info');
                 else if (action === 'bodegas') showAlert('Módulo de bodegas preparado para una siguiente versión', 'info');
+                else if (action === 'kardexExcel') jatElegirKardexExcel();
             });
         });
     }
