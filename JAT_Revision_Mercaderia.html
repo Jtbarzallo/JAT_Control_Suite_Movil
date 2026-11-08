@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b2440">
+<link rel="manifest" href="manifest-revision.webmanifest">
+<link rel="icon" href="icon-192.png">
+<title>JAT Revisión de Mercadería</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#eef2f7; --card:#fff; --ink:#13202f; --muted:#64748b; --line:#dbe3ec;
+  --brand:#0b2440; --brand2:#1667c7; --ok:#15803d; --okbg:#dcfce7; --warn:#b45309; --warnbg:#fef3c7;
+  --bad:#b91c1c; --badbg:#fee2e2; --info:#1d4ed8; --infobg:#dbeafe;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);font-size:16px;
+  padding-bottom:calc(72px + env(safe-area-inset-bottom))}
+button{font:inherit;cursor:pointer}
+input,textarea,select{font:inherit}
+header.top{position:sticky;top:0;z-index:20;background:var(--brand);color:#fff;padding:10px 14px calc(10px) 14px;
+  padding-top:calc(10px + env(safe-area-inset-top));display:flex;align-items:center;gap:10px}
+header.top .t{flex:1;min-width:0}
+header.top h1{margin:0;font-size:1.05rem;font-weight:700;letter-spacing:.2px}
+header.top small{opacity:.8;font-size:.78rem;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pill{background:rgba(255,255,255,.15);border-radius:999px;padding:4px 10px;font-size:.78rem;white-space:nowrap}
+main{padding:12px;max-width:760px;margin:0 auto}
+.view{display:none}.view.on{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.card h2{margin:0 0 8px;font-size:1.05rem}
+.card p{margin:6px 0;color:var(--muted);font-size:.92rem}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:12px;min-height:50px;padding:10px 14px;
+  font-weight:600;background:var(--brand2);color:#fff;width:100%}
+.btn.sec{background:#e2e8f0;color:var(--ink)}
+.btn.ok{background:var(--ok)}.btn.bad{background:var(--bad)}.btn.dark{background:var(--brand)}
+.btn:disabled{opacity:.5}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field{width:100%;border:1px solid var(--line);border-radius:12px;padding:12px;background:#fff;min-height:48px}
+textarea.field{min-height:120px;resize:vertical}
+label.lb{display:block;font-size:.85rem;color:var(--muted);margin:10px 0 4px}
+nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:30;background:#fff;border-top:1px solid var(--line);display:flex;
+  padding-bottom:env(safe-area-inset-bottom)}
+nav.tabs button{flex:1;border:0;background:none;padding:8px 2px 10px;font-size:.74rem;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:2px}
+nav.tabs button b{font-size:1.35rem;font-weight:400;line-height:1.2}
+nav.tabs button.on{color:var(--brand2);font-weight:700}
+.list{list-style:none;margin:0;padding:0}
+.eg-item{display:flex;gap:10px;align-items:center;padding:12px 4px;border-bottom:1px solid var(--line)}
+.eg-item:last-child{border-bottom:0}
+.eg-item .x{flex:1;min-width:0}
+.eg-item .x b{display:block;font-size:.95rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.eg-item .x span{font-size:.8rem;color:var(--muted)}
+.tag{font-size:.72rem;font-weight:700;border-radius:999px;padding:3px 8px;white-space:nowrap}
+.tag.ok{background:var(--okbg);color:var(--ok)}.tag.warn{background:var(--warnbg);color:var(--warn)}.tag.bad{background:var(--badbg);color:var(--bad)}.tag.info{background:var(--infobg);color:var(--info)}
+/* Verificador */
+.scanbar{position:sticky;top:calc(56px + env(safe-area-inset-top));z-index:15;background:var(--bg);padding:8px 0}
+.scanrow{display:flex;gap:8px}
+.scanrow .field{flex:1;font-size:1.05rem}
+.scanrow .ib{width:54px;min-height:50px;border:0;border-radius:12px;background:var(--brand);color:#fff;font-size:1.3rem;flex:none}
+.prog{height:10px;background:#dbe3ec;border-radius:99px;overflow:hidden;margin:8px 0 4px}
+.prog i{display:block;height:100%;background:var(--ok);width:0;transition:width .25s}
+.stats{display:flex;justify-content:space-between;font-size:.82rem;color:var(--muted)}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:8px 0 2px;scrollbar-width:none}
+.chips button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 12px;font-size:.82rem;white-space:nowrap;color:var(--ink)}
+.chips button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.last{border-radius:12px;padding:10px 12px;margin-top:8px;font-size:.9rem;display:none}
+.last.ok{display:block;background:var(--okbg);color:#14532d}.last.bad{display:block;background:var(--badbg);color:#7f1d1d}.last.warn{display:block;background:var(--warnbg);color:#78350f}
+.prod{background:#fff;border:1px solid var(--line);border-left:6px solid #cbd5e1;border-radius:12px;padding:10px 10px 10px 12px;margin-bottom:8px;display:flex;gap:10px;align-items:center}
+.prod.done{border-left-color:var(--ok);background:#f6fef8}
+.prod.part{border-left-color:#f59e0b}
+.prod.over{border-left-color:var(--bad);background:#fff7f7}
+.prod.extra{border-left-color:#7c3aed;background:#faf5ff}
+.prod.hl{outline:3px solid var(--brand2)}
+.prod .x{flex:1;min-width:0}
+.prod .n{font-weight:600;font-size:.92rem;line-height:1.25}
+.prod .c{font-family:ui-monospace,Menlo,monospace;font-size:.78rem;color:var(--muted);margin-top:2px}
+.prod .o{font-size:.78rem;color:var(--warn);margin-top:2px}
+.qty{display:flex;align-items:center;gap:6px;flex:none}
+.qty button{width:42px;height:42px;border:0;border-radius:10px;background:#e2e8f0;font-size:1.3rem;font-weight:700}
+.qty .v{min-width:56px;text-align:center;font-weight:700;font-size:1rem}
+.qty .v small{display:block;font-weight:500;color:var(--muted);font-size:.72rem}
+/* Cámara */
+#camBox{display:none;position:relative;border-radius:14px;overflow:hidden;background:#000;margin-top:8px}
+#camBox.on{display:block}
+#camVideo{width:100%;height:210px;object-fit:cover;display:block}
+#camBox .aim{position:absolute;left:12%;right:12%;top:38%;height:24%;border:3px solid rgba(255,255,255,.85);border-radius:10px;box-shadow:0 0 0 999px rgba(0,0,0,.25)}
+#camBox .st{position:absolute;left:8px;bottom:8px;background:rgba(0,0,0,.6);color:#fff;border-radius:999px;font-size:.75rem;padding:4px 10px}
+#camBox .cl{position:absolute;right:8px;top:8px;width:40px;height:40px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:1.1rem}
+/* Modal y toast */
+.modal{position:fixed;inset:0;background:rgba(10,20,35,.55);z-index:50;display:none;align-items:flex-end;justify-content:center}
+.modal.on{display:flex}
+.sheet{background:#fff;width:100%;max-width:760px;border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto}
+.sheet h3{margin:0 0 10px}
+#toast{position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:60;max-width:740px;margin:0 auto;
+  border-radius:12px;padding:12px 14px;font-weight:600;font-size:.92rem;display:none;box-shadow:0 6px 24px rgba(0,0,0,.18)}
+#toast.on{display:block}
+.kx{padding:10px 2px;border-bottom:1px solid var(--line)}
+.kx .c{font-family:ui-monospace,Menlo,monospace;font-size:.82rem;color:var(--brand2)}
+.kx .n{font-size:.92rem}
+.stars{display:flex;gap:6px}
+.stars button{border:0;background:none;font-size:2rem;line-height:1;color:#cbd5e1;padding:0 2px}
+.stars button.on{color:#f59e0b}
+.res-row{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:.9rem}
+.res-row span:last-child{font-weight:700;white-space:nowrap}
+.empty{text-align:center;color:var(--muted);padding:24px 8px;font-size:.92rem}
+.hint{font-size:.8rem;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="t">
+    <h1>JAT Revisión de Mercadería</h1>
+    <small id="hdrSub">Versión de prueba</small>
+  </div>
+  <span class="pill" id="pilotPill">Día 1 de 15</span>
+</header>
+
+<main>
+  <!-- ============ INICIO / REVISAR ============ -->
+  <section class="view on" id="v-inicio">
+    <div class="card">
+      <h2>Nueva revisión</h2>
+      <p>Carga el egreso o documento que vas a revisar.</p>
+      <div class="grid2" style="margin-top:10px">
+        <button class="btn" onclick="$('#filePdf').click()">📄 PDF del egreso</button>
+        <button class="btn" onclick="$('#fileOtro').click()">📊 Excel / CSV</button>
+        <button class="btn sec" onclick="abrirModal('mPegar')">📋 Pegar texto</button>
+        <button class="btn sec" onclick="revisionLibre()">🔎 Revisión libre</button>
+      </div>
+      <p class="hint" style="margin-top:10px">Revisión libre: sin documento, escaneas y el programa arma la lista con los nombres del kardex.</p>
+      <input type="file" id="filePdf" accept="application/pdf,.pdf" hidden>
+      <input type="file" id="fileOtro" accept=".xlsx,.xls,.csv,.txt,.json" hidden>
+    </div>
+    <div class="card">
+      <h2>Revisiones guardadas</h2>
+      <ul class="list" id="listaRevisiones"></ul>
+    </div>
+  </section>
+
+  <!-- ============ VERIFICADOR ============ -->
+  <section class="view" id="v-verif">
+    <div class="scanbar">
+      <div class="scanrow">
+        <button class="ib" onclick="cerrarVerificador()" title="Volver">←</button>
+        <input class="field" id="scanInput" placeholder="Escanea o escribe código / nombre" autocomplete="off" inputmode="search" enterkeyhint="done">
+        <button class="ib" id="camBtn" onclick="toggleCamara()" title="Cámara">📷</button>
+      </div>
+      <div id="camBox"><video id="camVideo" playsinline muted></video><div class="aim"></div><span class="st" id="camSt">Iniciando cámara…</span><button class="cl" onclick="detenerCamara()">✕</button></div>
+      <div class="last" id="lastScan"></div>
+      <div class="prog"><i id="progBar"></i></div>
+      <div class="stats"><span id="stTxt">0 / 0 unidades</span><span id="stLin">0 de 0 líneas</span></div>
+      <div class="chips" id="chips">
+        <button data-f="todos" class="on">Todos</button>
+        <button data-f="pend">Pendientes</button>
+        <button data-f="ok">Completos</button>
+        <button data-f="dif">Diferencias</button>
+        <button data-f="extra">No están en el egreso</button>
+      </div>
+    </div>
+    <div id="verTitulo" class="hint" style="margin:4px 2px 8px"></div>
+    <div id="listaProd"></div>
+    <div class="grid2" style="margin-top:12px">
+      <button class="btn sec" onclick="deshacer()">↩️ Deshacer</button>
+      <button class="btn ok" onclick="abrirResumen()">✅ Finalizar</button>
+    </div>
+  </section>
+
+  <!-- ============ KARDEX ============ -->
+  <section class="view" id="v-kardex">
+    <div class="card">
+      <h2>Kardex</h2>
+      <p id="kxEstado">Cargando kardex…</p>
+      <div class="scanrow" style="margin-top:8px">
+        <input class="field" id="kxBuscar" placeholder="Buscar por código o nombre" autocomplete="off" inputmode="search">
+        <button class="ib" onclick="kxCamara()" title="Escanear">📷</button>
+      </div>
+      <p class="hint">Solo código de barras y producto. No incluye cantidades.</p>
+    </div>
+    <div class="card" style="padding:4px 14px"><div id="kxRes"><div class="empty">Escribe al menos 3 letras o un código.</div></div></div>
+  </section>
+
+  <!-- ============ OPINIÓN ============ -->
+  <section class="view" id="v-opinion">
+    <div class="card">
+      <h2>Tu opinión</h2>
+      <p>Estamos probando este programa 15 días. Cuéntanos cómo te va: lo bueno, lo malo y lo que le falta.</p>
+      <label class="lb">¿Qué tan fácil es de usar?</label><div class="stars" data-k="facil"></div>
+      <label class="lb">¿Te ayuda a revisar más rápido?</label><div class="stars" data-k="rapido"></div>
+      <label class="lb">¿Lo seguirías usando?</label><div class="stars" data-k="usaria"></div>
+      <label class="lb">¿Qué te gustó?</label><textarea class="field" id="opGusto" placeholder="Ej.: el escaneo con la cámara es rápido"></textarea>
+      <label class="lb">¿Qué falla o qué es incómodo?</label><textarea class="field" id="opFalla" placeholder="Ej.: no lee los códigos pequeños"></textarea>
+      <label class="lb">¿Qué le agregarías?</label><textarea class="field" id="opIdea" placeholder="Ej.: que guarde la ubicación del producto"></textarea>
+      <div style="margin-top:14px"><button class="btn ok" onclick="enviarOpinion()">💬 Enviar por WhatsApp</button></div>
+      <p class="hint" style="margin-top:8px">Se envía junto con un resumen de cuánto has usado el programa (sin datos de productos).</p>
+    </div>
+    <div class="card">
+      <h2>Tu uso durante la prueba</h2>
+      <div id="usoResumen"></div>
+    </div>
+    <div class="card">
+      <h2>Tus datos</h2>
+      <div id="perfilTxt" class="hint"></div>
+      <div style="margin-top:10px"><button class="btn sec" onclick="abrirPerfil()">✏️ Cambiar nombre o área</button></div>
+    </div>
+  </section>
+</main>
+
+<nav class="tabs">
+  <button data-v="inicio" class="on"><b>📦</b>Revisar</button>
+  <button data-v="kardex"><b>🗂️</b>Kardex</button>
+  <button data-v="opinion"><b>💬</b>Opinión</button>
+</nav>
+
+<!-- Modales -->
+<div class="modal" id="mPerfil"><div class="sheet">
+  <h3>👋 Bienvenido</h3>
+  <p class="hint">Este programa es para revisar mercadería contra el egreso. Escribe tu nombre para que tus revisiones y tu opinión salgan con tu nombre.</p>
+  <label class="lb">Tu nombre</label><input class="field" id="pfNombre" placeholder="Nombre y apellido">
+  <label class="lb">Tu área</label>
+  <select class="field" id="pfArea"><option>Bodega</option><option>Almacén</option><option>Otra</option></select>
+  <label class="lb">Almacén o bodega donde trabajas (opcional)</label><input class="field" id="pfLugar" placeholder="Ej.: Ricaurte">
+  <div style="margin-top:14px"><button class="btn" onclick="guardarPerfil()">Empezar</button></div>
+</div></div>
+
+<div class="modal" id="mPegar"><div class="sheet">
+  <h3>📋 Pegar egreso</h3>
+  <p class="hint">Copia el texto del egreso (desde el PDF o el sistema) y pégalo aquí.</p>
+  <textarea class="field" id="txtPegar" style="min-height:200px"></textarea>
+  <div class="grid2" style="margin-top:12px"><button class="btn sec" onclick="cerrarModal('mPegar')">Cancelar</button><button class="btn" onclick="procesarPegado()">Procesar</button></div>
+</div></div>
+
+<div class="modal" id="mCant"><div class="sheet">
+  <h3 id="cantTit">Cantidad</h3>
+  <p class="hint" id="cantSub"></p>
+  <input class="field" id="cantInp" type="number" inputmode="decimal" min="0" step="any" style="font-size:1.4rem;text-align:center">
+  <label class="lb">Observación (opcional)</label><input class="field" id="cantObs" placeholder="Ej.: caja golpeada, serie, etc.">
+  <div class="grid2" style="margin-top:12px"><button class="btn sec" onclick="cerrarModal('mCant')">Cancelar</button><button class="btn" onclick="confirmarCantidad()">Guardar</button></div>
+</div></div>
+
+<div class="modal" id="mResumen"><div class="sheet">
+  <h3>Resumen de la revisión</h3>
+  <div id="resBody"></div>
+  <label class="lb">Observación general (opcional)</label><textarea class="field" id="resObs" style="min-height:70px"></textarea>
+  <div class="grid2" style="margin-top:12px">
+    <button class="btn sec" onclick="exportarExcel()">📊 Excel</button>
+    <button class="btn" onclick="compartirResumen()">💬 WhatsApp</button>
+  </div>
+  <div class="grid2" style="margin-top:10px">
+    <button class="btn sec" onclick="cerrarModal('mResumen')">Seguir revisando</button>
+    <button class="btn ok" onclick="finalizarRevision()">Cerrar revisión</button>
+  </div>
+</div></div>
+
+<div id="toast"></div>
+
+<script>
+/* =========================================================
+   JAT Revisión de Mercadería — versión piloto (15 días)
+   Todo se guarda en este celular (localStorage).
+   ========================================================= */
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const WHATSAPP = '593995060978';
+const DIAS_PILOTO = 15;
+const K = { perfil:'jatrev_perfil', revs:'jatrev_revisiones', uso:'jatrev_uso', piloto:'jatrev_inicio' };
+
+const ls = {
+  get(k, def){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; }catch(e){ return def; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ toast('⚠️ No se pudo guardar en el celular (memoria llena)', 'bad'); return false; } }
+};
+
+let perfil = ls.get(K.perfil, null);
+let revisiones = ls.get(K.revs, []);
+let uso = ls.get(K.uso, { escaneos:0, noEncontrados:0, revisiones:0, finalizadas:0, minutos:0, dias:[] });
+let rev = null;          // revisión abierta
+let filtro = 'todos';
+let historial = [];
+let kardex = null;       // { codigo: nombre }
+let kardexLista = null;  // [[codigo, nombre, nombreNormalizado]]
+
+/* ---------- utilidades ---------- */
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function norm(s){ return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/\s+/g,' ').trim(); }
+function fq(n){ n = Number(n)||0; return Number.isInteger(n) ? String(n) : String(+n.toFixed(3)).replace('.', ','); }
+function hoy(){ return new Date().toISOString().slice(0,10); }
+function fechaHora(d){ return new Date(d||Date.now()).toLocaleString('es-EC',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
+let toastT;
+function toast(msg, tipo='info'){
+  const t = $('#toast'); t.textContent = msg; t.className = 'on';
+  const c = {ok:['#dcfce7','#14532d'], bad:['#fee2e2','#7f1d1d'], warn:['#fef3c7','#78350f'], info:['#dbeafe','#1e3a8a']}[tipo] || ['#dbeafe','#1e3a8a'];
+  t.style.background = c[0]; t.style.color = c[1];
+  clearTimeout(toastT); toastT = setTimeout(() => t.className = '', 2600);
+}
+function abrirModal(id){ $('#'+id).classList.add('on'); }
+function cerrarModal(id){ $('#'+id).classList.remove('on'); }
+
+let audioCtx;
+function beep(ok=true){
+  try{
+    audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = 'square'; o.frequency.value = ok ? 1250 : 260; g.gain.value = 0.07;
+    o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime + (ok ? 0.09 : 0.35));
+  }catch(e){}
+  try{ navigator.vibrate && navigator.vibrate(ok ? 40 : [120,60,120]); }catch(e){}
+}
+
+/* ---------- piloto y uso ---------- */
+function diaPiloto(){
+  let ini = ls.get(K.piloto, null);
+  if (!ini){ ini = hoy(); ls.set(K.piloto, ini); }
+  const d = Math.floor((new Date(hoy()) - new Date(ini)) / 86400000) + 1;
+  return Math.max(1, d);
+}
+function registrarDiaUso(){
+  if (!uso.dias.includes(hoy())){ uso.dias.push(hoy()); ls.set(K.uso, uso); }
+}
+function pintarPiloto(){
+  const d = diaPiloto();
+  $('#pilotPill').textContent = d <= DIAS_PILOTO ? `Día ${d} de ${DIAS_PILOTO}` : 'Prueba terminada';
+  $('#hdrSub').textContent = perfil ? `${perfil.nombre} · ${perfil.area}${perfil.lugar ? ' · ' + perfil.lugar : ''}` : 'Versión de prueba';
+}
+let sesionInicio = Date.now();
+setInterval(() => { if (!document.hidden){ uso.minutos += 1; ls.set(K.uso, uso); } }, 60000);
+
+/* ---------- perfil ---------- */
+function abrirPerfil(){
+  $('#pfNombre').value = perfil?.nombre || ''; $('#pfArea').value = perfil?.area || 'Bodega'; $('#pfLugar').value = perfil?.lugar || '';
+  abrirModal('mPerfil'); setTimeout(() => $('#pfNombre').focus(), 150);
+}
+function guardarPerfil(){
+  const nombre = $('#pfNombre').value.trim();
+  if (nombre.length < 3){ toast('Escribe tu nombre', 'warn'); return; }
+  perfil = { nombre, area: $('#pfArea').value, lugar: $('#pfLugar').value.trim() };
+  ls.set(K.perfil, perfil); cerrarModal('mPerfil'); pintarPiloto(); pintarOpinion();
+  toast('✅ Listo, ' + nombre.split(' ')[0], 'ok');
+}
+
+/* ---------- navegación ---------- */
+function irVista(v){
+  $$('.view').forEach(x => x.classList.remove('on'));
+  $('#v-' + v).classList.add('on');
+  $$('nav.tabs button').forEach(b => b.classList.toggle('on', b.dataset.v === v || (v === 'verif' && b.dataset.v === 'inicio')));
+  if (v !== 'verif') detenerCamara();
+  if (v === 'inicio') pintarLista();
+  if (v === 'opinion') pintarOpinion();
+  if (v === 'kardex') setTimeout(() => $('#kxBuscar').focus(), 100);
+  window.scrollTo(0,0);
+}
+$$('nav.tabs button').forEach(b => b.onclick = () => {
+  if (b.dataset.v === 'inicio' && rev) irVista('verif'); else irVista(b.dataset.v);
+});
+
+/* =========================================================
+   KARDEX (solo código → producto, sin cantidades)
+   ========================================================= */
+async function cargarKardex(){
+  try{
+    const r = await fetch('kardex_nombres.json', {cache:'no-cache'});
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    kardex = await r.json();
+    kardexLista = Object.entries(kardex).map(([c,n]) => [c, n, norm(n)]);
+    $('#kxEstado').textContent = `${kardexLista.length.toLocaleString('es-EC')} productos en el kardex.`;
+    if (rev) pintarProductos();
+  }catch(e){
+    kardex = {}; kardexLista = [];
+    $('#kxEstado').textContent = 'No se pudo cargar el kardex (revisa el internet y vuelve a abrir).';
+  }
+}
+function sinCeros(c){ return String(c||'').replace(/^0+/, ''); }
+function nombreKardex(codigo){
+  if (!kardex) return '';
+  const c = String(codigo||'').trim();
+  if (kardex[c]) return kardex[c];
+  const s = sinCeros(c);
+  if (kardex[s]) return kardex[s];
+  if (kardex['0'+c]) return kardex['0'+c];
+  return '';
+}
+function buscarKardex(q){
+  q = String(q||'').trim(); if (!kardexLista) return [];
+  if (/^\d{4,}$/.test(q)){
+    return kardexLista.filter(([c]) => c.includes(q)).slice(0, 60);
+  }
+  const palabras = norm(q).split(' ').filter(Boolean);
+  if (!palabras.length || q.length < 3) return [];
+  return kardexLista.filter(([,,n]) => palabras.every(p => n.includes(p))).slice(0, 60);
+}
+let kxT;
+$('#kxBuscar').addEventListener('input', () => { clearTimeout(kxT); kxT = setTimeout(pintarKardex, 180); });
+function pintarKardex(){
+  const q = $('#kxBuscar').value.trim();
+  const res = buscarKardex(q);
+  if (!q || (!/^\d/.test(q) && q.length < 3)){ $('#kxRes').innerHTML = '<div class="empty">Escribe al menos 3 letras o un código.</div>'; return; }
+  if (!res.length){ $('#kxRes').innerHTML = '<div class="empty">No se encontró en el kardex.</div>'; return; }
+  $('#kxRes').innerHTML = res.map(([c,n]) => `<div class="kx"><div class="c">${esc(c)}</div><div class="n">${esc(n)}</div></div>`).join('')
+    + (res.length >= 60 ? '<div class="empty">Mostrando los primeros 60. Escribe más para afinar.</div>' : '');
+}
+
+/* =========================================================
+   LECTURA DE EGRESOS (mismo lector del Control Suite)
+   ========================================================= */
+function extraerCabeceraEgreso(rawText){
+  const plano = String(rawText||'').replace(/\r/g,'\n').replace(/\s+/g,' ').trim();
+  const meta = {};
+  const sec = plano.match(/(?:Secuencial\s*)?(EGR-\d{3}-\d{3}-\d{3}-\d{9})/i); if (sec) meta.secuencial = sec[1].toUpperCase();
+  const origen = plano.match(/Bodega\s+origen\s+(.+?)(?=\s+(?:Bodega\s+destino|Fecha\s+de|Tipo\s+de|Punto\s+de|Establecimiento|Concepto|Observaciones|Detalle|Código\s+de\s+barras|Producto|Unidad|Cantidad|$))/i);
+  if (origen) meta.bodegaOrigen = origen[1].trim();
+  const destino = plano.match(/Bodega\s+destino\s+(.+?)(?=\s+(?:Fecha\s+de|Tipo\s+de|Punto\s+de|Establecimiento|Concepto|Observaciones|Detalle|Código\s+de\s+barras|Producto|Unidad|Cantidad|$))/i);
+  if (destino) meta.bodegaDestino = destino[1].trim();
+  const fecha = plano.match(/Fecha\s+de\s+comprobante\s+(\d{2}\/\d{2}\/\d{4})/i); if (fecha) meta.fechaComprobante = fecha[1];
+  const totalDoc = plano.match(/No\.\s*art[ií]culos\s+(\d+(?:[\.,]\d+)?)/i); if (totalDoc) meta.totalDocumento = parseFloat(totalDoc[1].replace(',','.'));
+  return meta;
+}
+
+function parsearTablaEgreso(rawText){
+  const lines = rawText.split(/\r?\n/).map(l => l.replace(/\f/g,' ').replace(/￾/g,'').trim()).filter(l => l.length > 0);
+  const productos = []; let actual = null;
+  const esCodigo = v => /^\d{6,18}$/.test(String(v||'').trim());
+  const esCantidad = v => /^\d+(?:[\.,]\d+)?$/.test(String(v||'').trim());
+  const nq = v => { const n = parseFloat(String(v||'').trim().replace(',','.')); return (!isNaN(n) && n > 0) ? n : null; };
+  const esUnidadBodega = v => /^UNIDAD(?:ES)?\s+[A-ZÁÉÍÓÚÑ0-9 _.-]{2,}$/i.test(String(v||'').trim());
+  const ignorable = l => /^(Detalle|Información general|Producto|Unidad Bodega|Cantidad|Código de|barras|Código de barras|No\. artículos|Elaborado por|Autorizado por|Recibido por)$/i.test(l) || /^_+$/.test(l);
+  const agregar = (barcode, nombre, cantidad, ub) => {
+    const qty = nq(cantidad); nombre = String(nombre||'').replace(/\s+/g,' ').trim();
+    if (!esCodigo(barcode) || !nombre || qty === null) return false;
+    productos.push({ barcode:String(barcode).trim(), productName:nombre.substring(0,220), expectedQty:qty });
+    return true;
+  };
+  const cerrar = () => { if (actual && actual.codigo && actual.desc.length && actual.ub && actual.cantidad !== null) agregar(actual.codigo, actual.desc.join(' '), actual.cantidad, actual.ub); actual = null; };
+  const tabulado = l => {
+    if (!l.includes('\t')) return false;
+    const c = l.split('\t').map(x => x.trim()).filter(Boolean);
+    if (c.length < 5 || !esCodigo(c[0])) return false;
+    for (let i = 2; i < c.length - 2; i++) if (/^UNIDAD(?:ES)?$/i.test(c[i]) && !esCantidad(c[i+1]) && esCantidad(c[i+2])) return agregar(c[0], c.slice(1,i).join(' '), c[i+2], `${c[i]} ${c[i+1]}`);
+    return false;
+  };
+  const unaLinea = l => { const m = l.match(/^(\d{6,18})\s+(.+?)\s+(UNIDAD(?:ES)?\s+[A-ZÁÉÍÓÚÑ0-9 _.-]+)\s+(\d+(?:[\.,]\d+)?)\s*$/i); return m ? agregar(m[1], m[2], m[4], m[3]) : false; };
+  for (const l of lines){
+    if (ignorable(l)) continue;
+    if (/^(No\.\s*comprobante|Fecha de|Tipo de|Punto de|Establecimiento|Concepto|Observaciones|Bodega origen|Bodega destino)/i.test(l)) continue;
+    if (tabulado(l) || unaLinea(l)){ cerrar(); continue; }
+    if (esCodigo(l)){ cerrar(); actual = { codigo:l, desc:[], ub:'', cantidad:null }; continue; }
+    const ec = l.match(/^(\d{6,18})\s+(.+)$/);
+    if (ec){
+      cerrar(); actual = { codigo:ec[1], desc:[], ub:'', cantidad:null };
+      const una = ec[2].trim().match(/^(.+?)\s+(UNIDAD(?:ES)?\s+[A-ZÁÉÍÓÚÑ0-9 _.-]+)\s+(\d+(?:[\.,]\d+)?)$/i);
+      if (una){ agregar(actual.codigo, una[1], una[3], una[2]); actual = null; } else actual.desc.push(ec[2].trim());
+      continue;
+    }
+    if (!actual) continue;
+    const duc = l.match(/^(.+?)\s+(UNIDAD(?:ES)?\s+[A-ZÁÉÍÓÚÑ0-9 _.-]+)\s+(\d+(?:[\.,]\d+)?)$/i);
+    if (duc){ actual.desc.push(duc[1]); actual.ub = duc[2]; actual.cantidad = duc[3]; cerrar(); continue; }
+    const du = l.match(/^(.+?)\s+(UNIDAD(?:ES)?\s+[A-ZÁÉÍÓÚÑ0-9 _.-]+)$/i);
+    if (du){ actual.desc.push(du[1]); actual.ub = du[2]; continue; }
+    if (esUnidadBodega(l)){ actual.ub = l; continue; }
+    if (actual.ub && esCantidad(l)){ actual.cantidad = l; cerrar(); continue; }
+    actual.desc.push(l);
+  }
+  cerrar();
+  // juntar códigos repetidos
+  const map = new Map();
+  productos.forEach(p => { const k = p.barcode + '|' + norm(p.productName); if (map.has(k)) map.get(k).expectedQty += p.expectedQty; else map.set(k, p); });
+  return [...map.values()];
+}
+
+async function textoDesdePDF(file){
+  if (!window.pdfjsLib) throw new Error('Lector PDF no disponible (revisa internet)');
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+  let texto = '';
+  for (let n = 1; n <= pdf.numPages; n++){
+    const content = await (await pdf.getPage(n)).getTextContent();
+    let lastY = null, line = '';
+    const items = content.items.map(it => ({ str:it.str, x:it.transform[4], y:Math.round(it.transform[5]) })).sort((a,b) => b.y - a.y || a.x - b.x);
+    for (const it of items){
+      if (lastY === null || Math.abs(it.y - lastY) <= 2) line += (line ? ' ' : '') + it.str;
+      else { texto += line + '\n'; line = it.str; }
+      lastY = it.y;
+    }
+    if (line) texto += line + '\n';
+  }
+  return texto;
+}
+
+function filasATabla(filas){
+  // filas = array de arrays (Excel/CSV). Busca columnas de código, producto y cantidad.
+  const idxCab = filas.findIndex(f => f.some(c => /c[oó]digo|barra/i.test(String(c))) && f.some(c => /producto|descrip/i.test(String(c))));
+  if (idxCab < 0) return [];
+  const cab = filas[idxCab].map(c => norm(c));
+  const col = (...p) => cab.findIndex(c => p.some(w => c.includes(w)));
+  const iCod = col('CODIGO','BARRA'), iProd = col('PRODUCTO','DESCRIP'), iCant = (() => { const t = col('TOTAL'); return t >= 0 ? t : cab.findIndex(c => c.includes('CANT') && !c.includes('VERIF')); })();
+  if (iCod < 0 || iProd < 0) return [];
+  const map = new Map();
+  filas.slice(idxCab + 1).forEach(f => {
+    const cod = String(f[iCod] ?? '').trim(), prod = String(f[iProd] ?? '').trim();
+    if (!cod && !prod) return;
+    const q = iCant >= 0 ? parseFloat(String(f[iCant] ?? '').replace(',', '.')) : 1;
+    const qty = isNaN(q) || q <= 0 ? 1 : q;
+    const k = cod + '|' + norm(prod);
+    if (map.has(k)) map.get(k).expectedQty += qty; else map.set(k, { barcode:cod, productName:prod, expectedQty:qty });
+  });
+  return [...map.values()];
+}
+
+/* ---------- entrada de archivos ---------- */
+$('#filePdf').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  toast('Leyendo PDF…');
+  try{ const t = await textoDesdePDF(f); crearDesdeTexto(t, f.name.replace(/\.pdf$/i,'')); }
+  catch(err){ toast('❌ No se pudo leer el PDF. Prueba con "Pegar texto".', 'bad'); }
+};
+$('#fileOtro').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try{
+    let filas;
+    if (/\.json$/i.test(f.name)){
+      const d = JSON.parse(await f.text()); const eg = d.egreso || d;
+      if (Array.isArray(eg.productos)) { crearRevision(eg.productos.map(p => ({ barcode:p.barcode, productName:p.productName, expectedQty:Number(p.expectedQty ?? p.cantidad) || 1 })), { secuencial: eg.secuencial || eg.nombre || f.name, bodegaOrigen: eg.bodegaOrigen, bodegaDestino: eg.bodegaDestino }); return; }
+      throw new Error('formato');
+    }
+    if (/\.(xlsx|xls)$/i.test(f.name)){
+      const wb = XLSX.read(await f.arrayBuffer(), { type:'array' });
+      filas = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header:1, raw:false, defval:'' });
+    } else {
+      const t = await f.text();
+      const l0 = t.split(/\r?\n/)[0] || '';
+      const sep = l0.includes('\t') ? '\t' : (l0.split(';').length > l0.split(',').length ? ';' : ',');
+      filas = t.replace(/^﻿/,'').split(/\r?\n/).filter(l => l.trim()).map(l => l.split(sep).map(c => c.replace(/^"|"$/g,'').trim()));
+      if (!filasATabla(filas).length) { crearDesdeTexto(t, f.name.replace(/\.[^.]+$/,'')); return; }
+    }
+    const prods = filasATabla(filas);
+    if (!prods.length) throw new Error('sin productos');
+    crearRevision(prods, { secuencial: f.name.replace(/\.[^.]+$/,'') });
+  }catch(err){ toast('❌ No reconocí el archivo. Debe tener columnas Código y Producto.', 'bad'); }
+};
+function procesarPegado(){
+  const t = $('#txtPegar').value;
+  if (!t.trim()){ toast('Pega el texto primero', 'warn'); return; }
+  cerrarModal('mPegar');
+  crearDesdeTexto(t, '');
+  $('#txtPegar').value = '';
+}
+function crearDesdeTexto(texto, nombre){
+  const meta = extraerCabeceraEgreso(texto);
+  const prods = parsearTablaEgreso(texto);
+  if (!prods.length){ toast('❌ No se encontraron productos. Revisa que tenga código, producto y cantidad.', 'bad'); return; }
+  if (!meta.secuencial && nombre) meta.secuencial = nombre;
+  crearRevision(prods, meta);
+}
+
+/* =========================================================
+   REVISIONES
+   ========================================================= */
+function crearRevision(productos, meta={}){
+  // ¿ya existe este egreso? retomarlo
+  if (meta.secuencial){
+    const prev = revisiones.find(r => r.meta.secuencial === meta.secuencial && !r.finalizada);
+    if (prev){ toast('Este egreso ya estaba en revisión. Continúas donde te quedaste.', 'info'); abrirRevision(prev.id); return; }
+  }
+  const r = {
+    id: 'R' + Date.now(),
+    meta, libre: !!meta.libre,
+    creada: new Date().toISOString(), modificada: new Date().toISOString(),
+    revisor: perfil?.nombre || '', finalizada: false, obs: '',
+    productos: productos.map(p => ({ barcode:String(p.barcode||'').trim(), productName:p.productName || nombreKardex(p.barcode) || '(sin nombre)', expectedQty:Number(p.expectedQty)||0, qty:0, obs:'', extra:false }))
+  };
+  revisiones.unshift(r); uso.revisiones++; ls.set(K.uso, uso); guardar();
+  const total = r.productos.reduce((s,p) => s + p.expectedQty, 0);
+  if (meta.totalDocumento && Math.abs(meta.totalDocumento - total) > 0.001)
+    toast(`⚠️ El documento dice ${fq(meta.totalDocumento)} artículos y se leyeron ${fq(total)}. Revisa antes de empezar.`, 'warn');
+  else if (!r.libre) toast(`✅ ${r.productos.length} productos / ${fq(total)} unidades`, 'ok');
+  abrirRevision(r.id);
+}
+function revisionLibre(){
+  crearRevision([], { secuencial: 'Revisión libre ' + fechaHora(), libre: true });
+}
+function guardar(){
+  if (rev){ rev.modificada = new Date().toISOString(); }
+  // conservar solo las últimas 40 revisiones
+  if (revisiones.length > 40) revisiones = revisiones.slice(0, 40);
+  ls.set(K.revs, revisiones);
+}
+function totales(r){
+  const esp = r.productos.reduce((s,p) => s + p.expectedQty, 0);
+  const ver = r.productos.reduce((s,p) => s + Math.min(p.qty, p.expectedQty), 0);
+  const lineasOk = r.productos.filter(p => !p.extra && p.qty === p.expectedQty).length;
+  const lineas = r.productos.filter(p => !p.extra).length;
+  const dif = r.productos.filter(p => p.qty !== p.expectedQty).length;
+  return { esp, ver, lineasOk, lineas, dif };
+}
+function estadoProd(p){
+  if (p.extra) return 'extra';
+  if (p.qty === 0) return 'pend';
+  if (p.qty < p.expectedQty) return 'part';
+  if (p.qty > p.expectedQty) return 'over';
+  return 'done';
+}
+function pintarLista(){
+  const ul = $('#listaRevisiones');
+  if (!revisiones.length){ ul.innerHTML = '<li class="empty">Aún no tienes revisiones.</li>'; return; }
+  ul.innerHTML = revisiones.map(r => {
+    const t = totales(r);
+    const tag = r.finalizada ? (t.dif ? '<span class="tag bad">Con diferencias</span>' : '<span class="tag ok">Completa</span>')
+      : '<span class="tag warn">En revisión</span>';
+    const ruta = [r.meta.bodegaOrigen, r.meta.bodegaDestino].filter(Boolean).join(' → ');
+    return `<li class="eg-item" onclick="abrirRevision('${r.id}')">
+      <div class="x"><b>${esc(r.meta.secuencial || 'Egreso')}</b>
+      <span>${esc(ruta || (r.libre ? 'Sin documento' : ''))}${ruta || r.libre ? ' · ' : ''}${r.libre ? fq(t.esp + r.productos.reduce((s,p)=>s+(p.extra?p.qty:0),0)) + ' escaneados' : fq(t.ver) + '/' + fq(t.esp) + ' u.'} · ${fechaHora(r.modificada)}</span></div>
+      ${tag}</li>`;
+  }).join('');
+}
+function abrirRevision(id){
+  rev = revisiones.find(r => r.id === id); if (!rev) return;
+  historial = []; filtro = 'todos';
+  $$('#chips button').forEach(b => b.classList.toggle('on', b.dataset.f === 'todos'));
+  const ruta = [rev.meta.bodegaOrigen, rev.meta.bodegaDestino].filter(Boolean).join(' → ');
+  $('#verTitulo').textContent = (rev.meta.secuencial || 'Egreso') + (ruta ? ' · ' + ruta : '') + (rev.finalizada ? ' · CERRADA' : '');
+  $('#lastScan').className = 'last';
+  irVista('verif'); pintarProductos();
+  setTimeout(() => $('#scanInput').focus({preventScroll:true}), 150);
+}
+function cerrarVerificador(){ detenerCamara(); rev = null; irVista('inicio'); }
+
+function pintarProductos(resaltar=-1){
+  if (!rev) return;
+  const t = totales(rev);
+  if (rev.libre){
+    const tot = rev.productos.reduce((s,p) => s + p.qty, 0);
+    $('#progBar').style.width = '100%';
+    $('#stTxt').textContent = `${fq(tot)} unidades escaneadas`;
+    $('#stLin').textContent = `${rev.productos.length} productos`;
+  } else {
+    $('#progBar').style.width = (t.esp ? Math.min(100, t.ver / t.esp * 100) : 0) + '%';
+    $('#stTxt').textContent = `${fq(t.ver)} / ${fq(t.esp)} unidades`;
+    $('#stLin').textContent = `${t.lineasOk} de ${t.lineas} líneas`;
+  }
+  const q = norm($('#scanInput').value);
+  const buscaTexto = q && !/^\d+$/.test(q) && q.length >= 2;
+  const lista = rev.productos.map((p,i) => [p,i]).filter(([p]) => {
+    const e = estadoProd(p);
+    if (filtro === 'pend' && !(e === 'pend' || e === 'part')) return false;
+    if (filtro === 'ok' && e !== 'done') return false;
+    if (filtro === 'dif' && p.qty === p.expectedQty) return false;
+    if (filtro === 'extra' && !p.extra) return false;
+    if (buscaTexto && !q.split(' ').every(w => norm(p.productName).includes(w) || p.barcode.includes(w))) return false;
+    return true;
+  });
+  // pendientes primero, luego el resto
+  const peso = {pend:0, part:1, over:2, extra:3, done:4};
+  if (!rev.libre) lista.sort((a,b) => peso[estadoProd(a[0])] - peso[estadoProd(b[0])] || a[1] - b[1]);
+  if (!lista.length){ $('#listaProd').innerHTML = `<div class="empty">${rev.libre && !rev.productos.length ? 'Escanea el primer producto para empezar.' : 'No hay productos en este filtro.'}</div>`; return; }
+  $('#listaProd').innerHTML = lista.map(([p,i]) => {
+    const e = estadoProd(p);
+    const meta = (rev.libre || p.extra) ? "" : `<small>de ${fq(p.expectedQty)}</small>`;
+    return `<div class="prod ${e}${i === resaltar ? ' hl' : ''}" id="p${i}">
+      <div class="x" onclick="pedirCantidad(${i})"><div class="n">${esc(p.productName)}</div><div class="c">${esc(p.barcode || 'sin código')}${p.extra && !rev.libre ? ' · NO ESTÁ EN EL EGRESO' : ''}</div>${p.obs ? `<div class="o">📝 ${esc(p.obs)}</div>` : ''}</div>
+      <div class="qty"><button onclick="sumar(${i},-1)">−</button><div class="v" onclick="pedirCantidad(${i})">${fq(p.qty)}${meta}</div><button onclick="sumar(${i},1)">+</button></div></div>`;
+  }).join('');
+  if (resaltar >= 0){ const el = $('#p' + resaltar); if (el) el.scrollIntoView({ block:'center', behavior:'smooth' }); }
+}
+
+function sumar(i, d){
+  if (!rev || rev.finalizada){ toast('La revisión está cerrada', 'warn'); return; }
+  const p = rev.productos[i]; const prev = p.qty;
+  p.qty = Math.max(0, +(p.qty + d).toFixed(3));
+  if (p.extra && p.qty === 0 && !rev.libre){ /* se mantiene para registro */ }
+  historial.push({ i, prev });
+  if (p.qty > p.expectedQty && !p.extra && !rev.libre) toast('⚠️ Hay más de lo que dice el egreso', 'warn');
+  guardar(); pintarProductos(i);
+}
+let cantIdx = -1;
+function pedirCantidad(i){
+  if (!rev || rev.finalizada){ toast('La revisión está cerrada', 'warn'); return; }
+  cantIdx = i; const p = rev.productos[i];
+  $('#cantTit').textContent = p.productName;
+  $('#cantSub').textContent = rev.libre ? 'Cantidad contada' : `Egreso: ${fq(p.expectedQty)} · Contado: ${fq(p.qty)}`;
+  $('#cantInp').value = p.qty || ''; $('#cantObs').value = p.obs || '';
+  abrirModal('mCant'); setTimeout(() => { $('#cantInp').focus(); $('#cantInp').select(); }, 150);
+}
+function confirmarCantidad(){
+  const p = rev.productos[cantIdx]; const v = parseFloat(String($('#cantInp').value).replace(',', '.'));
+  if (isNaN(v) || v < 0){ toast('Cantidad no válida', 'warn'); return; }
+  historial.push({ i:cantIdx, prev:p.qty }); p.qty = v; p.obs = $('#cantObs').value.trim();
+  cerrarModal('mCant'); guardar(); pintarProductos(cantIdx);
+}
+$('#cantInp').addEventListener('keydown', e => { if (e.key === 'Enter') confirmarCantidad(); });
+function deshacer(){
+  const h = historial.pop(); if (!h){ toast('Nada para deshacer', 'info'); return; }
+  rev.productos[h.i].qty = h.prev; guardar(); pintarProductos(h.i); toast('↩️ Deshecho', 'info');
+}
+$$('#chips button').forEach(b => b.onclick = () => { filtro = b.dataset.f; $$('#chips button').forEach(x => x.classList.toggle('on', x === b)); pintarProductos(); });
+
+/* ---------- escaneo ---------- */
+function mostrarUltimo(tipo, html){ const el = $('#lastScan'); el.className = 'last ' + tipo; el.innerHTML = html; }
+function buscarIndicePorCodigo(cod){
+  const c = String(cod).trim(), s = sinCeros(c);
+  let i = rev.productos.findIndex(p => p.barcode === c);
+  if (i < 0) i = rev.productos.findIndex(p => p.barcode && sinCeros(p.barcode) === s);
+  return i;
+}
+function procesarCodigo(codigo){
+  codigo = String(codigo||'').trim(); if (!codigo || !rev) return;
+  if (rev.finalizada){ toast('La revisión está cerrada', 'warn'); return; }
+  uso.escaneos++; ls.set(K.uso, uso);
+  let i = buscarIndicePorCodigo(codigo);
+  if (i >= 0){
+    const p = rev.productos[i];
+    historial.push({ i, prev:p.qty }); p.qty = +(p.qty + 1).toFixed(3);
+    const e = estadoProd(p);
+    if (e === 'over'){ beep(false); mostrarUltimo('bad', `⚠️ <b>SOBRA</b> · ${esc(p.productName)}<br>Contado ${fq(p.qty)} de ${fq(p.expectedQty)}`); }
+    else { beep(true); mostrarUltimo('ok', `✅ ${esc(p.productName)}<br>${rev.libre || p.extra ? 'Contado ' + fq(p.qty) : fq(p.qty) + ' de ' + fq(p.expectedQty)}${e === 'done' && !p.extra && !rev.libre ? ' · <b>COMPLETO</b>' : ''}`); }
+    guardar(); pintarProductos(i); return;
+  }
+  // No está en la lista
+  const nk = nombreKardex(codigo);
+  if (rev.libre){
+    rev.productos.unshift({ barcode:codigo, productName: nk || '(no está en el kardex)', expectedQty:0, qty:1, obs:'', extra:true });
+    historial = historial.map(h => ({...h, i:h.i+1})); historial.push({ i:0, prev:0 });
+    beep(!!nk);
+    mostrarUltimo(nk ? 'ok' : 'warn', nk ? `✅ ${esc(nk)}<br>Contado 1` : `⚠️ Código ${esc(codigo)} no está en el kardex. Toca el producto para anotar una observación.`);
+    guardar(); pintarProductos(0); return;
+  }
+  uso.noEncontrados++; ls.set(K.uso, uso);
+  beep(false);
+  rev.productos.push({ barcode:codigo, productName: nk || '(no está en el kardex)', expectedQty:0, qty:1, obs:'', extra:true });
+  historial.push({ i:rev.productos.length - 1, prev:0 });
+  mostrarUltimo('bad', `❌ <b>NO ESTÁ EN EL EGRESO</b><br>${esc(nk || 'Código ' + codigo + ' (tampoco está en el kardex)')}<br><small>${esc(codigo)} · se anotó como sobrante</small>`);
+  guardar(); pintarProductos(rev.productos.length - 1);
+}
+const scanInput = $('#scanInput');
+let busqT;
+scanInput.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const v = scanInput.value.trim();
+  if (/^\d{4,}$/.test(v)){ procesarCodigo(v); scanInput.value = ''; }
+  else if (v){ pintarProductos(); }
+});
+scanInput.addEventListener('input', () => { clearTimeout(busqT); busqT = setTimeout(() => { if (!/^\d+$/.test(scanInput.value.trim())) pintarProductos(); }, 200); });
+
+/* ---------- cámara ---------- */
+const FORMATOS = ['ean_13','ean_8','upc_a','upc_e','code_128','code_39','itf','codabar'];
+let camStream = null, camDetector = null, camZX = null, camLoop = null, camUlt = '', camUltT = 0, camDestino = 'rev';
+function cargarZXing(){
+  return new Promise((res, rej) => {
+    if (window.ZXing) return res();
+    const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js';
+    s.onload = res; s.onerror = () => rej(new Error('sin internet')); document.head.appendChild(s);
+  });
+}
+function toggleCamara(){ camStream ? detenerCamara() : iniciarCamara('rev'); }
+function kxCamara(){
+  // Abrir cámara en el kardex reutilizando el mismo recuadro
+  const box = $('#camBox'); $('#kxRes').parentElement.before(box); iniciarCamara('kx');
+}
+async function iniciarCamara(destino){
+  camDestino = destino;
+  const box = $('#camBox');
+  if (destino === 'rev'){ const sb = $('#v-verif .scanbar'); if (box.parentElement !== sb) sb.insertBefore(box, $('#lastScan')); }
+  box.classList.add('on'); $('#camSt').textContent = 'Iniciando cámara…';
+  if (!navigator.mediaDevices?.getUserMedia){ $('#camSt').textContent = 'Este navegador no permite la cámara'; return; }
+  try{
+    camStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal:'environment' }, width:{ ideal:1280 }, height:{ ideal:720 } }, audio:false });
+    const v = $('#camVideo'); v.srcObject = camStream; await v.play();
+    try{ const tr = camStream.getVideoTracks()[0]; const cap = tr.getCapabilities?.(); if (cap?.focusMode?.includes('continuous')) tr.applyConstraints({ advanced:[{ focusMode:'continuous' }] }); }catch(e){}
+    if ('BarcodeDetector' in window){
+      const sop = await BarcodeDetector.getSupportedFormats();
+      camDetector = new BarcodeDetector({ formats: FORMATOS.filter(f => sop.includes(f)) });
+      $('#camSt').textContent = '🟢 Apunta al código';
+      let ocupado = false;
+      camLoop = setInterval(async () => {
+        if (ocupado || v.readyState < 2) return; ocupado = true;
+        try{ const r = await camDetector.detect(v); if (r.length) lecturaCamara(r[0].rawValue); }catch(e){}
+        ocupado = false;
+      }, 120);
+    } else {
+      $('#camSt').textContent = '🟡 Cargando lector…';
+      await cargarZXing();
+      camZX = new ZXing.BrowserMultiFormatReader();
+      camZX.decodeFromVideoElementContinuously(v, r => { if (r) lecturaCamara(r.getText()); });
+      $('#camSt').textContent = '🟢 Apunta al código';
+    }
+  }catch(e){
+    $('#camSt').textContent = e.name === 'NotAllowedError' ? 'Permiso de cámara negado' : 'No se pudo abrir la cámara';
+    toast('No se pudo abrir la cámara. Revisa el permiso del navegador.', 'bad');
+    detenerCamara(true);
+  }
+}
+function lecturaCamara(cod){
+  cod = String(cod||'').trim(); const ahora = Date.now();
+  if (!cod || (cod === camUlt && ahora - camUltT < 1600)) return;
+  camUlt = cod; camUltT = ahora;
+  if (camDestino === 'kx'){ $('#kxBuscar').value = cod; pintarKardex(); beep(!!nombreKardex(cod)); detenerCamara(); return; }
+  procesarCodigo(cod);
+}
+function detenerCamara(dejarCaja){
+  clearInterval(camLoop); camLoop = null;
+  try{ camZX && camZX.reset(); }catch(e){} camZX = null;
+  if (camStream){ camStream.getTracks().forEach(t => t.stop()); camStream = null; }
+  if (!dejarCaja) $('#camBox').classList.remove('on');
+}
+
+/* ---------- resumen / cierre ---------- */
+function difs(r){
+  const falt = [], sobr = [];
+  r.productos.forEach(p => {
+    if (p.qty < p.expectedQty) falt.push({ p, d: p.expectedQty - p.qty });
+    else if (p.qty > p.expectedQty) sobr.push({ p, d: p.qty - p.expectedQty });
+  });
+  return { falt, sobr };
+}
+function abrirResumen(){
+  if (!rev) return;
+  const t = totales(rev);
+  let h = '';
+  if (rev.libre){
+    const tot = rev.productos.reduce((s,p) => s + p.qty, 0);
+    h = `<div class="res-row"><span>Productos distintos</span><span>${rev.productos.length}</span></div><div class="res-row"><span>Unidades contadas</span><span>${fq(tot)}</span></div>`;
+  } else {
+    const { falt, sobr } = difs(rev);
+    h = `<div class="res-row"><span>Unidades revisadas</span><span>${fq(t.ver)} / ${fq(t.esp)}</span></div>
+         <div class="res-row"><span>Líneas completas</span><span>${t.lineasOk} / ${t.lineas}</span></div>`;
+    if (!falt.length && !sobr.length) h += `<div class="last ok" style="display:block">✅ Todo cuadra con el egreso.</div>`;
+    if (falt.length) h += `<h4 style="margin:12px 0 4px;color:var(--bad)">Faltan (${falt.length})</h4>` + falt.map(x => `<div class="res-row"><span>${esc(x.p.productName)}</span><span>−${fq(x.d)}</span></div>`).join('');
+    if (sobr.length) h += `<h4 style="margin:12px 0 4px;color:#7c3aed">Sobran / no están en el egreso (${sobr.length})</h4>` + sobr.map(x => `<div class="res-row"><span>${esc(x.p.productName)}</span><span>+${fq(x.d)}</span></div>`).join('');
+  }
+  $('#resBody').innerHTML = h; $('#resObs').value = rev.obs || '';
+  abrirModal('mResumen');
+}
+function textoResumen(){
+  const r = rev; const t = totales(r);
+  const ruta = [r.meta.bodegaOrigen, r.meta.bodegaDestino].filter(Boolean).join(' → ');
+  let s = `*REVISIÓN DE MERCADERÍA*\n${r.meta.secuencial || 'Egreso'}${ruta ? '\n' + ruta : ''}\nRevisó: ${perfil?.nombre || '-'} (${perfil?.area || ''})\nFecha: ${fechaHora()}\n\n`;
+  if (r.libre){
+    s += r.productos.map(p => `• ${fq(p.qty)} x ${p.productName} [${p.barcode}]`).join('\n');
+  } else {
+    const { falt, sobr } = difs(r);
+    s += `Revisado: ${fq(t.ver)} de ${fq(t.esp)} unidades (${t.lineasOk}/${t.lineas} líneas)\n`;
+    if (!falt.length && !sobr.length) s += '\n✅ Todo cuadra con el egreso.';
+    if (falt.length) s += `\n*FALTAN:*\n` + falt.map(x => `• −${fq(x.d)} ${x.p.productName} [${x.p.barcode}]`).join('\n');
+    if (sobr.length) s += `\n\n*SOBRAN / NO ESTÁN EN EL EGRESO:*\n` + sobr.map(x => `• +${fq(x.d)} ${x.p.productName} [${x.p.barcode}]`).join('\n');
+  }
+  const obsProd = r.productos.filter(p => p.obs);
+  if (obsProd.length) s += `\n\n*Observaciones:*\n` + obsProd.map(p => `• ${p.productName}: ${p.obs}`).join('\n');
+  const og = $('#resObs').value.trim(); if (og) s += `\n\n${og}`;
+  return s;
+}
+function compartirResumen(){
+  rev.obs = $('#resObs').value.trim(); guardar();
+  const txt = textoResumen();
+  if (navigator.share){ navigator.share({ text: txt }).catch(() => {}); }
+  else window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank');
+}
+function exportarExcel(){
+  if (!window.XLSX){ toast('No se cargó el módulo de Excel (revisa internet)', 'bad'); return; }
+  rev.obs = $('#resObs').value.trim(); guardar();
+  const filas = rev.productos.map(p => ({
+    'Código de barras': p.barcode, 'Producto': p.productName,
+    'Cantidad egreso': rev.libre ? '' : p.expectedQty, 'Cantidad revisada': p.qty,
+    'Diferencia': rev.libre ? '' : p.qty - p.expectedQty,
+    'Estado': rev.libre ? 'CONTADO' : ({pend:'PENDIENTE', part:'FALTA', over:'SOBRA', extra:'NO ESTÁ EN EGRESO', done:'OK'})[estadoProd(p)],
+    'Observación': p.obs
+  }));
+  const ws = XLSX.utils.json_to_sheet(filas);
+  ws['!cols'] = [{wch:16},{wch:55},{wch:10},{wch:10},{wch:10},{wch:18},{wch:30}];
+  const info = XLSX.utils.aoa_to_sheet([
+    ['Documento', rev.meta.secuencial || ''], ['Bodega origen', rev.meta.bodegaOrigen || ''], ['Bodega destino', rev.meta.bodegaDestino || ''],
+    ['Revisó', perfil?.nombre || ''], ['Área', perfil?.area || ''], ['Fecha', fechaHora()], ['Observación', rev.obs || '']
+  ]);
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Revisión'); XLSX.utils.book_append_sheet(wb, info, 'Datos');
+  const nombre = String(rev.meta.secuencial || 'Revision').replace(/[^\w\-]+/g, '_').slice(0, 60);
+  XLSX.writeFile(wb, `REVISION_${nombre}.xlsx`);
+}
+function finalizarRevision(){
+  rev.obs = $('#resObs').value.trim();
+  if (!rev.finalizada){ rev.finalizada = true; uso.finalizadas++; ls.set(K.uso, uso); }
+  guardar(); cerrarModal('mResumen'); toast('✅ Revisión cerrada', 'ok'); cerrarVerificador();
+}
+
+/* =========================================================
+   OPINIÓN
+   ========================================================= */
+const notas = ls.get('jatrev_notas', {});
+$$('.stars').forEach(st => {
+  const k = st.dataset.k;
+  st.innerHTML = [1,2,3,4,5].map(n => `<button data-n="${n}">★</button>`).join('');
+  const pintar = () => st.querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.n <= (notas[k] || 0)));
+  st.querySelectorAll('button').forEach(b => b.onclick = () => { notas[k] = +b.dataset.n; ls.set('jatrev_notas', notas); pintar(); });
+  pintar();
+});
+['opGusto','opFalla','opIdea'].forEach(id => {
+  const el = $('#'+id); el.value = ls.get('jatrev_' + id, '');
+  el.addEventListener('input', () => ls.set('jatrev_' + id, el.value));
+});
+function pintarOpinion(){
+  $('#usoResumen').innerHTML = `
+    <div class="res-row"><span>Día de prueba</span><span>${Math.min(diaPiloto(), DIAS_PILOTO)} de ${DIAS_PILOTO}</span></div>
+    <div class="res-row"><span>Días que lo usaste</span><span>${uso.dias.length}</span></div>
+    <div class="res-row"><span>Revisiones empezadas</span><span>${uso.revisiones}</span></div>
+    <div class="res-row"><span>Revisiones cerradas</span><span>${uso.finalizadas}</span></div>
+    <div class="res-row"><span>Códigos escaneados</span><span>${uso.escaneos}</span></div>
+    <div class="res-row"><span>Códigos que no estaban en el egreso</span><span>${uso.noEncontrados}</span></div>
+    <div class="res-row"><span>Minutos de uso</span><span>${uso.minutos}</span></div>`;
+  $('#perfilTxt').textContent = perfil ? `${perfil.nombre} · ${perfil.area}${perfil.lugar ? ' · ' + perfil.lugar : ''}` : 'Sin nombre';
+}
+function enviarOpinion(){
+  const est = k => notas[k] ? '★'.repeat(notas[k]) + '☆'.repeat(5 - notas[k]) + ` (${notas[k]}/5)` : 'sin calificar';
+  const g = $('#opGusto').value.trim(), f = $('#opFalla').value.trim(), i = $('#opIdea').value.trim();
+  if (!notas.facil && !g && !f && !i){ toast('Califica o escribe algo antes de enviar', 'warn'); return; }
+  const txt = `*OPINIÓN — JAT Revisión de Mercadería*\n${perfil?.nombre || '-'} · ${perfil?.area || ''}${perfil?.lugar ? ' · ' + perfil.lugar : ''}\nDía ${Math.min(diaPiloto(), DIAS_PILOTO)} de ${DIAS_PILOTO}\n\n`
+    + `Fácil de usar: ${est('facil')}\nMás rápido: ${est('rapido')}\nLo seguiría usando: ${est('usaria')}\n\n`
+    + (g ? `👍 Me gustó: ${g}\n\n` : '') + (f ? `⚠️ Falla / incómodo: ${f}\n\n` : '') + (i ? `💡 Le agregaría: ${i}\n\n` : '')
+    + `Uso: ${uso.dias.length} días, ${uso.revisiones} revisiones (${uso.finalizadas} cerradas), ${uso.escaneos} escaneos, ${uso.minutos} min.\n`
+    + `Equipo: ${/Android/i.test(navigator.userAgent) ? 'Android' : /iPhone|iPad/i.test(navigator.userAgent) ? 'iPhone' : 'Computadora'}`;
+  window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(txt)}`, '_blank');
+}
+
+/* =========================================================
+   INICIO
+   ========================================================= */
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+document.addEventListener('visibilitychange', () => { if (document.hidden) detenerCamara(); });
+registrarDiaUso(); pintarPiloto(); pintarLista(); cargarKardex();
+if (!perfil) abrirPerfil();
+else if (diaPiloto() >= DIAS_PILOTO && !ls.get('jatrev_aviso15', false)){
+  ls.set('jatrev_aviso15', true);
+  setTimeout(() => { toast('🎯 Terminó la prueba de 15 días. ¡Envía tu opinión!', 'info'); irVista('opinion'); }, 800);
+}
+</script>
+</body>
+</html>
