@@ -107,6 +107,28 @@ nav.tabs button.on{color:var(--brand2);font-weight:700}
 .empty{text-align:center;color:var(--muted);padding:24px 8px;font-size:.92rem}
 .hint{font-size:.8rem;color:var(--muted)}
 #v-verif{padding-bottom:110px}
+.modal{height:var(--vvh,100%);bottom:auto}
+.sheet{max-height:calc(var(--vvh,100vh) - 16px)}
+/* Botón ＋ y hoja de acciones */
+.fab{position:fixed;right:18px;bottom:calc(80px + env(safe-area-inset-bottom));width:62px;height:62px;border-radius:50%;border:0;background:#d62f3a;color:#fff;
+  display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(214,47,58,.42);z-index:40;transition:transform .15s}
+.fab svg{width:30px;height:30px}
+.fab.abierto{transform:rotate(45deg);background:#1a2b3c}
+body.en-verif .fab{right:auto;left:16px;width:58px;height:58px;bottom:calc(92px + env(safe-area-inset-bottom))}
+.hoja{display:none;position:fixed;inset:0;z-index:38}
+.hoja.on{display:block}
+.hoja .fondo{position:absolute;inset:0;background:rgba(10,20,35,.45)}
+.hoja .panel{position:absolute;left:0;right:0;bottom:0;max-height:82vh;overflow-y:auto;background:#fff;border-radius:22px 22px 0 0;
+  padding:10px 14px calc(160px + env(safe-area-inset-bottom));animation:sube .18s ease-out;max-width:760px;margin:0 auto}
+@keyframes sube{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}
+.hoja .asa{width:42px;height:5px;border-radius:3px;background:#d6dbe2;margin:2px auto 10px}
+.hoja h4{margin:0 4px 10px;font-size:1.05rem}
+.op{display:flex;align-items:center;gap:14px;width:100%;min-height:62px;margin-bottom:8px;padding:10px 14px;border:0;border-radius:14px;background:#f4f6f9;color:var(--ink);text-align:left}
+.op:active{background:#e6ebf1}
+.op .ic{flex:none;width:40px;height:40px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:1.4rem;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.op b{display:block;font-size:.98rem}
+.op small{display:block;margin-top:2px;font-size:.78rem;color:var(--muted)}
+.op.dest{background:#d62f3a;color:#fff}.op.dest small{color:#ffe1e3}
 .gatillo{position:fixed;right:16px;bottom:calc(80px + env(safe-area-inset-bottom));z-index:35;width:88px;height:88px;border-radius:50%;
   background:radial-gradient(circle at 35% 30%,#ff6b5b,#b52a1c 70%);color:#fff;font-weight:800;font-size:.72rem;letter-spacing:.5px;
   border:4px solid #fff;box-shadow:0 8px 22px rgba(120,20,10,.45);touch-action:none;display:none;flex-direction:column;align-items:center;
@@ -134,21 +156,10 @@ body.en-verif #toast{right:116px}
 <main>
   <!-- ============ INICIO / REVISAR ============ -->
   <section class="view on" id="v-inicio">
+    <input type="file" id="filePdf" accept="application/pdf,.pdf" hidden>
+    <input type="file" id="fileOtro" accept=".xlsx,.xls,.csv,.txt,.json" hidden>
     <div class="card">
-      <h2>Nueva revisión</h2>
-      <p>Carga el egreso o documento que vas a revisar.</p>
-      <div class="grid2" style="margin-top:10px">
-        <button class="btn" onclick="$('#filePdf').click()">📄 PDF del egreso</button>
-        <button class="btn" onclick="$('#fileOtro').click()">📊 Excel / CSV</button>
-        <button class="btn sec" onclick="abrirModal('mPegar')">📋 Pegar texto</button>
-        <button class="btn sec" onclick="revisionLibre()">🔎 Revisión libre</button>
-      </div>
-      <p class="hint" style="margin-top:10px">Revisión libre: sin documento, escaneas y el programa arma la lista con los nombres del kardex.</p>
-      <input type="file" id="filePdf" accept="application/pdf,.pdf" hidden>
-      <input type="file" id="fileOtro" accept=".xlsx,.xls,.csv,.txt,.json" hidden>
-    </div>
-    <div class="card">
-      <h2>Revisiones guardadas</h2>
+      <h2>Mis revisiones</h2>
       <ul class="list" id="listaRevisiones"></ul>
     </div>
   </section>
@@ -157,7 +168,7 @@ body.en-verif #toast{right:116px}
   <section class="view" id="v-verif">
     <div class="scanbar">
       <div class="scanrow">
-        <button class="ib" onclick="cerrarVerificador()" title="Volver">←</button>
+        <button class="ib" onclick="salirVerificador()" title="Guardar y salir">←</button>
         <input class="field" id="scanInput" placeholder="Escanea o escribe código / nombre" autocomplete="off" inputmode="search" enterkeyhint="done">
         <button class="ib" id="camBtn" onclick="toggleCamara()" title="Cámara">📷</button>
       </div>
@@ -175,10 +186,6 @@ body.en-verif #toast{right:116px}
     </div>
     <div id="verTitulo" class="hint" style="margin:4px 2px 8px"></div>
     <div id="listaProd"></div>
-    <div class="grid2" style="margin-top:12px">
-      <button class="btn sec" onclick="deshacer()">↩️ Deshacer</button>
-      <button class="btn ok" onclick="abrirResumen()">✅ Finalizar</button>
-    </div>
   </section>
 
   <!-- ============ KARDEX ============ -->
@@ -268,6 +275,8 @@ body.en-verif #toast{right:116px}
 </div></div>
 
 <button type="button" class="gatillo" id="gatillo" aria-label="Mantén presionado para escanear"><span class="ico">⦿</span>ESCANEAR</button>
+<button type="button" class="fab" id="fab" aria-label="Más acciones"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+<div class="hoja" id="hoja"><div class="fondo"></div><div class="panel"><div class="asa"></div><h4 id="hojaTit"></h4><div id="hojaOps"></div></div></div>
 <div id="toast"></div>
 
 <script>
@@ -343,7 +352,7 @@ setInterval(() => { if (!document.hidden){ uso.minutos += 1; ls.set(K.uso, uso);
 /* ---------- perfil ---------- */
 function abrirPerfil(){
   $('#pfNombre').value = perfil?.nombre || ''; $('#pfArea').value = perfil?.area || 'Bodega'; $('#pfLugar').value = perfil?.lugar || '';
-  abrirModal('mPerfil'); setTimeout(() => $('#pfNombre').focus(), 150);
+  abrirModal('mPerfil');
 }
 function guardarPerfil(){
   const nombre = $('#pfNombre').value.trim();
@@ -354,7 +363,9 @@ function guardarPerfil(){
 }
 
 /* ---------- navegación ---------- */
+let vistaActual = 'inicio';
 function irVista(v){
+  vistaActual = v; if ($('#hoja').classList.contains('on')){ cerrarHoja(); quitarAtrasSilencioso(); }
   $$('.view').forEach(x => x.classList.remove('on'));
   $('#v-' + v).classList.add('on');
   $$('nav.tabs button').forEach(b => b.classList.toggle('on', b.dataset.v === v || (v === 'verif' && b.dataset.v === 'inicio')));
@@ -362,7 +373,6 @@ function irVista(v){
   if (v !== 'verif') detenerCamara();
   if (v === 'inicio') pintarLista();
   if (v === 'opinion') pintarOpinion();
-  if (v === 'kardex') setTimeout(() => $('#kxBuscar').focus(), 100);
   window.scrollTo(0,0);
 }
 $$('nav.tabs button').forEach(b => b.onclick = () => {
@@ -616,7 +626,7 @@ function estadoProd(p){
 }
 function pintarLista(){
   const ul = $('#listaRevisiones');
-  if (!revisiones.length){ ul.innerHTML = '<li class="empty">Aún no tienes revisiones.</li>'; return; }
+  if (!revisiones.length){ ul.innerHTML = '<li class="empty">📦 Aún no tienes revisiones.<br>Toca <b>＋</b> para cargar un egreso.</li>'; return; }
   ul.innerHTML = revisiones.map(r => {
     const t = totales(r);
     const tag = r.finalizada ? (t.dif ? '<span class="tag bad">Con diferencias</span>' : '<span class="tag ok">Completa</span>')
@@ -672,8 +682,8 @@ function pintarProductos(resaltar=-1){
     const e = estadoProd(p);
     const meta = (rev.libre || p.extra) ? "" : `<small>de ${fq(p.expectedQty)}</small>`;
     return `<div class="prod ${e}${i === resaltar ? ' hl' : ''}" id="p${i}">
-      <div class="x" onclick="pedirCantidad(${i})"><div class="n">${esc(p.productName)}</div><div class="c">${esc(p.barcode || 'sin código')}${p.extra && !rev.libre ? ' · NO ESTÁ EN EL EGRESO' : ''}</div>${p.obs ? `<div class="o">📝 ${esc(p.obs)}</div>` : ''}</div>
-      <div class="qty"><button onclick="sumar(${i},-1)">−</button><div class="v" onclick="pedirCantidad(${i})">${fq(p.qty)}${meta}</div><button onclick="sumar(${i},1)">+</button></div></div>`;
+      <div class="x" data-teclado onclick="pedirCantidad(${i})"><div class="n">${esc(p.productName)}</div><div class="c">${esc(p.barcode || 'sin código')}${p.extra && !rev.libre ? ' · NO ESTÁ EN EL EGRESO' : ''}</div>${p.obs ? `<div class="o">📝 ${esc(p.obs)}</div>` : ''}</div>
+      <div class="qty"><button onclick="sumar(${i},-1)">−</button><div class="v" data-teclado onclick="pedirCantidad(${i})">${fq(p.qty)}${meta}</div><button onclick="sumar(${i},1)">+</button></div></div>`;
   }).join('');
   if (resaltar >= 0){ const el = $('#p' + resaltar); if (el) el.scrollIntoView({ block:'center', behavior:'smooth' }); }
 }
@@ -767,6 +777,42 @@ function cargarZXing(){
     s.onload = res; s.onerror = () => rej(new Error('sin internet')); document.head.appendChild(s);
   });
 }
+// Cámara óptima para códigos: lente principal trasero, 1080p, enfoque/exposición continuos y un poco de zoom
+const RES = { width:{ ideal:1920 }, height:{ ideal:1080 } };
+async function abrirCam(video){ return navigator.mediaDevices.getUserMedia({ video, audio:false }); }
+function elegirPrincipal(devs){
+  const atras = devs.filter(d => /back|rear|trasera|environment|posterior/i.test(d.label));
+  if (!atras.length) return null;
+  const num = d => { const m = d.label.match(/(\d+)/); return m ? +m[1] : 99; };
+  return atras.slice().sort((a,b) => num(a) - num(b))[0];
+}
+async function ajustarCam(st){
+  const t = st.getVideoTracks()[0]; const cap = t && t.getCapabilities ? t.getCapabilities() : {};
+  const adv = [];
+  if (cap.focusMode?.includes('continuous')) adv.push({ focusMode:'continuous' });
+  if (cap.exposureMode?.includes('continuous')) adv.push({ exposureMode:'continuous' });
+  if (cap.whiteBalanceMode?.includes('continuous')) adv.push({ whiteBalanceMode:'continuous' });
+  if (cap.zoom && cap.zoom.max >= 1.8) adv.push({ zoom: Math.min(cap.zoom.max, 1.8) });
+  for (const c of adv){ try{ await t.applyConstraints({ advanced:[c] }); }catch(e){} }
+  return st;
+}
+async function abrirCamaraOptima(){
+  const KC = 'jatrev_cam_principal';
+  const g = localStorage.getItem(KC);
+  if (g){ try{ return ajustarCam(await abrirCam({ deviceId:{ exact:g }, ...RES })); }catch(e){ localStorage.removeItem(KC); } }
+  let st = await abrirCam({ facingMode:{ ideal:'environment' }, ...RES });
+  try{
+    const devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
+    const actual = st.getVideoTracks()[0].getSettings().deviceId;
+    const pr = elegirPrincipal(devs);
+    if (pr && pr.deviceId && pr.deviceId !== actual){
+      st.getTracks().forEach(t => t.stop());
+      try{ st = await abrirCam({ deviceId:{ exact:pr.deviceId }, ...RES }); }catch(e){ st = await abrirCam({ facingMode:{ ideal:'environment' }, ...RES }); }
+    }
+    const fin = st.getVideoTracks()[0].getSettings().deviceId; if (fin) localStorage.setItem(KC, fin);
+  }catch(e){}
+  return ajustarCam(st);
+}
 function toggleCamara(){ camStream ? detenerCamara() : iniciarCamara('rev'); }
 function kxCamara(){
   // Abrir cámara en el kardex reutilizando el mismo recuadro
@@ -779,9 +825,8 @@ async function iniciarCamara(destino){
   box.classList.add('on'); $('#camSt').textContent = 'Iniciando cámara…';
   if (!navigator.mediaDevices?.getUserMedia){ $('#camSt').textContent = 'Este navegador no permite la cámara'; return; }
   try{
-    camStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal:'environment' }, width:{ ideal:1280 }, height:{ ideal:720 } }, audio:false });
+    camStream = await abrirCamaraOptima();
     const v = $('#camVideo'); v.srcObject = camStream; await v.play();
-    try{ const tr = camStream.getVideoTracks()[0]; const cap = tr.getCapabilities?.(); if (cap?.focusMode?.includes('continuous')) tr.applyConstraints({ advanced:[{ focusMode:'continuous' }] }); }catch(e){}
     if ('BarcodeDetector' in window){
       const sop = await BarcodeDetector.getSupportedFormats();
       camDetector = new BarcodeDetector({ formats: FORMATOS.filter(f => sop.includes(f)) });
@@ -960,7 +1005,8 @@ function exportarExcel(){
 function finalizarRevision(){
   rev.obs = $('#resObs').value.trim();
   if (!rev.finalizada){ rev.finalizada = true; uso.finalizadas++; ls.set(K.uso, uso); }
-  guardar(); cerrarModal('mResumen'); toast('✅ Revisión cerrada', 'ok'); cerrarVerificador();
+  guardar(); toast('✅ Revisión cerrada', 'ok');
+  _cerrarModal('mResumen'); quitarAtrasSilencioso(salirVerificador);
 }
 
 /* =========================================================
@@ -1000,6 +1046,144 @@ function enviarOpinion(){
     + `Equipo: ${/Android/i.test(navigator.userAgent) ? 'Android' : /iPhone|iPad/i.test(navigator.userAgent) ? 'iPhone' : 'Computadora'}`;
   window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(txt)}`, '_blank');
 }
+
+/* =========================================================
+   BOTÓN ＋ : acciones de cada ventana
+   ========================================================= */
+function accionesDe(v){
+  if (v === 'inicio') return { t:'Nueva revisión', ops:[
+    { ico:'📄', txt:'PDF del egreso', sub:'Lee el egreso directamente del PDF', dest:true, directo:true, fn:() => $('#filePdf').click() },
+    { ico:'📊', txt:'Excel o CSV', sub:'Debe tener columnas Código y Producto', directo:true, fn:() => $('#fileOtro').click() },
+    { ico:'📋', txt:'Pegar texto del egreso', sub:'Copiado del PDF o del sistema', fn:() => { abrirModal('mPegar'); } },
+    { ico:'🔎', txt:'Revisión libre', sub:'Sin documento: escaneas y se arma la lista con el kardex', fn:revisionLibre }
+  ]};
+  if (v === 'verif'){
+    const cerrada = rev?.finalizada;
+    return { t: rev?.meta.secuencial || 'Revisión', ops:[
+      !cerrada && { ico:'✅', txt:'Finalizar revisión', sub:'Ver faltantes y sobrantes', dest:true, fn:abrirResumen },
+      cerrada && { ico:'📋', txt:'Ver resumen', sub:'Faltantes, sobrantes, Excel y WhatsApp', dest:true, fn:abrirResumen },
+      !cerrada && { ico:'↩️', txt:'Deshacer', sub:'Quita el último conteo', fn:deshacer },
+      !cerrada && { ico:'⌨️', txt:'Escribir código o buscar', sub:'Abre el teclado', teclado:true, fn:() => { const i = $('#scanInput'); i.removeAttribute('inputmode'); i.focus(); } },
+      { ico: camGatillo ? '🔁' : '🎯', txt: camGatillo ? 'Cámara: cambiar a continuo' : 'Cámara: cambiar a gatillo', sub: camGatillo ? 'Lee sin apretar el gatillo' : 'Lee solo al apretar ESCANEAR', fn:() => { camGatillo = !camGatillo; ls.set('jatrev_modo_gatillo', camGatillo); aplicarModoCamara(); } },
+      { ico:'📊', txt:'Exportar a Excel', sub:'Con cantidades y diferencias', fn:() => { $('#resObs').value = rev.obs || ''; exportarExcel(); } },
+      { ico:'💬', txt:'Enviar resumen por WhatsApp', fn:() => { $('#resObs').value = rev.obs || ''; compartirResumen(); } },
+      { ico:'🏠', txt:'Guardar y salir', sub:'Lo retomas desde Mis revisiones', fn:() => { salirVerificador(); toast('💾 Guardado', 'ok'); } }
+    ]};
+  }
+  if (v === 'kardex') return { t:'Kardex', ops:[
+    { ico:'📷', txt:'Escanear un código', sub:'Muestra el nombre del producto', dest:true, fn:kxCamara },
+    { ico:'⌨️', txt:'Buscar escribiendo', teclado:true, fn:() => { const i = $('#kxBuscar'); i.removeAttribute('inputmode'); i.focus(); } },
+    { ico:'🧹', txt:'Limpiar búsqueda', fn:() => { $('#kxBuscar').value = ''; pintarKardex(); } }
+  ]};
+  if (v === 'opinion') return { t:'Opinión', ops:[
+    { ico:'💬', txt:'Enviar mi opinión por WhatsApp', dest:true, fn:enviarOpinion },
+    { ico:'✏️', txt:'Cambiar nombre o área', fn:abrirPerfil }
+  ]};
+  return null;
+}
+let hojaOps = [];
+function abrirHoja(){
+  const a = accionesDe(vistaActual); if (!a) return;
+  hojaOps = a.ops.filter(Boolean);
+  $('#hojaTit').textContent = a.t;
+  $('#hojaOps').innerHTML = hojaOps.map((o,i) => `<button type="button" class="op ${o.dest ? 'dest' : ''}" data-i="${i}"${o.teclado ? ' data-teclado' : ''}><span class="ic">${o.ico}</span><span><b>${esc(o.txt)}</b>${o.sub ? '<small>' + esc(o.sub) + '</small>' : ''}</span></button>`).join('');
+  $('#hoja').classList.add('on'); $('#fab').classList.add('abierto');
+  pushAtras();
+}
+function cerrarHoja(){ $('#hoja').classList.remove('on'); $('#fab').classList.remove('abierto'); }
+$('#fab').onclick = () => $('#hoja').classList.contains('on') ? history.back() : abrirHoja();
+$('#hoja .fondo').onclick = () => history.back();
+$('#hojaOps').addEventListener('click', e => {
+  const b = e.target.closest('.op'); if (!b) return;
+  const o = hojaOps[+b.dataset.i];
+  cerrarHoja();
+  // abrir archivos debe ocurrir en el mismo toque (si no, el celular lo bloquea)
+  if (o.directo){ o.fn(); quitarAtrasSilencioso(); } else quitarAtrasSilencioso(o.fn);
+});
+
+/* =========================================================
+   BOTÓN "ATRÁS" DEL CELULAR
+   Cierra primero la hoja ＋, luego la ventana abierta, luego guarda y sale del verificador.
+   ========================================================= */
+let ignorarPop = 0, trasPop = [], pushPendiente = 0;
+// Si hay un "atrás" en camino, el nuevo paso se agrega cuando termine (evita que se crucen)
+function pushAtras(){ if (ignorarPop){ pushPendiente++; return; } try{ history.pushState({ jatrev:1 }, ''); }catch(e){} }
+// Quita un paso de "atrás" sin efecto y luego ejecuta cb (espera a que el navegador termine)
+function quitarAtrasSilencioso(cb){
+  if (ignorarPop || (history.state && history.state.jatrev)){ ignorarPop++; trasPop.push(cb || null); history.back(); }
+  else if (cb) cb();
+}
+window.addEventListener('popstate', () => {
+  if (ignorarPop){
+    ignorarPop--; const cb = trasPop.shift();
+    setTimeout(() => {
+      if (!ignorarPop) while (pushPendiente){ pushPendiente--; try{ history.pushState({ jatrev:1 }, ''); }catch(e){} }
+      if (cb) cb();
+    }, 0);
+    return;
+  }
+  if ($('#hoja').classList.contains('on')){ cerrarHoja(); return; }
+  const m = $$('.modal.on').filter(x => x.id !== 'mPerfil');
+  if (m.length){ m.forEach(x => x.classList.remove('on')); return; }
+  if (camStream){ detenerCamara(); if (vistaActual === 'verif') pushAtras(); return; }
+  if (vistaActual === 'verif'){ cerrarVerificador(); toast('💾 Guardado. Lo retomas en Mis revisiones', 'ok'); return; }
+  if (vistaActual !== 'inicio'){ irVista('inicio'); }
+});
+// Las ventanas (cantidad, pegar, resumen) también se cierran con atrás
+const _abrirModal = abrirModal, _cerrarModal = cerrarModal;
+abrirModal = id => { _abrirModal(id); if (id !== 'mPerfil') pushAtras(); };
+cerrarModal = id => { const estaba = $('#'+id).classList.contains('on'); _cerrarModal(id); if (estaba && id !== 'mPerfil') quitarAtrasSilencioso(); };
+// Al entrar al verificador o a otra pestaña queda un paso de "atrás"
+const _abrirRevision = abrirRevision;
+abrirRevision = id => { _abrirRevision(id); pushAtras(); };
+function salirVerificador(){ quitarAtrasSilencioso(cerrarVerificador); }
+
+/* =========================================================
+   VENTANAS ENCIMA DEL TECLADO
+   ========================================================= */
+(function(){
+  const vv = window.visualViewport; if (!vv) return;
+  const fijar = () => document.documentElement.style.setProperty('--vvh', Math.round(vv.height) + 'px');
+  vv.addEventListener('resize', fijar); fijar();
+  document.addEventListener('focusin', e => {
+    if (e.target.closest && e.target.closest('.sheet') && /INPUT|TEXTAREA/.test(e.target.tagName)) setTimeout(() => e.target.scrollIntoView({ block:'center', behavior:'smooth' }), 300);
+  });
+})();
+
+/* =========================================================
+   TECLADO SOLO CUANDO TÚ TOCAS UN CAMPO
+   El cursor se queda en el buscador (el lector USB/Bluetooth escribe ahí),
+   pero el teclado en pantalla solo aparece si tocas el campo.
+   ========================================================= */
+(function(){
+  if (!matchMedia('(pointer: coarse)').matches) return;
+  const esTexto = el => !!el && (el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && !/^(button|checkbox|radio|file|range|color|submit|reset|hidden|image)$/i.test(el.type || '')));
+  let permitido = null, tecladoHasta = 0;
+  const devolver = el => {
+    if (el.dataset.jatIm === undefined){ if (el.getAttribute('inputmode') === 'none') el.removeAttribute('inputmode'); return; }
+    const o = el.dataset.jatIm; delete el.dataset.jatIm;
+    if (o && o !== 'none') el.setAttribute('inputmode', o); else el.removeAttribute('inputmode');
+  };
+  document.addEventListener('pointerdown', e => {
+    const el = e.target.closest && e.target.closest('input, textarea');
+    if (esTexto(el)){ permitido = el; devolver(el); }
+    if (e.target.closest && e.target.closest('[data-teclado]')) tecladoHasta = Date.now() + 1500;
+  }, true);
+  document.addEventListener('focusin', e => {
+    const el = e.target;
+    if (!esTexto(el)) return;
+    if (el === permitido) return;
+    if (Date.now() < tecladoHasta){ permitido = el; devolver(el); return; }
+    if (el.dataset.jatIm === undefined) el.dataset.jatIm = el.getAttribute('inputmode') || '';
+    el.setAttribute('inputmode', 'none');
+  }, true);
+  document.addEventListener('focusout', e => {
+    const el = e.target;
+    if (!esTexto(el)) return;
+    if (el === permitido) permitido = null;
+    if (el.dataset.jatIm !== undefined){ const o = el.dataset.jatIm; delete el.dataset.jatIm; if (o) el.setAttribute('inputmode', o); else el.removeAttribute('inputmode'); }
+  }, true);
+})();
 
 /* =========================================================
    INICIO
