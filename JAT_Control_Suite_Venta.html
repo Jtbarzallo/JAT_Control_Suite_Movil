@@ -720,8 +720,7 @@
                     <span class="subtitle" id="verificadorNombreEgreso" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:0.72rem;color:#7f8c8d;"></span>
                 </div>
                 <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
-                    <span class="badge-status" style="font-size:0.65rem;padding:3px 10px;">● Activo</span>
-                    <span class="close-modal" onclick="cerrarVerificador()" style="font-size:1.4rem;">&times;</span>
+                    <button type="button" id="jatSalirVerifBtn" onclick="jatGuardarYSalir()" style="display:inline-flex;align-items:center;gap:6px;background:#0b223d;color:#fff;border:0;border-radius:12px;padding:10px 14px;font-weight:700;font-size:.9rem;min-height:44px;cursor:pointer;">💾 Guardar y salir</button>
                 </div>
             </div>
 
@@ -730,6 +729,7 @@
                 🔒 CÁMARA BLOQUEADA POR EL ORIGEN DEL ARCHIVO (protocolo actual: <span id="camProtocoloActual">?</span>). Si ves "content://" o "file://" en la barra de direcciones, es porque abriste el archivo directo desde Descargas/gestor de archivos — Chrome bloquea la cámara ahí SIEMPRE, sin importar permisos. Solución: sube este .html a un hosting con https:// (GitHub Pages, Netlify) y ábrelo desde esa dirección https:// en la barra. Mientras tanto, escribe el código a mano abajo.
             </div>
             <div class="toolbar-topbar">
+                <button type="button" class="tt-btn tt-primary" onclick="jatGuardarYSalir()" style="background:#0b223d;">💾 Salir</button>
                 <button id="exportarExcelBtn" class="tt-btn tt-success">📊 CSV</button>
                 <button id="imprimirBtn" class="tt-btn tt-primary">🖨️ Imprimir</button>
                 <button id="descargarPdfBtn" class="tt-btn tt-danger">📄 PDF</button>
@@ -917,6 +917,7 @@
                 <button class="btn" onclick="closeModal('cierreSeguroModal')">Seguir revisando</button>
                 <button class="btn btn-success" id="confirmarCierreBtn">✅ Finalizar egreso</button>
                 <button class="btn btn-primary" id="imprimirCierreBtn">🖨️ Imprimir cierre</button>
+                <button class="btn" id="cierreSalirBtn" type="button" onclick="jatGuardarYSalir()" style="background:#0b223d;color:#fff;">🏠 Guardar y volver al inicio</button>
             </div>
         </div>
     </div>
@@ -3129,7 +3130,7 @@
             <div class="audit-note" style="margin-top:12px;">No se recomienda finalizar con pendientes. Si lo haces, el reporte guardará constancia del cierre con diferencias.</div>
         `;
         document.getElementById('cierreResumenContainer').innerHTML = html;
-        document.getElementById('cierreSeguroModal').style.display = 'flex';
+        jatMostrarVentana('cierreSeguroModal');
     }
 
     function finalizarEgresoSeguro() {
@@ -5151,6 +5152,42 @@
             </div>`;
         }).join('');
     }
+
+    // ===== Guardar y salir del verificador (botón y botón "atrás" del celular) =====
+    let jatVerifEnHistorial = false, jatIgnorarPop = false;
+    function jatGuardarYSalir(desdeAtras) {
+        const modal = document.getElementById('verificadorModal');
+        if (!modal || modal.style.display === 'none') return;
+        const nombre = currentEgreso ? currentEgreso.nombre : '';
+        const fin = currentEgreso && currentEgreso.estadoOperativo === 'FINALIZADO';
+        ['cierreSeguroModal', 'qtyFastModal'].forEach(id => { const m = document.getElementById(id); if (m) m.style.display = 'none'; });
+        cerrarVerificador();
+        if (fin) { currentEgreso = null; currentProductos = []; try { actualizarSidebarEgresoActivo(); } catch (e) {} }
+        if (!desdeAtras && jatVerifEnHistorial && history.state && history.state.jatVerif) { jatIgnorarPop = true; history.back(); }
+        jatVerifEnHistorial = false;
+        cargarVistaNuevoEgreso(false);
+        document.querySelectorAll('.menu-item').forEach(i => i.classList.toggle('active', i.dataset.action === 'nuevoEgreso'));
+        document.getElementById('mainContent')?.scrollTo?.(0, 0);
+        showAlert(fin ? '✅ Egreso cerrado y guardado. Listo para el siguiente.' : (nombre ? '💾 Guardado. Lo retomas en 📁 Mis egresos.' : '💾 Listo'), 'success');
+    }
+    const _jatAbrirVerifHist = abrirVerificador;
+    abrirVerificador = function () {
+        const r = _jatAbrirVerifHist.apply(this, arguments);
+        if (document.getElementById('verificadorModal')?.style.display !== 'none' && !jatVerifEnHistorial) {
+            try { history.pushState({ jatVerif: 1 }, ''); jatVerifEnHistorial = true; } catch (e) {}
+        }
+        return r;
+    };
+    window.addEventListener('popstate', () => {
+        if (jatIgnorarPop) { jatIgnorarPop = false; return; }
+        const abiertas = ['jatRegModal', 'jatKdxModal', 'jatEgQtyModal', 'jatRegFinModal', 'mapeoExcelModal', 'qtyFastModal'].map(id => document.getElementById(id)).filter(m => m && m.style.display === 'flex');
+        if (abiertas.length) {
+            abiertas.forEach(m => m.style.display = 'none');
+            try { history.pushState({ jatVerif: 1 }, ''); } catch (e) {}
+            return;
+        }
+        if (document.getElementById('verificadorModal')?.style.display !== 'none') { jatVerifEnHistorial = false; jatGuardarYSalir(true); }
+    });
     </script>
     <!-- ====================================================================
          NOTAS DE AUDITORÍA — SEGUNDA PASADA (Jorge reportó: "cámara no funciona")
