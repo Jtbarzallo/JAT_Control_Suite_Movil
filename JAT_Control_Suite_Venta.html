@@ -3772,7 +3772,9 @@
                 const constraints = camDispositivos.length
                     ? { video: { deviceId: { exact: camDispositivos[camIndiceActual].deviceId } } }
                     : { video: { facingMode: { ideal: 'environment' } } };
-                camStream = await navigator.mediaDevices.getUserMedia(constraints);
+                camStream = window.jatAbrirCamaraOptima
+                    ? await window.jatAbrirCamaraOptima(camIndiceActual && camDispositivos.length ? camDispositivos[camIndiceActual].deviceId : null)
+                    : await navigator.mediaDevices.getUserMedia(constraints);
             } catch (err) {
                 console.warn('Cámara no disponible:', err);
                 camUltimoError = err;
@@ -3844,7 +3846,7 @@
                         camDetector = new window.BarcodeDetector({ formats: formatos.length ? formatos : soportados });
                         camMotorUsado = 'nativo';
                         setEstadoPill('🟢 Escaneando (motor nativo)…', true);
-                        camLoopHandle = setInterval(() => detectarConNativo(video), 220);
+                        camLoopHandle = setInterval(() => detectarConNativo(video), 130);
                     } catch (e) {
                         console.warn('BarcodeDetector falló al iniciar, usando ZXing:', e);
                         camUltimoError = e;
@@ -4175,7 +4177,7 @@
         async function detectarConNativo(video) {
             if (!camDetector || video.readyState < 2) return;
             try {
-                const resultados = await camDetector.detect(video);
+                const resultados = window.jatDetectarRapido ? await window.jatDetectarRapido(camDetector, video) : await camDetector.detect(video);
                 if (resultados && resultados.length) manejarLecturaCamara(resultados.map(r => r.rawValue));
             } catch (e) { camUltimoError = e; /* frame sin lectura, normal la mayoría de las veces */ }
         }
@@ -6578,7 +6580,7 @@
             try {
                 // Igual que la cámara del verificador: sin forzar resolución (forzarla hace que algunos celulares
                 // elijan el lente gran angular, que no tiene autoenfoque).
-                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+                stream = await window.jatAbrirCamaraOptima();
                 if (!vivo) { stream.getTracks().forEach(t => t.stop()); return; }
                 video.srcObject = stream; await video.play();
                 const pista = stream.getVideoTracks()[0];
@@ -6593,9 +6595,10 @@
                 video.addEventListener('click', enfocar);
                 if (cap.zoom && cap.zoom.max >= 1.5) {
                     const zb = ov.querySelector('#jsrZoom'); zb.style.display = 'block';
-                    let z = 1; const zmax = Math.min(cap.zoom.max, 2.5);
-                    zb.addEventListener('click', async () => { z = z > 1 ? 1 : zmax; try { await pista.applyConstraints({ advanced: [{ zoom: z }] }); } catch (e) {} zb.textContent = z > 1 ? '🔍 1x' : '🔍 ' + (Math.round(zmax * 10) / 10) + 'x'; enfocar(); });
-                    zb.textContent = '🔍 ' + (Math.round(zmax * 10) / 10) + 'x';
+                    let z = (pista.getSettings && pista.getSettings().zoom) || 1; const zmax = Math.min(cap.zoom.max, 2.5);
+                    const et = () => { zb.textContent = z > 1.05 ? '🔍 1x' : '🔍 ' + (Math.round(zmax * 10) / 10) + 'x'; };
+                    zb.addEventListener('click', async () => { z = z > 1.05 ? 1 : zmax; try { await pista.applyConstraints({ advanced: [{ zoom: z }] }); } catch (e) {} et(); enfocar(); });
+                    et();
                 }
                 let det = null;
                 if ('BarcodeDetector' in window) {
@@ -6604,8 +6607,8 @@
                 if (det) {
                     const ciclo = async () => {
                         if (!vivo) return;
-                        try { const r = await det.detect(video); if (r && r.length) return listo(r[0].rawValue); } catch (e) {}
-                        timer = setTimeout(ciclo, 120);
+                        try { const r = await window.jatDetectarRapido(det, video); if (r && r.length) return listo(r[0].rawValue); } catch (e) {}
+                        timer = setTimeout(ciclo, 90);
                     };
                     ciclo();
                 } else {
@@ -7004,16 +7007,16 @@
             video.addEventListener('click', () => enfocar());
             (async () => {
                 try {
-                    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+                    stream = await window.jatAbrirCamaraOptima();
                     if (!vivo) { stream.getTracks().forEach(t => t.stop()); return; }
                     video.srcObject = stream; await video.play();
                     const pista = stream.getVideoTracks()[0], cap = pista.getCapabilities ? pista.getCapabilities() : {};
                     enfocar = async () => { try { if (cap.focusMode && cap.focusMode.includes('single-shot')) await pista.applyConstraints({ advanced: [{ focusMode: 'single-shot' }] }); if (cap.focusMode && cap.focusMode.includes('continuous')) await pista.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch (e) {} };
                     enfocar();
-                    if (cap.zoom && cap.zoom.max >= 1.5) { const zb = ov.querySelector('#jscZoom'), zm = Math.min(cap.zoom.max, 2.5); let z = 1; zb.style.display = 'block'; zb.textContent = '🔍 ' + (Math.round(zm * 10) / 10) + 'x'; zb.addEventListener('click', async () => { z = z > 1 ? 1 : zm; try { await pista.applyConstraints({ advanced: [{ zoom: z }] }); } catch (e) {} zb.textContent = z > 1 ? '🔍 1x' : '🔍 ' + (Math.round(zm * 10) / 10) + 'x'; enfocar(); }); }
+                    if (cap.zoom && cap.zoom.max >= 1.5) { const zb = ov.querySelector('#jscZoom'), zm = Math.min(cap.zoom.max, 2.5); let z = (pista.getSettings && pista.getSettings().zoom) || 1; const et = () => { zb.textContent = z > 1.05 ? '🔍 1x' : '🔍 ' + (Math.round(zm * 10) / 10) + 'x'; }; zb.style.display = 'block'; et(); zb.addEventListener('click', async () => { z = z > 1.05 ? 1 : zm; try { await pista.applyConstraints({ advanced: [{ zoom: z }] }); } catch (e) {} et(); enfocar(); }); }
                     let det = null;
                     if ('BarcodeDetector' in window) { try { const sop = await BarcodeDetector.getSupportedFormats(); const f = FMT.filter(x => sop.includes(x)); det = new BarcodeDetector({ formats: f.length ? f : sop }); } catch (e) { det = null; } }
-                    if (det) { const ciclo = async () => { if (!vivo) return; if (armado > Date.now()) { try { const r = await det.detect(video); if (r && r.length) lectura(r[0].rawValue); } catch (e) {} } timer = setTimeout(ciclo, 120); }; ciclo(); }
+                    if (det) { const ciclo = async () => { if (!vivo) return; if (armado > Date.now()) { try { const r = await window.jatDetectarRapido(det, video); if (r && r.length) lectura(r[0].rawValue); } catch (e) {} } timer = setTimeout(ciclo, 120); }; ciclo(); }
                     else {
                         if (!window.ZXing) await new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js'; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
                         if (!vivo) return; zx = new ZXing.BrowserMultiFormatReader(); zx.decodeFromVideoElementContinuously(video, r => { if (r) lectura(r.getText()); });
@@ -7217,6 +7220,66 @@
                 if (info && !info.querySelector('.jat-ub')) info.insertAdjacentHTML('beforeend', `<div class="jat-ub" style="display:inline-block;margin-top:3px;background:#fef3c7;color:#78350f;border-radius:6px;padding:2px 7px;font-size:.74rem;font-weight:700;">📍 ${jatEsc(ubicTxt(c))}</div>`);
             });
             return r;
+        };
+    })();
+
+    // ===== Cámara óptima para códigos de barras (usada por todos los escáneres) =====
+    (function () {
+        const K = 'jatv_cam_principal';
+        const RES = { width: { ideal: 1920 }, height: { ideal: 1080 } };
+        async function abrir(video) { return navigator.mediaDevices.getUserMedia({ video, audio: false }); }
+        // Elige el lente principal trasero: en Android suele ser "camera2 0, facing back".
+        // Los gran angular / macro / tele tienen otros números y enfocan peor a corta distancia.
+        function elegirPrincipal(devs) {
+            const atras = devs.filter(d => /back|rear|trasera|environment|posterior/i.test(d.label));
+            if (!atras.length) return null;
+            const num = d => { const m = d.label.match(/(\d+)/); return m ? +m[1] : 99; };
+            return atras.slice().sort((a, b) => num(a) - num(b))[0];
+        }
+        async function ajustar(stream) {
+            const pista = stream.getVideoTracks()[0];
+            const cap = pista && pista.getCapabilities ? pista.getCapabilities() : {};
+            const adv = [];
+            if (cap.focusMode && cap.focusMode.includes('continuous')) adv.push({ focusMode: 'continuous' });
+            if (cap.exposureMode && cap.exposureMode.includes('continuous')) adv.push({ exposureMode: 'continuous' });
+            if (cap.whiteBalanceMode && cap.whiteBalanceMode.includes('continuous')) adv.push({ whiteBalanceMode: 'continuous' });
+            // Un poco de zoom: así el producto se pone a más distancia del lente, donde sí enfoca.
+            if (cap.zoom && cap.zoom.max >= 1.8) adv.push({ zoom: Math.min(cap.zoom.max, 1.8) });
+            for (const c of adv) { try { await pista.applyConstraints({ advanced: [c] }); } catch (e) {} }
+            return stream;
+        }
+        window.jatAbrirCamaraOptima = async function (forzarId) {
+            if (forzarId) return ajustar(await abrir({ deviceId: { exact: forzarId }, ...RES }));
+            const guardado = localStorage.getItem(K);
+            if (guardado) { try { return ajustar(await abrir({ deviceId: { exact: guardado }, ...RES })); } catch (e) { localStorage.removeItem(K); } }
+            let st = await abrir({ facingMode: { ideal: 'environment' }, ...RES });
+            try {
+                const devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
+                const actual = st.getVideoTracks()[0].getSettings().deviceId;
+                const p = elegirPrincipal(devs);
+                if (p && p.deviceId && p.deviceId !== actual) {
+                    st.getTracks().forEach(t => t.stop());
+                    try { st = await abrir({ deviceId: { exact: p.deviceId }, ...RES }); }
+                    catch (e) { st = await abrir({ facingMode: { ideal: 'environment' }, ...RES }); }
+                }
+                const final = st.getVideoTracks()[0].getSettings().deviceId;
+                if (final) localStorage.setItem(K, final);
+            } catch (e) {}
+            return ajustar(st);
+        };
+        // Lee el código buscando en el centro de la imagen (más rápido) y cada tanto en toda la imagen.
+        const lienzo = document.createElement('canvas'); const ctx = lienzo.getContext('2d', { willReadFrequently: true });
+        let vuelta = 0;
+        window.jatDetectarRapido = async function (det, video) {
+            const w = video.videoWidth, h = video.videoHeight;
+            if (!w || !h) return [];
+            vuelta++;
+            if (vuelta % 3 === 0) return det.detect(video);
+            const cw = Math.round(w * 0.9), ch = Math.round(h * 0.5), sx = Math.round((w - cw) / 2), sy = Math.round((h - ch) / 2);
+            const esc = Math.min(1, 1280 / cw);
+            lienzo.width = Math.round(cw * esc); lienzo.height = Math.round(ch * esc);
+            ctx.drawImage(video, sx, sy, cw, ch, 0, 0, lienzo.width, lienzo.height);
+            return det.detect(lienzo);
         };
     })();
     </script>
