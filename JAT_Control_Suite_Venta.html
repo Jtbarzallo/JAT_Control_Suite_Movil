@@ -469,7 +469,7 @@
         .jat-keypad.kp-compacto .kp-ok{grid-row:auto;height:46px;font-size:24px}
         #jatRegBanner{display:none;align-items:center;justify-content:space-between;gap:10px;background:#0b223d;color:#fff;padding:10px 14px;border-radius:14px;margin:6px 10px 0}
         #jatRegBanner button{flex:none;background:#1E7F4A;color:#fff;border:0;border-radius:10px;padding:10px 14px;font-weight:700;font-size:.9rem;cursor:pointer}
-        #jatKdxModal,#jatRegModal,#jatEgQtyModal,#jatKdxNuevoModal,#jatRegFinModal{align-items:flex-start;bottom:auto;height:var(--vvh,100%);padding-top:10px;box-sizing:border-box}
+        #jatFacCodModal,#jatFacLinModal,#jatKdxModal,#jatRegModal,#jatEgQtyModal,#jatKdxNuevoModal,#jatRegFinModal{align-items:flex-start;bottom:auto;height:var(--vvh,100%);padding-top:10px;box-sizing:border-box}
         #jatKdxModal .qty-modal-card,#jatRegModal .qty-modal-card,#jatEgQtyModal .qty-modal-card{max-height:calc(var(--vvh,100vh) - 20px);overflow-y:auto;padding:18px 18px 20px;-webkit-overflow-scrolling:touch}
         .mic-grande{flex:none;width:56px;height:52px;border-radius:14px;border:0;background:#0b223d;color:#fff;font-size:24px;cursor:pointer}
         .mic-grande.escuchando{background:#e0362c;animation:jatPulso 1s ease-in-out infinite}
@@ -643,6 +643,7 @@
                     <label style="font-size:.78rem;color:#1a3a5c;">Stock actual<input id="jatKdxStock" type="text" inputmode="decimal" placeholder="0" style="font-size:16px;padding:10px;margin:4px 0 0;"></label>
                     <label style="font-size:.78rem;color:#1a3a5c;">Stock mínimo<input id="jatKdxMin" type="text" inputmode="decimal" placeholder="Ej: 5" style="font-size:16px;padding:10px;margin:4px 0 0;"></label>
                     <label style="font-size:.78rem;color:#1a3a5c;">Precio (USD)<input id="jatKdxPrecio" type="text" inputmode="decimal" placeholder="0.00" style="font-size:16px;padding:10px;margin:4px 0 0;"></label>
+                    <label style="font-size:.78rem;color:#1a3a5c;">Costo (USD)<input id="jatKdxCosto" type="text" inputmode="decimal" placeholder="0.00" style="font-size:16px;padding:10px;margin:4px 0 0;"></label>
                     <label style="font-size:.78rem;color:#1a3a5c;">Ubicación<input id="jatKdxUbic" type="text" placeholder="Pasillo 2" style="font-size:16px;padding:10px;margin:4px 0 0;"></label>
                 </div>
                 <label style="display:block;font-size:.78rem;color:#1a3a5c;margin-top:8px;">Proveedor<input id="jatKdxProv" type="text" placeholder="Opcional" style="font-size:16px;padding:10px;margin:4px 0 0;"></label>
@@ -692,6 +693,35 @@
             <div style="display:flex;gap:10px;margin-top:12px;">
                 <button class="btn" id="jatEgQtyCancelarBtn" type="button" style="flex:1;min-height:52px;">Cancelar</button>
                 <button class="btn btn-success" id="jatEgQtyOkBtn" type="button" style="flex:2;min-height:52px;">✅ Agregar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALES FACTURA -->
+    <div id="jatFacCodModal" class="qty-modal-overlay">
+        <div class="qty-modal-card">
+            <h3>✍️ Código de barras</h3>
+            <div id="jatFacCodTit" style="font-size:.88rem;color:#1a2b3c;margin:4px 0 10px;"></div>
+            <input id="jatFacCodInput" type="text" inputmode="numeric" placeholder="Escribe el código de barras" autocomplete="off" style="font-size:16px;padding:12px;">
+            <div style="display:flex;gap:10px;margin-top:12px;">
+                <button class="btn" id="jatFacCodCancel" type="button" style="flex:1;min-height:50px;">Cancelar</button>
+                <button class="btn btn-success" id="jatFacCodOk" type="button" style="flex:2;min-height:50px;">✅ Guardar</button>
+            </div>
+        </div>
+    </div>
+    <div id="jatFacLinModal" class="qty-modal-overlay">
+        <div class="qty-modal-card">
+            <h3>🧾 Producto de la factura</h3>
+            <div id="jatFacLinCod" style="font-family:monospace;font-size:.95rem;color:#2c3e50;"></div>
+            <div id="jatFacLinAviso" style="font-size:.8rem;color:#6b7c8f;margin:2px 0 8px;"></div>
+            <input id="jatFacLinNombre" type="text" placeholder="Nombre del producto" autocomplete="off" style="font-size:16px;padding:12px;margin:0 0 8px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <label style="font-size:.8rem;color:#1a3a5c;font-weight:600;">Cantidad<input id="jatFacLinQty" type="text" inputmode="decimal" style="font-size:18px;padding:12px;margin:4px 0 0;text-align:center;font-weight:700;"></label>
+                <label style="font-size:.8rem;color:#1a3a5c;font-weight:600;">Costo unitario<input id="jatFacLinCosto" type="text" inputmode="decimal" placeholder="0.00" style="font-size:18px;padding:12px;margin:4px 0 0;text-align:center;"></label>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:12px;">
+                <button class="btn" id="jatFacLinCancel" type="button" style="flex:1;min-height:50px;">Cancelar</button>
+                <button class="btn btn-success" id="jatFacLinOk" type="button" style="flex:2;min-height:50px;">✅ Agregar</button>
             </div>
         </div>
     </div>
@@ -6003,6 +6033,426 @@
             const csv = document.getElementById('kdxCsvBtn');
             if (csv && !document.getElementById('kdxRepBtn')) { const nb = document.createElement('button'); nb.className = 'btn'; nb.id = 'kdxRepBtn'; nb.type = 'button'; nb.textContent = '📊 Reportes'; nb.addEventListener('click', cargarVistaReportes); csv.before(nb); }
         };
+    })();
+
+    // =====================================================================
+    // ===== INGRESO POR FACTURA DE COMPRA + PROVEEDORES =====
+    // =====================================================================
+    JAT_CAMPOS.push('pc');
+    function jatProveedores() { return jatLeerJSON('jatv_proveedores', []); }
+    function jatGuardarProveedores(l) { return jatEscribirJSON('jatv_proveedores', l); }
+    function jatProveedorPorRuc(ruc) { ruc = String(ruc || '').trim(); return ruc ? jatProveedores().find(p => p.ruc === ruc) || null : null; }
+    function jatFacturas() { return jatLeerJSON('jatv_facturas', []); }
+    let jatFac = jatLeerJSON('jatv_fac_borrador', null);
+    function jatGuardarBorrador() { if (jatFac) jatEscribirJSON('jatv_fac_borrador', jatFac); else { try { localStorage.removeItem('jatv_fac_borrador'); } catch (e) {} } }
+    const jatR2 = n => Math.round((Number(n) || 0) * 100) / 100;
+    function jatNumFac(v) { let t = String(v ?? '').trim(); if (/^\d{1,3}(\.\d{3})+,\d+$/.test(t)) t = t.replace(/\./g, '').replace(',', '.'); else if (/^\d+,\d+$/.test(t)) t = t.replace(',', '.'); else t = t.replace(/,/g, ''); const n = parseFloat(t); return isNaN(n) ? null : n; }
+
+    // ---- lectura del XML del SRI ----
+    function jatLeerXmlSri(texto) {
+        let doc = new DOMParser().parseFromString(texto, 'text/xml');
+        const comp = doc.getElementsByTagName('comprobante')[0];
+        if (comp && !doc.getElementsByTagName('infoTributaria')[0]) doc = new DOMParser().parseFromString(comp.textContent.trim(), 'text/xml');
+        const g = (padre, tag) => { const e = (padre || doc).getElementsByTagName(tag)[0]; return e ? e.textContent.trim() : ''; };
+        const it = doc.getElementsByTagName('infoTributaria')[0];
+        if (!it) throw new Error('No es una factura electrónica del SRI');
+        const inf = doc.getElementsByTagName('infoFactura')[0];
+        const lineas = [...doc.getElementsByTagName('detalle')].map(d => {
+            const q = jatNumFac(g(d, 'cantidad')) || 0, pu = jatNumFac(g(d, 'precioUnitario')) || 0, de = jatNumFac(g(d, 'descuento')) || 0;
+            const tot = jatNumFac(g(d, 'precioTotalSinImpuesto')); const total = tot ?? jatR2(q * pu - de);
+            return { cp: g(d, 'codigoPrincipal') || g(d, 'codigoInterno'), ca: g(d, 'codigoAuxiliar') || g(d, 'codigoAdicional'), desc: g(d, 'descripcion'), q, pu, de, tot: total, costo: q ? Math.round(total / q * 10000) / 10000 : pu, barcode: '' };
+        });
+        return {
+            origen: 'xml', ruc: g(it, 'ruc'), nombre: g(it, 'razonSocial'), comercial: g(it, 'nombreComercial'), dir: g(it, 'dirMatriz'), tel: '', mail: '',
+            numero: [g(it, 'estab'), g(it, 'ptoEmi'), g(it, 'secuencial')].filter(Boolean).join('-'), clave: g(it, 'claveAcceso'),
+            fecha: g(inf, 'fechaEmision'), total: jatNumFac(g(inf, 'importeTotal')) || 0, lineas
+        };
+    }
+    // ---- lectura del PDF (RIDE) — aproximada, se revisa antes de guardar ----
+    async function jatTextoPdf(file) {
+        if (!window.pdfjsLib) throw new Error('sin lector');
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+        const lineas = [];
+        for (let n = 1; n <= pdf.numPages; n++) {
+            const c = await (await pdf.getPage(n)).getTextContent();
+            const items = c.items.filter(i => i.str.trim()).map(i => ({ s: i.str.trim(), x: i.transform[4], y: Math.round(i.transform[5]) })).sort((a, b) => b.y - a.y || a.x - b.x);
+            let y = null, act = [];
+            items.forEach(i => { if (y === null || Math.abs(i.y - y) <= 3) act.push(i); else { lineas.push(act); act = [i]; } y = i.y; });
+            if (act.length) lineas.push(act);
+        }
+        return lineas.map(l => l.sort((a, b) => a.x - b.x).map(i => i.s));
+    }
+    function jatLeerRide(lineas) {
+        const todo = lineas.map(l => l.join(' ')).join('\n');
+        const rucs = [...todo.matchAll(/R\.?\s*U\.?\s*C\.?[^\d\n]{0,12}(\d{13})/gi)].map(m => m[1]);
+        const ruc = rucs[0] || (todo.match(/\b\d{10}001\b/) || [''])[0];
+        const numero = (todo.match(/\b(\d{3}-\d{3}-\d{9})\b/) || ['', ''])[1];
+        const clave = (todo.match(/\b(\d{49})\b/) || ['', ''])[1];
+        const fecha = (todo.match(/Fecha\s*(?:de\s*)?Emisi[oó]n[^\d]{0,10}(\d{1,2}\/\d{1,2}\/\d{4})/i) || todo.match(/\b(\d{2}\/\d{2}\/\d{4})\b/) || ['', ''])[1];
+        const total = jatNumFac((todo.match(/(?:VALOR\s+TOTAL|IMPORTE\s+TOTAL|TOTAL\s+A\s+PAGAR)[^\d]{0,10}([\d.,]+)/i) || ['', ''])[1]) || 0;
+        const nombre = (lineas.map(l => l.join(' ')).find(t => /[A-ZÁÉÍÓÚÑ]{3,}/.test(t) && !/R\.?U\.?C|FACTURA|N[UÚ]MERO|AUTORIZACI|AMBIENTE|EMISI|CLAVE|FECHA|OBLIGADO|DIRECCI|^\s*No\.?/i.test(t) && t.length < 80) || '').trim();
+        const esNum = t => /^-?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?$|^-?\d+(?:[.,]\d+)?$/.test(t);
+        const det = [];
+        lineas.forEach(toks => {
+            toks = toks.flatMap(t => t.split(/\s+/)).filter(Boolean);
+            const nums = []; for (let i = toks.length - 1; i >= 0 && esNum(toks[i]); i--) nums.unshift({ v: jatNumFac(toks[i]), i });
+            if (nums.length < 2) return;
+            const tot = nums[nums.length - 1].v; const pu = nums.length >= 3 ? nums[nums.length - 3].v : nums[nums.length - 2].v; const de = nums.length >= 3 ? nums[nums.length - 2].v : 0;
+            if (!pu || tot === null) return;
+            const resto = toks.slice(0, nums[Math.max(0, nums.length - 3)].i);
+            let qi = -1, q = null;
+            resto.forEach((t, i) => { if (q !== null || !esNum(t)) return; const v = jatNumFac(t); if (v > 0 && Math.abs(v * pu - de - tot) <= Math.max(0.03, tot * 0.01)) { q = v; qi = i; } });
+            if (q === null && nums.length >= 4) { const v = nums[nums.length - 4].v; if (v > 0 && Math.abs(v * pu - de - tot) <= Math.max(0.03, tot * 0.01)) { q = v; qi = -2; } }
+            if (q === null) return;
+            const palabras = resto.filter((t, i) => i !== qi);
+            let cp = '';
+            if (palabras.length && /\d/.test(palabras[0]) && palabras[0].length <= 25) cp = palabras.shift();
+            const desc = palabras.join(' ').trim();
+            if (!desc || /TOTAL|SUBTOTAL|IVA|DESCUENTO/i.test(desc)) return;
+            det.push({ cp, ca: '', desc, q, pu, de, tot, costo: Math.round(tot / q * 10000) / 10000, barcode: '' });
+        });
+        return { origen: 'pdf', ruc, nombre, comercial: '', dir: '', tel: '', mail: '', numero, clave, fecha, total, lineas: det };
+    }
+    // ---- completar con proveedor registrado y equivalencias ----
+    function jatCompletarFactura(f) {
+        const prov = jatProveedorPorRuc(f.ruc);
+        if (prov) { ['nombre', 'comercial', 'dir', 'tel', 'mail'].forEach(k => { if (!f[k] && prov[k]) f[k] = prov[k]; }); f.provConocido = true; }
+        const eq = (prov && prov.equiv) || {}; const k = jatKardex();
+        f.lineas.forEach(l => {
+            if (l.barcode) return;
+            const llave = jatLlaveLinea(l);
+            if (eq[llave]) l.barcode = eq[llave];
+            else if (l.ca && k[l.ca]) l.barcode = l.ca;
+            else if (l.cp && k[l.cp]) l.barcode = l.cp;
+        });
+        return f;
+    }
+    function jatLlaveLinea(l) { return l.cp ? 'c:' + l.cp : 'd:' + (l.desc || '').toUpperCase().replace(/\s+/g, ' ').trim(); }
+
+    // ---- pantalla principal ----
+    function cargarVistaFactura() {
+        if (!jatFac) return jatVistaOrigenFactura();
+        jatRenderFactura();
+    }
+    function jatVistaOrigenFactura() {
+        const op = (id, ic, t, d) => `<button type="button" data-fo="${id}" style="display:flex;gap:14px;align-items:center;text-align:left;width:100%;background:#fff;border:1.5px solid #e3e9f0;border-radius:14px;padding:16px;cursor:pointer;margin-bottom:10px;"><span style="font-size:1.8rem;">${ic}</span><span style="flex:1;"><b style="display:block;font-size:1rem;color:#1a2b3c;">${t}</b><span style="display:block;font-size:.82rem;color:#6b7c8f;margin-top:2px;">${d}</span></span></button>`;
+        const facs = jatFacturas().slice(-3).reverse();
+        jatVista('🧾 Ingreso por factura', 'kardex', `
+            <p style="font-size:.86rem;color:#4a5f78;line-height:1.5;">Registra la mercadería que llegó con su factura. La app lee el proveedor y los productos, tú escaneas <b>una muestra de cada producto</b> para tomar su código de barras, y se suma al stock.</p>
+            ${op('xml', '📄', 'Factura electrónica (XML)', 'El archivo .xml que llega al correo. Es la forma más exacta.')}
+            ${op('pdf', '📑', 'Factura en PDF (RIDE)', 'La app intenta leer los productos; luego revisas.')}
+            ${op('papel', '✍️', 'Factura en papel', 'Escaneas cada producto y escribes cantidad y costo.')}
+            <input type="file" id="facXml" accept=".xml,text/xml,application/xml" style="display:none;">
+            <input type="file" id="facPdf" accept="application/pdf" style="display:none;">
+            ${facs.length ? `<p style="font-size:.8rem;color:#6b7c8f;margin-top:6px;">Últimas facturas ingresadas: ${facs.map(f => jatEsc((f.comercial || f.nombre || f.ruc) + ' ' + f.numero)).join(' · ')}</p>` : ''}`);
+        document.querySelectorAll('[data-fo]').forEach(b => b.addEventListener('click', () => {
+            const o = b.dataset.fo;
+            if (o === 'xml') document.getElementById('facXml').click();
+            else if (o === 'pdf') document.getElementById('facPdf').click();
+            else { jatFac = { origen: 'papel', ruc: '', nombre: '', comercial: '', dir: '', tel: '', mail: '', numero: '', clave: '', fecha: new Date().toLocaleDateString('es-EC'), total: 0, lineas: [] }; jatGuardarBorrador(); jatRenderFactura(); }
+        }));
+        document.getElementById('facXml').addEventListener('change', async (e) => {
+            const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+            try { jatFac = jatCompletarFactura(jatLeerXmlSri(await f.text())); jatGuardarBorrador(); jatRenderFactura(); showAlert(`📄 Factura leída: ${jatFac.lineas.length} productos`, 'success'); }
+            catch (er) { showAlert('No se pudo leer el XML. Asegúrate de que sea la factura electrónica del SRI.', 'error'); }
+        });
+        document.getElementById('facPdf').addEventListener('change', async (e) => {
+            const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+            try {
+                showAlert('Leyendo PDF…', 'info');
+                jatFac = jatCompletarFactura(jatLeerRide(await jatTextoPdf(f))); jatGuardarBorrador(); jatRenderFactura();
+                showAlert(jatFac.lineas.length ? `📑 Leí ${jatFac.lineas.length} productos. Revisa que estén todos.` : 'No pude leer los productos de este PDF. Agrégalos escaneando o usa el XML.', jatFac.lineas.length ? 'success' : 'warning');
+            } catch (er) { showAlert('No se pudo leer el PDF. Usa el XML o la opción en papel.', 'error'); }
+        });
+    }
+    function jatTotalesFac() {
+        const l = jatFac.lineas; const u = l.reduce((a, x) => a + (Number(x.q) || 0), 0); const v = l.reduce((a, x) => a + (Number(x.tot) || 0), 0);
+        return { n: l.length, u, v: jatR2(v), sin: l.filter(x => !x.barcode).length };
+    }
+    function jatRenderFactura() {
+        if (!jatFac) return jatVistaOrigenFactura();
+        const f = jatFac; const t = jatTotalesFac(); const k = jatKardex();
+        const inp = (id, v, ph, extra) => `<input id="${id}" value="${jatEsc(v || '')}" placeholder="${ph}" autocomplete="off" ${extra || ''} style="${JAT_INPUT}">`;
+        const lin = f.lineas.map((l, i) => {
+            const enK = l.barcode && k[l.barcode];
+            const estado = l.barcode ? `<div style="font-size:.78rem;color:#1E7F4A;margin-top:6px;">✅ Código ${jatEsc(l.barcode)}${enK ? ' · en el kardex como <b>' + jatEsc(enK.n) + '</b>' : ' · producto nuevo en el kardex'} <button type="button" data-fl="quitar" data-i="${i}" style="background:none;border:0;color:#6b7c8f;text-decoration:underline;font-size:.78rem;cursor:pointer;">cambiar</button></div>`
+                : `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;"><button type="button" class="btn btn-primary" data-fl="escanear" data-i="${i}" style="min-height:44px;flex:1 1 160px;">📷 Escanear muestra</button><button type="button" class="btn" data-fl="escribir" data-i="${i}" style="min-height:44px;">✍️ Código</button><button type="button" class="btn" data-fl="generar" data-i="${i}" style="min-height:44px;">🔢 Sin código</button></div>`;
+            return `<div style="border:1.5px solid ${l.barcode ? '#cfe9d9' : '#f3d9a6'};background:${l.barcode ? '#f6fcf8' : '#fffaf0'};border-radius:14px;padding:12px;margin-bottom:10px;">
+                <div style="display:flex;justify-content:space-between;gap:8px;"><b style="font-size:.9rem;color:#1a2b3c;overflow-wrap:anywhere;">${i + 1}. ${jatEsc(l.desc || '(sin descripción)')}</b><button type="button" data-fl="borrar" data-i="${i}" aria-label="Quitar línea" style="background:none;border:0;font-size:1.1rem;cursor:pointer;flex:none;">✕</button></div>
+                ${l.cp || l.ca ? `<div style="font-family:monospace;font-size:.74rem;color:#6b7c8f;">Cód. proveedor ${jatEsc([l.cp, l.ca].filter(Boolean).join(' / '))}</div>` : ''}
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px;">
+                    <label style="font-size:.72rem;color:#6b7c8f;">Cantidad<input data-fq="${i}" value="${l.q}" inputmode="decimal" style="width:100%;padding:9px;border:1.5px solid #dce3ea;border-radius:10px;font-size:16px;box-sizing:border-box;margin-top:2px;"></label>
+                    <label style="font-size:.72rem;color:#6b7c8f;">Costo unit.<input data-fc="${i}" value="${l.costo}" inputmode="decimal" style="width:100%;padding:9px;border:1.5px solid #dce3ea;border-radius:10px;font-size:16px;box-sizing:border-box;margin-top:2px;"></label>
+                    <div style="font-size:.72rem;color:#6b7c8f;">Total<div style="font-size:1rem;font-weight:700;color:#1a2b3c;padding-top:10px;">${jatDinero(l.tot)}</div></div>
+                </div>${estado}</div>`;
+        }).join('');
+        const main = jatVista('🧾 Ingreso por factura', 'kardex', `
+            <div style="border:1px solid #e3e9f0;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px;">
+                <b style="color:#1a3a5c;">🏭 Proveedor ${f.provConocido ? '<span style="font-size:.75rem;background:#eafaf1;color:#1E7F4A;padding:2px 8px;border-radius:8px;">✅ ya registrado</span>' : ''}</b>
+                ${inp('facRuc', f.ruc, 'RUC del proveedor (13 dígitos)', 'inputmode="numeric" list="jatProvList"')}
+                ${inp('facNombre', f.nombre, 'Razón social')}
+                <details ${f.provConocido ? '' : 'open'}><summary style="font-size:.84rem;color:#1a3a5c;cursor:pointer;min-height:30px;display:flex;align-items:center;">Más datos del proveedor</summary>
+                    <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px;">${inp('facComercial', f.comercial, 'Nombre comercial')}${inp('facDir', f.dir, 'Dirección')}${inp('facTel', f.tel, 'Teléfono', 'inputmode="tel"')}${inp('facMail', f.mail, 'Correo', 'inputmode="email"')}</div></details>
+            </div>
+            <div style="border:1px solid #e3e9f0;border-radius:14px;padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <b style="color:#1a3a5c;grid-column:span 2;">🧾 Factura</b>
+                ${inp('facNum', f.numero, 'N° 001-001-000000123')}${inp('facFecha', f.fecha, 'Fecha dd/mm/aaaa')}
+                ${f.total ? `<div style="grid-column:span 2;font-size:.8rem;color:#6b7c8f;">Total de la factura (con IVA): <b>${jatDinero(f.total)}</b></div>` : ''}
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;"><b style="color:#1a3a5c;">📦 Productos (${t.n})</b><span style="font-size:.78rem;color:${t.sin ? '#b9770e' : '#1E7F4A'};">${t.sin ? t.sin + ' sin código de barras' : 'todos con código ✅'}</span></div>
+            ${lin || '<p style="font-size:.85rem;color:#6b7c8f;text-align:center;padding:10px 0;">Todavía no hay productos. Agrégalos escaneando.</p>'}
+            <button type="button" class="btn" id="facAgregar" style="min-height:48px;">➕ Agregar producto escaneando</button>
+            <div style="background:#fff;padding-top:10px;display:flex;flex-direction:column;gap:8px;border-top:1px solid #edf2f7;">
+                <div style="font-size:.84rem;color:#4a5f78;">${t.n} productos · ${formatearQty(t.u)} unidades · ${jatDinero(t.v)} sin IVA</div>
+                ${t.sin ? `<button type="button" class="btn btn-primary" id="facVincular" style="min-height:52px;">📷 Escanear muestras (${t.sin} pendientes)</button>` : ''}
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <button type="button" class="btn btn-success" id="facSumar" style="flex:1 1 180px;min-height:52px;">✅ Sumar al stock</button>
+                    <button type="button" class="btn" id="facVerificar" style="flex:1 1 180px;min-height:52px;">🎯 Verificar contando y sumar</button>
+                </div>
+                <button type="button" id="facDescartar" style="background:none;border:0;color:#c0392b;font-size:.82rem;text-decoration:underline;min-height:36px;cursor:pointer;">Descartar esta factura</button>
+            </div>`);
+        // proveedores sugeridos por RUC
+        let dl = document.getElementById('jatProvList'); if (!dl) { dl = document.createElement('datalist'); dl.id = 'jatProvList'; document.body.appendChild(dl); }
+        dl.innerHTML = jatProveedores().map(p => `<option value="${jatEsc(p.ruc)}">${jatEsc(p.comercial || p.nombre)}</option>`).join('');
+        const leer = () => { ['ruc:facRuc', 'nombre:facNombre', 'comercial:facComercial', 'dir:facDir', 'tel:facTel', 'mail:facMail', 'numero:facNum', 'fecha:facFecha'].forEach(x => { const [k2, id] = x.split(':'); const el = document.getElementById(id); if (el) jatFac[k2] = el.value.trim(); }); jatGuardarBorrador(); };
+        document.getElementById('facRuc').addEventListener('input', (e) => {
+            const p = jatProveedorPorRuc(e.target.value.trim());
+            if (p && !jatFac.provConocido) { leer(); jatFac.ruc = p.ruc; ['nombre', 'comercial', 'dir', 'tel', 'mail'].forEach(k2 => jatFac[k2] = p[k2] || ''); jatCompletarFactura(jatFac); jatGuardarBorrador(); jatRenderFactura(); showAlert('🏭 Proveedor encontrado: ' + (p.comercial || p.nombre), 'success'); }
+        });
+        main.querySelectorAll('input[id^="fac"]').forEach(el => el.addEventListener('change', leer));
+        main.querySelectorAll('[data-fq],[data-fc]').forEach(el => el.addEventListener('change', () => {
+            const i = +(el.dataset.fq ?? el.dataset.fc); const l = jatFac.lineas[i]; const v = jatNumFac(el.value);
+            if (v === null || v < 0) return;
+            if (el.dataset.fq !== undefined) l.q = v; else l.costo = v;
+            l.tot = jatR2(l.q * l.costo); leer(); jatRenderFactura();
+        }));
+        main.querySelectorAll('[data-fl]').forEach(b => b.addEventListener('click', () => {
+            leer(); const i = +b.dataset.i; const l = jatFac.lineas[i]; const a = b.dataset.fl;
+            if (a === 'borrar') { jatFac.lineas.splice(i, 1); jatGuardarBorrador(); jatRenderFactura(); }
+            else if (a === 'quitar') { l.barcode = ''; jatGuardarBorrador(); jatRenderFactura(); }
+            else if (a === 'generar') { l.barcode = jatGenerarCodigo(); jatGuardarBorrador(); jatRenderFactura(); showAlert('🔢 Código generado. Imprime su etiqueta en Más → Crear etiquetas.', 'info'); }
+            else if (a === 'escribir') { jatPedirCodigoLinea(i); }
+            else if (a === 'escanear') { jatIniciarVincular(i); }
+        }));
+        document.getElementById('facAgregar').addEventListener('click', () => { leer(); jatIniciarVincular(-1); });
+        document.getElementById('facVincular')?.addEventListener('click', () => { leer(); jatIniciarVincular(jatFac.lineas.findIndex(l => !l.barcode)); });
+        document.getElementById('facSumar').addEventListener('click', () => { leer(); jatConfirmarFactura(false); });
+        document.getElementById('facVerificar').addEventListener('click', () => { leer(); jatConfirmarFactura(true); });
+        document.getElementById('facDescartar').addEventListener('click', (e) => {
+            if (e.target.dataset.ok !== '1') { e.target.dataset.ok = '1'; e.target.textContent = '¿Seguro? Toca otra vez para descartar'; return; }
+            jatFac = null; jatGuardarBorrador(); jatVistaOrigenFactura();
+        });
+    }
+    function jatPedirCodigoLinea(i) {
+        const l = jatFac.lineas[i];
+        document.getElementById('jatFacCodTit').textContent = l.desc;
+        const inp = document.getElementById('jatFacCodInput'); inp.value = l.barcode || '';
+        document.getElementById('jatFacCodModal').dataset.i = i;
+        jatMostrarVentana('jatFacCodModal'); setTimeout(() => inp.focus(), 150);
+    }
+
+    // ---- escanear muestras (usa la cámara del verificador) ----
+    window.jatModoVincular = false; let jatVincIdx = -1;
+    function jatIniciarVincular(idx) {
+        jatIniciarRegistro();
+        window.jatModoVincular = true; jatVincIdx = idx;
+        jatActualizarBanner();
+        showAlert(idx >= 0 ? '📷 Escanea el código de barras de una muestra del producto indicado' : '📷 Escanea cada producto de la factura', 'info');
+    }
+    function jatSiguientePendiente(desde) {
+        const l = jatFac.lineas; for (let j = 0; j < l.length; j++) { const k2 = (desde + 1 + j) % l.length; if (!l[k2].barcode) return k2; } return -1;
+    }
+    const _jatBannerVinc = jatActualizarBanner;
+    jatActualizarBanner = function () {
+        _jatBannerVinc.apply(this, arguments);
+        const b = document.getElementById('jatRegBanner'); if (!b) return;
+        let saltar = document.getElementById('jatVincSaltar');
+        if (window.jatModoVincular) {
+            const t = b.querySelector('strong'), r = document.getElementById('jatRegResumen');
+            if (jatVincIdx >= 0 && jatFac.lineas[jatVincIdx]) {
+                const pend = jatTotalesFac().sin;
+                t.textContent = `📷 Escanea la muestra (${pend} pendientes)`;
+                r.textContent = `${jatVincIdx + 1}. ${jatFac.lineas[jatVincIdx].desc} — ${formatearQty(jatFac.lineas[jatVincIdx].q)} u.`;
+            } else { t.textContent = '🧾 Agregando productos de la factura'; r.textContent = `${jatFac.lineas.length} productos en la factura`; }
+            if (!saltar && jatVincIdx >= 0) { saltar = document.createElement('button'); saltar.id = 'jatVincSaltar'; saltar.type = 'button'; saltar.textContent = '⏭️'; saltar.setAttribute('aria-label', 'Saltar'); saltar.style.cssText = 'flex:none;background:#fff;color:#0b223d;border:0;border-radius:10px;padding:10px 12px;font-weight:700;cursor:pointer;'; saltar.addEventListener('click', () => { const s2 = jatSiguientePendiente(jatVincIdx); if (s2 >= 0) { jatVincIdx = s2; jatActualizarBanner(); } }); document.getElementById('jatRegTerminarBtn').before(saltar); }
+            if (saltar) saltar.style.display = jatVincIdx >= 0 ? '' : 'none';
+        } else if (saltar) saltar.style.display = 'none';
+    };
+    const _jatRegBuscVinc = jatRegistrarDesdeBuscador;
+    jatRegistrarDesdeBuscador = function () {
+        if (!window.jatModoVincular) return _jatRegBuscVinc.apply(this, arguments);
+        const inp = document.getElementById('scannerInput'); const cod = (inp?.value || '').trim();
+        if (!cod) { showAlert('Escanea o escribe un código', 'warning'); return; }
+        inp.value = '';
+        const ya = jatFac.lineas.findIndex(l => l.barcode === cod);
+        if (jatVincIdx >= 0) {
+            if (ya >= 0 && ya !== jatVincIdx) { showAlert(`⚠️ Ese código ya es de: ${jatFac.lineas[ya].desc}`, 'warning'); hablarHat('Ese código ya está usado.', 'error', { force: true }); return; }
+            jatFac.lineas[jatVincIdx].barcode = cod; jatGuardarBorrador();
+            const k = jatKardex()[cod];
+            if (navigator.vibrate) navigator.vibrate(60); hablarHat('Listo.', 'ok', { force: true });
+            showAlert(`✅ ${jatFac.lineas[jatVincIdx].desc.substring(0, 40)} → ${cod}${k ? ' (ya en kardex: ' + k.n.substring(0, 30) + ')' : ''}`, 'success');
+            const sig = jatSiguientePendiente(jatVincIdx);
+            if (sig < 0) { jatTerminarVincular(); showAlert('✅ Todos los productos tienen código de barras', 'success'); return; }
+            jatVincIdx = sig; jatActualizarBanner();
+        } else {
+            if (ya >= 0) { jatFacPedirLinea(cod, ya); return; }
+            jatFacPedirLinea(cod, -1);
+        }
+    };
+    function jatTerminarVincular() { window.jatModoVincular = false; jatSalirRegistro(); cerrarVerificador(); jatRenderFactura(); }
+    const _jatSalirRegVinc = jatSalirRegistro;
+    jatSalirRegistro = function () { const era = window.jatModoVincular; window.jatModoVincular = false; const r = _jatSalirRegVinc.apply(this, arguments); if (era) setTimeout(() => { if (document.getElementById('verificadorModal').style.display === 'none') jatRenderFactura(); }, 50); return r; };
+    document.addEventListener('click', (e) => {
+        if (e.target && e.target.id === 'jatRegTerminarBtn' && window.jatModoVincular) { e.stopImmediatePropagation(); jatTerminarVincular(); }
+    }, true);
+    // agregar una línea escaneando (factura en papel)
+    function jatFacPedirLinea(cod, idx) {
+        const m = document.getElementById('jatFacLinModal'); m.dataset.cod = cod; m.dataset.i = idx;
+        const k = jatKardex()[cod]; const l = idx >= 0 ? jatFac.lineas[idx] : null;
+        document.getElementById('jatFacLinCod').textContent = cod;
+        document.getElementById('jatFacLinNombre').value = l ? l.desc : (k ? k.n : '');
+        document.getElementById('jatFacLinQty').value = l ? l.q : 1;
+        document.getElementById('jatFacLinCosto').value = l ? l.costo : (k && k.pc !== undefined ? k.pc : '');
+        document.getElementById('jatFacLinAviso').textContent = l ? 'Ya está en esta factura: corrige la cantidad.' : k ? '📋 Está en el kardex.' : 'Producto nuevo: se crea en el kardex.';
+        jatMostrarVentana('jatFacLinModal');
+    }
+    function jatFacGuardarLinea() {
+        const m = document.getElementById('jatFacLinModal'); const cod = m.dataset.cod; const idx = +m.dataset.i;
+        const desc = document.getElementById('jatFacLinNombre').value.replace(/\s+/g, ' ').trim();
+        const q = jatNumFac(document.getElementById('jatFacLinQty').value); const c = jatNumFac(document.getElementById('jatFacLinCosto').value) || 0;
+        if (!desc) { showAlert('Escribe el nombre del producto', 'warning'); return; }
+        if (!q || q <= 0) { showAlert('Escribe la cantidad', 'warning'); return; }
+        const l = { cp: '', ca: '', desc, q, pu: c, de: 0, costo: c, tot: jatR2(q * c), barcode: cod };
+        if (idx >= 0) jatFac.lineas[idx] = Object.assign(jatFac.lineas[idx], l); else jatFac.lineas.push(l);
+        jatGuardarBorrador(); m.style.display = 'none';
+        if (navigator.vibrate) navigator.vibrate(60); hablarHat('Agregado.', 'ok', { force: true });
+        jatActualizarBanner();
+    }
+
+    // ---- guardar: proveedor, equivalencias, kardex y stock ----
+    function jatConfirmarFactura(verificar) {
+        const f = jatFac; const t = jatTotalesFac();
+        if (!f.lineas.length) { showAlert('La factura no tiene productos', 'warning'); return; }
+        if (!f.ruc || !/^\d{10,13}$/.test(f.ruc)) { showAlert('Escribe el RUC del proveedor', 'warning'); document.getElementById('facRuc')?.focus(); return; }
+        if (!f.nombre) { showAlert('Escribe la razón social del proveedor', 'warning'); return; }
+        if (t.sin) { showAlert(`Faltan ${t.sin} productos sin código de barras. Escanea su muestra o toca "Sin código".`, 'warning'); return; }
+        const dup = jatFacturas().find(x => (f.clave && x.clave === f.clave) || (x.ruc === f.ruc && f.numero && x.numero === f.numero));
+        if (dup && !confirm(`La factura ${f.numero} de este proveedor ya se ingresó el ${jatFechaCorta(dup.ingresada)}. ¿Ingresarla otra vez?`)) return;
+        // proveedor y equivalencias
+        const provs = jatProveedores(); let p = provs.find(x => x.ruc === f.ruc);
+        if (!p) { p = { ruc: f.ruc, equiv: {} }; provs.push(p); }
+        ['nombre', 'comercial', 'dir', 'tel', 'mail'].forEach(k2 => { if (f[k2]) p[k2] = f[k2]; });
+        p.equiv = p.equiv || {}; f.lineas.forEach(l => { p.equiv[jatLlaveLinea(l)] = l.barcode; });
+        p.facturas = (p.facturas || 0) + 1; p.ultima = new Date().toISOString();
+        provs.sort((a, b) => (a.comercial || a.nombre).localeCompare(b.comercial || b.nombre, 'es'));
+        jatGuardarProveedores(provs);
+        // productos en el kardex (nombre, proveedor, costo)
+        const k = jatKardex(); const provNom = f.comercial || f.nombre;
+        f.lineas.forEach(l => { const it = k[l.barcode] || { n: l.desc, c: '' }; if (!it.n) it.n = l.desc; it.prov = provNom; it.pc = l.costo; k[l.barcode] = it; });
+        jatKardexEscribir(k);
+        const ref = `Factura ${f.numero || 's/n'} · ${provNom}`;
+        const reg = { id: 'F' + Date.now(), ruc: f.ruc, nombre: f.nombre, comercial: f.comercial, numero: f.numero, clave: f.clave, fecha: f.fecha, total: f.total || t.v, subtotal: t.v, lineas: f.lineas.length, unidades: t.u, ingresada: new Date().toISOString(), user: obtenerUsuarioActual(), estado: verificar ? 'por verificar' : 'ingresada', origen: f.origen };
+        const facs = jatFacturas(); facs.push(reg); jatEscribirJSON('jatv_facturas', facs);
+        if (!verificar) {
+            f.lineas.forEach(l => jatRegistrarMov(l.barcode, l.desc, Number(l.q), 'ingreso', ref));
+            jatFac = null; jatGuardarBorrador();
+            showAlert(`✅ Factura ingresada: ${t.n} productos, ${formatearQty(t.u)} unidades sumadas al stock`, 'success');
+            jatIrTab('kardex');
+        } else {
+            // crea un ingreso para contar la mercadería; al cerrarlo se suma al stock
+            const d = new Date(), z = n => String(n).padStart(2, '0');
+            metadataEgresoActual = { secuencial: `INGRESO_${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}_${z(d.getHours())}${z(d.getMinutes())}`, bodegaDestino: `${provNom} · Fact. ${f.numero || 's/n'}` };
+            currentEgreso = null;
+            currentProductos = f.lineas.map(l => normalizarProducto({ fuenteOrden: 'ingreso', barcode: l.barcode, productName: k[l.barcode]?.n || l.desc, unidad: 'UNIDAD', bodega: '', expectedQty: Number(l.q), verifiedQty: 0, verified: false, observacion: '' }));
+            guardarAutomaticoDesdeCabecera(metadataEgresoActual);
+            jatFac = null; jatGuardarBorrador();
+            currentSelectedIndex = -1; currentMultipleResults = []; currentMultiplePosition = -1;
+            abrirVerificador();
+            showAlert('🎯 Cuenta la mercadería escaneando. Al hacer 🧾 Cierre → Finalizar, se suma al stock.', 'info');
+        }
+    }
+
+    // ---- pantallas de proveedores y facturas ----
+    function cargarVistaProveedores() {
+        jatVista('🏭 Proveedores', 'mas', `<p style="font-size:.82rem;color:#6b7c8f;">Se registran solos al ingresar una factura. La próxima factura del mismo proveedor llena sus datos y reconoce sus productos.</p>
+            <input type="search" id="pvBuscar" placeholder="Buscar por nombre o RUC" style="${JAT_INPUT}"><div id="pvLista"></div>`);
+        const render = () => {
+            const t = document.getElementById('pvBuscar').value.trim().toLowerCase();
+            const l = jatProveedores().filter(p => !t || [p.ruc, p.nombre, p.comercial].join(' ').toLowerCase().includes(t));
+            document.getElementById('pvLista').innerHTML = l.length ? l.map(p => `<div style="border-bottom:1px solid #edf2f7;padding:12px 0;display:flex;gap:10px;align-items:center;">
+                <div style="flex:1;min-width:0;"><b style="font-size:.92rem;overflow-wrap:anywhere;">${jatEsc(p.comercial || p.nombre)}</b>
+                <div style="font-size:.76rem;color:#6b7c8f;overflow-wrap:anywhere;">RUC ${jatEsc(p.ruc)}${p.comercial && p.nombre ? ' · ' + jatEsc(p.nombre) : ''}</div>
+                <div style="font-size:.76rem;color:#6b7c8f;">${[p.tel, p.mail].filter(Boolean).map(jatEsc).join(' · ')}</div>
+                <div style="font-size:.74rem;color:#1a6392;">${p.facturas || 0} facturas · ${Object.keys(p.equiv || {}).length} productos reconocidos</div></div>
+                <button type="button" class="scan-tool" data-pvdel="${jatEsc(p.ruc)}" aria-label="Borrar">🗑️</button></div>`).join('') : '<p style="text-align:center;color:#6b7c8f;font-size:.85rem;padding:24px 0;"><span style="font-size:48px;display:block;">🏭</span>Todavía no hay proveedores. Se agregan al ingresar una factura.</p>';
+        };
+        document.getElementById('pvBuscar').addEventListener('input', render);
+        document.getElementById('pvLista').addEventListener('click', (e) => {
+            const b = e.target.closest('[data-pvdel]'); if (!b) return;
+            if (b.dataset.ok !== '1') { b.dataset.ok = '1'; b.textContent = '¿Borrar?'; b.style.width = 'auto'; b.style.padding = '0 8px'; return; }
+            jatGuardarProveedores(jatProveedores().filter(p => p.ruc !== b.dataset.pvdel)); render();
+        });
+        render();
+    }
+    function cargarVistaFacturas() {
+        const l = jatFacturas().slice().reverse();
+        jatVista('🧾 Facturas de compra', 'mas', (l.length ? l.map(f => `<div style="border-bottom:1px solid #edf2f7;padding:12px 0;">
+            <div style="display:flex;justify-content:space-between;gap:8px;"><b style="font-size:.9rem;overflow-wrap:anywhere;">${jatEsc(f.comercial || f.nombre)}</b><b>${jatDinero(f.total)}</b></div>
+            <div style="font-size:.76rem;color:#6b7c8f;">Fact. ${jatEsc(f.numero || 's/n')} · ${jatEsc(f.fecha || '')} · ${f.lineas} productos · ${formatearQty(f.unidades)} u.</div>
+            <div style="font-size:.74rem;color:${f.estado === 'ingresada' ? '#1E7F4A' : '#b9770e'};">${f.estado === 'ingresada' ? '✅ Sumada al stock' : '🎯 Ingreso para verificar'} · ${jatFechaCorta(f.ingresada)} · ${jatEsc(f.user || '')}</div></div>`).join('')
+            : '<p style="text-align:center;color:#6b7c8f;font-size:.85rem;padding:24px 0;"><span style="font-size:48px;display:block;">🧾</span>Todavía no hay facturas ingresadas.</p>')
+            + '<button type="button" class="btn btn-success" id="fcNueva" style="min-height:50px;">🧾 Ingresar una factura</button>', jatBotonCsv('fcCsv'));
+        document.getElementById('fcNueva').addEventListener('click', cargarVistaFactura);
+        document.getElementById('fcCsv').addEventListener('click', () => jatCsv('facturas_compra', [['Proveedor', 'RUC', 'Factura', 'Fecha', 'Productos', 'Unidades', 'Subtotal', 'Total', 'Estado', 'Ingresada', 'Usuario'], ...l.map(f => [f.comercial || f.nombre, f.ruc, f.numero, f.fecha, f.lineas, f.unidades, f.subtotal, f.total, f.estado, jatFechaCorta(f.ingresada), f.user])]));
+    }
+
+    // ---- costo en la ventana de producto ----
+    const _jatLlenarExtrasFac = jatLlenarExtras;
+    jatLlenarExtras = function (k) { _jatLlenarExtrasFac.apply(this, arguments); const el = document.getElementById('jatKdxCosto'); if (el) el.value = k && k.pc !== undefined ? k.pc : ''; };
+    const _jatGuardarKdxFac = jatGuardarKardexModal;
+    jatGuardarKardexModal = function () {
+        const m = document.getElementById('jatKdxModal'); const v = jatNumFac(document.getElementById('jatKdxCosto')?.value || '');
+        _jatGuardarKdxFac.apply(this, arguments);
+        const cod = m.dataset.codigo; if (m.style.display !== 'none' || !cod) return;
+        const k = jatKardex(); if (!k[cod]) return; if (v === null) delete k[cod].pc; else k[cod].pc = v; jatKardexEscribir(k);
+    };
+
+    // ---- integrar en menús ----
+    (function jatInitFactura() {
+        document.getElementById('jatFacCodOk')?.addEventListener('click', () => {
+            const m = document.getElementById('jatFacCodModal'); const v = document.getElementById('jatFacCodInput').value.trim();
+            if (!v) { showAlert('Escribe el código', 'warning'); return; }
+            jatFac.lineas[+m.dataset.i].barcode = v; jatGuardarBorrador(); m.style.display = 'none'; jatRenderFactura();
+        });
+        document.getElementById('jatFacCodCancel')?.addEventListener('click', () => { document.getElementById('jatFacCodModal').style.display = 'none'; });
+        document.getElementById('jatFacLinOk')?.addEventListener('click', jatFacGuardarLinea);
+        document.getElementById('jatFacLinCancel')?.addEventListener('click', () => { document.getElementById('jatFacLinModal').style.display = 'none'; });
+        const _ah = jatAbrirHoja;
+        jatAbrirHoja = function () {
+            _ah.apply(this, arguments);
+            if (jatTabActual === 'kardex') document.getElementById('jatHojaOpciones').insertAdjacentHTML('afterbegin', `<button type="button" class="jat-hoja-op" data-op="kdx-factura"><span class="ic">🧾</span><span><b>Ingreso por factura</b><small>${jatFac ? 'Tienes una factura en curso' : 'XML, PDF o en papel del proveedor'}</small></span></button>`);
+        };
+        const _acc = jatAccionHoja;
+        jatAccionHoja = function (op) { if (op === 'kdx-factura') { jatCerrarHoja(); cargarVistaFactura(); return; } return _acc.apply(this, arguments); };
+        const _vm = cargarVistaMas;
+        cargarVistaMas = function () {
+            _vm.apply(this, arguments);
+            const ref = document.querySelector('[data-mas="clientes"]');
+            if (ref) {
+                ref.insertAdjacentHTML('afterend', '<button type="button" data-mas="proveedores" style="display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:#fff;border:0;border-top:1px solid #edf2f7;padding:15px 16px;cursor:pointer;min-height:56px;"><span style="font-size:1.3rem;width:28px;text-align:center;">🏭</span><span style="flex:1;font-size:1rem;color:#1a2b3c;">Proveedores</span><span style="color:#9aa7b2;font-size:1.3rem;">›</span></button>');
+                document.querySelector('[data-mas="proveedores"]').addEventListener('click', cargarVistaProveedores);
+            }
+            const ing = document.querySelector('[data-mas="ingreso"]');
+            if (ing) {
+                ing.insertAdjacentHTML('beforebegin', `<button type="button" data-mas="factura" style="display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:#fff;border:0;border-top:1px solid #edf2f7;padding:15px 16px;cursor:pointer;min-height:56px;"><span style="font-size:1.3rem;width:28px;text-align:center;">🧾</span><span style="flex:1;font-size:1rem;color:#1a2b3c;">Ingreso por factura${jatFac ? '<span style="display:block;font-size:.76rem;color:#b9770e;">Tienes una factura en curso</span>' : ''}</span><span style="color:#9aa7b2;font-size:1.3rem;">›</span></button>
+                    <button type="button" data-mas="facturas" style="display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:#fff;border:0;border-top:1px solid #edf2f7;padding:15px 16px;cursor:pointer;min-height:56px;"><span style="font-size:1.3rem;width:28px;text-align:center;">📚</span><span style="flex:1;font-size:1rem;color:#1a2b3c;">Facturas de compra</span><span style="color:#9aa7b2;font-size:1.3rem;">›</span></button>`);
+                document.querySelector('[data-mas="factura"]').addEventListener('click', cargarVistaFactura);
+                document.querySelector('[data-mas="facturas"]').addEventListener('click', cargarVistaFacturas);
+            }
+        };
+        const _ir = jatIrTab;
+        jatIrTab = function (tab) { if (tab === 'factura') { cargarVistaFactura(); return; } return _ir.apply(this, arguments); };
     })();
     </script>
     <!-- ====================================================================
