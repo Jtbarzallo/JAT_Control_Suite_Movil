@@ -4643,6 +4643,18 @@
                 .map(f => f.map(jatCeldaTexto))
                 .filter(f => f.some(c => c !== ''));
             if (!filas.length) { showAlert('El archivo está vacío', 'error'); if (st) st.textContent = 'Archivo vacío'; return; }
+            // Reportes tipo tabla dinámica: los títulos no están en la fila 1. Se busca la fila que tiene "código" y "producto".
+            window.jatColStock = -1; window.jatColCategoria = -1;
+            const nh = c => String(c).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            let h = filas.slice(0, 30).findIndex(f => f.some(c => /cod.*barra|^codigo$|^cod\.?$|^ean$|barcode/.test(nh(c))) && f.some(c => /produc|descrip|nombre|articulo/.test(nh(c))));
+            if (h > 0) {
+                for (let k = h - 1; k >= Math.max(0, h - 3) && window.jatColStock < 0; k--) window.jatColStock = filas[k].findIndex(c => nh(c) === 'bodega');
+                filas.splice(0, h);
+            }
+            if (h >= 0) {
+                window.jatColCategoria = filas[0].findIndex(c => /^producto_?articulo$|^articulo$|^categoria$/.test(nh(c)));
+                // filas de totales (TOT / Total) sin código se descartan solas al importar
+            }
             jatExcelFilas = filas; jatExcelNombre = file.name;
             jatAbrirMapeo();
             if (st) st.textContent = file.name;
@@ -4655,7 +4667,10 @@
         const nCols = Math.max(...filas.slice(0, 50).map(f => f.length));
         const enc = filas[0].map(c => String(c).toLowerCase());
         const buscar = (re) => enc.findIndex(c => re.test(c));
-        let cod = buscar(/c[oó]d|barra|ean|sku|upc|referencia/), prod = buscar(/produc|descrip|art[ií]culo|nombre|detalle/), cant = buscar(/cant|qty|pzas|piezas|unidades/);
+        let cod = buscar(/c[oó]digo.?de.?barra|barra|ean|upc/); if (cod < 0) cod = buscar(/c[oó]d|sku|referencia/);
+        let prod = buscar(/^(producto|descripci[oó]n|nombre|nombre del producto)$/); if (prod < 0) prod = buscar(/produc|descrip|art[ií]culo|nombre|detalle/);
+        let cant = buscar(/cant|qty|pzas|piezas|unidades|stock|existencia|saldo/);
+        if (window.jatColStock >= 0) cant = window.jatColStock;
         const tieneEnc = [cod, prod, cant].filter(i => i >= 0).length >= 2 && !filas[0].some(c => /^\d{6,}$/.test(c));
         const datos = filas.slice(tieneEnc ? 1 : 0, 60);
         const puntaje = (i, fn) => datos.reduce((a, f) => a + (fn(f[i] || '') ? 1 : 0), 0);
@@ -5069,17 +5084,26 @@
         window.jatExcelDestino = '';
         const ci = +document.getElementById('mapCodigo').value, pi = +document.getElementById('mapProducto').value;
         const enc = document.getElementById('mapEncabezado').checked;
-        const k = jatKardex(); let n = 0;
+        const qi = +document.getElementById('mapCantidad').value, cati = window.jatColCategoria ?? -1, pivote = window.jatColStock >= 0;
+        const k = jatKardex(); let n = 0, conStock = 0, ultCat = '';
+        const hoy = new Date().toISOString().slice(0, 10);
         jatExcelFilas.slice(enc ? 1 : 0).forEach(f => {
+            if (cati >= 0 && String(f[cati] || '').trim()) ultCat = String(f[cati]).replace(/\s+/g, ' ').trim();
             const c = String(f[ci] || '').trim(); if (!c) return;
             const nom = (pi >= 0 ? String(f[pi] || '').replace(/\s+/g, ' ').trim() : '');
             if (!nom) return;
-            k[c] = { n: nom.substring(0, 220), c: (k[c] && k[c].c) || '', f: new Date().toISOString().slice(0, 10) }; n++;
+            const prev = k[c] || {};
+            const nuevo = Object.assign({}, prev, { n: nom.substring(0, 220), c: (cati >= 0 ? ultCat : '') || prev.c || '' });
+            let q = qi >= 0 ? jatNumero(f[qi]) : null;
+            if (q === null && pivote && qi >= 0) q = 0;           // en la tabla dinámica, celda vacía = 0
+            if (q !== null) { nuevo.s = Math.round(q * 100) / 100; if (q > 0) conStock++; }
+            if (!prev.f) nuevo.f = hoy;
+            k[c] = nuevo; n++;
         });
-        jatKardexEscribir(k);
+        if (!jatKardexEscribir(k)) return;
         closeModal('mapeoExcelModal');
         jatRenderKardex();
-        showAlert(`📋 ${n} productos guardados en el kardex`, 'success');
+        showAlert(`📋 ${n} productos guardados en el kardex` + (qi >= 0 ? ` · ${conStock} con stock` : ''), 'success');
     };
     (function jatInitKardex() {
         const btnC = document.getElementById('mapConfirmarBtn');
@@ -5109,12 +5133,14 @@
 
     const _jatPreviewOriginal = jatPreviewMapeo;
     jatPreviewMapeo = function () {
-        if (window.jatExcelDestino !== 'kardex') { document.getElementById('mapConfirmarBtn').textContent = '✅ Cargar egreso'; return _jatPreviewOriginal.apply(this, arguments); }
+        if (window.jatExcelDestino !== 'kardex') { const l0 = document.querySelector('label[for="mapCantidad"]'); if (l0) l0.textContent = 'Cantidad'; document.getElementById('mapConfirmarBtn').textContent = '✅ Cargar egreso'; return _jatPreviewOriginal.apply(this, arguments); }
         const ci = +document.getElementById('mapCodigo').value, pi = +document.getElementById('mapProducto').value;
         const enc = document.getElementById('mapEncabezado').checked;
+        const qi = +document.getElementById('mapCantidad').value;
+        const lab = document.querySelector('label[for="mapCantidad"]'); if (lab) lab.textContent = 'Stock (cantidad en bodega)';
         const filas = jatExcelFilas.slice(enc ? 1 : 0).filter(f => String(f[ci] || '').trim() && pi >= 0 && String(f[pi] || '').trim());
         document.getElementById('mapPreview').innerHTML = filas.length
-            ? `<strong style="font-size:.85rem;">${filas.length} productos para el kardex</strong><table><tr><th>Código</th><th>Producto</th></tr>${filas.slice(0, 4).map(f => `<tr><td>${jatEsc(f[ci])}</td><td>${jatEsc(String(f[pi]).substring(0, 40))}</td></tr>`).join('')}</table><p style="font-size:.75rem;color:#6b7c8f;margin-top:6px;">La columna de cantidad no se usa en el kardex.</p>`
+            ? `<strong style="font-size:.85rem;">${filas.length} productos para el kardex</strong><table><tr><th>Código</th><th>Producto</th><th>Stock</th></tr>${filas.slice(0, 4).map(f => `<tr><td>${jatEsc(f[ci])}</td><td>${jatEsc(String(f[pi]).substring(0, 40))}</td><td>${jatEsc(qi >= 0 ? (f[qi] === '' ? (window.jatColStock >= 0 ? '0' : '—') : f[qi]) : '—')}</td></tr>`).join('')}</table><p style="font-size:.75rem;color:#6b7c8f;margin-top:6px;">El stock sale de la columna elegida en "Stock".</p>`
             : '<p style="color:#c0392b;font-size:.85rem;">Con estas columnas no salen productos. Elige la columna de código y la de producto.</p>';
         document.getElementById('mapConfirmarBtn').textContent = '📋 Guardar en kardex';
     };
@@ -5857,7 +5883,7 @@
             return `<div style="display:flex;gap:10px;align-items:center;border-bottom:1px solid #edf2f7;padding:10px 0;">
                 ${fotos[c] ? `<img src="${fotos[c]}" alt="" style="width:48px;height:48px;border-radius:10px;object-fit:cover;flex:none;">` : '<div style="width:48px;height:48px;border-radius:10px;background:#f1f4f8;flex:none;display:flex;align-items:center;justify-content:center;font-size:22px;">📦</div>'}
                 <div style="flex:1;min-width:0;">
-                    <div style="font-weight:600;font-size:.9rem;color:#1a2b3c;overflow-wrap:anywhere;">${jatEsc(it.n || '(sin nombre)')}</div>
+                    <div style="font-weight:600;font-size:.88rem;color:#1a2b3c;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">${jatEsc(it.n || '(sin nombre)')}</div>
                     <div style="font-family:monospace;font-size:.74rem;color:#6b7c8f;overflow-wrap:anywhere;">${jatEsc(c)}${it.c ? ' · ' + jatEsc(it.c) : ''}${it.u ? ' · 📍' + jatEsc(it.u) : ''}${it.p !== undefined ? ' · ' + jatDinero(it.p) : ''}</div>
                 </div>
                 <div style="flex:none;text-align:right;min-width:52px;"><div style="font-weight:800;font-size:1rem;color:${col};">${formatearQty(s)}</div><div style="font-size:.66rem;color:${col};">${s < 0 ? 'negativo' : bajo ? 'stock bajo' : 'en stock'}</div></div>
