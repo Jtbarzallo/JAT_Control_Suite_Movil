@@ -7282,6 +7282,94 @@
             return det.detect(lienzo);
         };
     })();
+
+    // ===== Menú lateral por secciones (estilo sistema de inventario) =====
+    (function () {
+        const CSS = `
+            #jatHamb{display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;margin-right:8px;border:0;border-radius:12px;background:rgba(255,255,255,.12);color:#fff;font-size:26px;cursor:pointer;flex:none}
+            #jatTopUser{margin-left:auto;color:#e9c987;font-weight:600;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:38vw;padding-left:8px}
+            #jatDrawerBg{position:fixed;inset:0;z-index:5000;background:rgba(6,27,52,.5);display:none}
+            #jatDrawer{position:fixed;top:0;left:0;bottom:0;width:86vw;max-width:340px;z-index:5001;background:#f7f8fa;box-shadow:8px 0 30px rgba(0,0,0,.25);transform:translateX(-105%);transition:transform .22s ease;display:flex;flex-direction:column}
+            body.jat-drawer #jatDrawer{transform:none} body.jat-drawer #jatDrawerBg{display:block}
+            #jatDrawer .dh{background:linear-gradient(90deg,#061b34,#0a2e55);color:#fff;padding:16px;padding-top:calc(16px + env(safe-area-inset-top));display:flex;align-items:center;gap:12px;border-bottom:3px solid #c99a4a}
+            #jatDrawer .dh .av{width:44px;height:44px;border-radius:50%;background:#c99a4a;color:#061b34;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.2rem;flex:none}
+            #jatDrawer .dh b{display:block;font-size:1rem} #jatDrawer .dh small{color:#dbe8f7;font-size:.78rem}
+            #jatDrawer .dh .x{margin-left:auto;border:0;background:rgba(255,255,255,.12);color:#fff;width:42px;height:42px;border-radius:10px;font-size:1.2rem;cursor:pointer}
+            #jatDrawer .db{overflow-y:auto;flex:1;padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+            #jatDrawer .top{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid #e3e7ec;background:#f1f3f6;padding:16px 18px;font-size:1rem;font-weight:600;color:#33414f;cursor:pointer}
+            #jatDrawer .sec{border-bottom:1px solid #e3e7ec;background:#fafbfc}
+            #jatDrawer .sp{display:flex;align-items:center;width:100%;border:0;background:none;padding:17px 18px;font-size:1.02rem;font-weight:700;color:#1a2b3c;cursor:pointer;text-align:left}
+            #jatDrawer .sp span{flex:1} #jatDrawer .sp i{font-style:normal;transition:transform .18s;color:#1a2b3c;font-size:.8rem}
+            #jatDrawer .sec.open .sp i{transform:rotate(180deg)}
+            #jatDrawer .si{display:none;padding:0 0 8px 6px;border-left:3px solid #e3e7ec;margin-left:12px}
+            #jatDrawer .sec.open .si{display:block}
+            #jatDrawer .it{display:block;width:100%;text-align:left;border:0;background:none;padding:12px 16px;font-size:.98rem;color:#5b6876;cursor:pointer;line-height:1.35}
+            #jatDrawer .it:active{background:#e8eef5}`;
+        const st = document.createElement('style'); st.textContent = CSS; document.head.appendChild(st);
+        const MENU = [
+            ['📤 Egresos y salidas', [['Mis egresos', 'tab:egresos'], ['Crear egreso', 'hoja:egresos'], ['Salida por ubicación', 'mas:salidaub'], ['Verificar egreso abierto', 'tab:verificar']]],
+            ['📋 Kardex e inventario', [['Kardex de productos', 'tab:kardex'], ['Buscar producto con cámara', 'mas:buscarcam'], ['Ubicaciones en bodega', 'mas:ubicaciones'], ['Importar productos desde Excel', 'mas:importar'], ['Crear etiquetas', 'mas:etiquetas']]],
+            ['🧾 Compras de mercadería', [['Ingreso de mercadería', 'mas:ingreso'], ['Facturas de compra', 'mas:facturas'], ['Proveedores', 'mas:proveedores']]],
+            ['↩️ Devoluciones y transferencias', [['Devolución de cliente', 'ing:devolucion'], ['Transferencia de otra bodega', 'ing:transferencia']]],
+            ['📊 Reportes', [['Reportes', 'mas:reportes'], ['Kardex de un producto', 'fn:producto']]],
+            ['⚙️ Ajustes', [['Usuario y empresa', 'mas:perfil'], ['Usuarios y contraseñas', 'mas:usuarios'], ['Clientes y destinos', 'mas:clientes'], ['Copia de seguridad', 'mas:respaldo'], ['Restaurar una copia', 'mas:restaurar'], ['Ayuda y soporte', 'mas:ayuda']]]
+        ];
+        const abiertas = () => { try { return JSON.parse(localStorage.getItem('jatv_menu_abiertas') || '[0,1]'); } catch (e) { return [0, 1]; } };
+        function nombreUsuario() { const u = window.jatUsuarioSesion && jatUsuarioSesion(); return u ? (u.nombre || u.u) : (obtenerUsuarioActual() || 'Usuario'); }
+        function construir() {
+            let d = document.getElementById('jatDrawer');
+            if (!d) {
+                const bg = document.createElement('div'); bg.id = 'jatDrawerBg'; bg.addEventListener('click', cerrar); document.body.appendChild(bg);
+                d = document.createElement('nav'); d.id = 'jatDrawer'; d.setAttribute('aria-label', 'Menú'); document.body.appendChild(d);
+                d.addEventListener('click', accion);
+            }
+            const u = window.jatUsuarioSesion && jatUsuarioSesion(), nom = nombreUsuario(), ab = abiertas(), emp = (jatLeerJSON('jatv_empresa', {}) || {}).nombre || '';
+            d.innerHTML = `<div class="dh"><div class="av">${jatEsc((nom || '?').charAt(0).toUpperCase())}</div><div style="min-width:0;"><b>${jatEsc(nom)}</b><small>${u ? (u.rol === 'admin' ? 'Administrador' : 'Operador') : ''}${emp ? ' · ' + jatEsc(emp) : ''}</small></div><button type="button" class="x" data-m="cerrar" aria-label="Cerrar menú">✕</button></div>
+                <div class="db">
+                    <button type="button" class="top" data-m="mas:usuarios">🔄 Cambiar usuario / contraseña</button>
+                    <button type="button" class="top" data-m="salir">🚪 Cerrar sesión</button>
+                    ${MENU.map((sec, i) => `<div class="sec ${ab.includes(i) ? 'open' : ''}" data-sec="${i}"><button type="button" class="sp" data-tog="${i}"><span>${sec[0]}</span><i>▼</i></button><div class="si">${sec[1].map(it => `<button type="button" class="it" data-m="${it[1]}">${it[0]}</button>`).join('')}</div></div>`).join('')}
+                </div>`;
+        }
+        function abrir() { construir(); document.body.classList.add('jat-drawer'); }
+        function cerrar() { document.body.classList.remove('jat-drawer'); }
+        window.jatAbrirMenu = abrir;
+        function irMas(clave) {
+            jatIrTab('mas');
+            const b = document.querySelector(`[data-mas="${clave}"]`);
+            if (b) b.click(); else showAlert('Opción no disponible', 'warning');
+        }
+        function accion(e) {
+            const t = e.target.closest('[data-tog]');
+            if (t) { const sec = t.parentElement; sec.classList.toggle('open'); const ab = [...document.querySelectorAll('#jatDrawer .sec.open')].map(x => +x.dataset.sec); localStorage.setItem('jatv_menu_abiertas', JSON.stringify(ab)); return; }
+            const b = e.target.closest('[data-m]'); if (!b) return;
+            const [tipo, val] = b.dataset.m.split(':');
+            if (tipo === 'cerrar') return cerrar();
+            cerrar();
+            try { if (document.getElementById('verificadorModal')?.style.display === 'flex' && tipo !== 'tab') cerrarVerificador(); } catch (er) {}
+            if (tipo === 'salir') return window.jatCerrarSesion ? jatCerrarSesion() : location.reload();
+            if (tipo === 'tab') return jatIrTab(val);
+            if (tipo === 'hoja') { jatIrTab(val); return setTimeout(jatAbrirHoja, 50); }
+            if (tipo === 'mas') return irMas(val);
+            if (tipo === 'ing') { cargarVistaIngreso(); const x = document.querySelector(`[data-ing="${val}"]`); if (x) x.click(); else showAlert('Tienes una factura en curso. Termínala o descártala primero.', 'info'); return; }
+            if (tipo === 'fn' && val === 'producto') return jatRepProducto();
+        }
+        function ponerBoton() {
+            const area = document.querySelector('.top-bar .logo-area');
+            if (area && !document.getElementById('jatHamb')) area.insertAdjacentHTML('afterbegin', '<button type="button" id="jatHamb" aria-label="Abrir menú">☰</button>');
+            document.getElementById('jatHamb')?.addEventListener('click', abrir);
+            const bar = document.querySelector('.top-bar');
+            if (bar && !document.getElementById('jatTopUser')) { bar.insertAdjacentHTML('beforeend', `<span id="jatTopUser"></span>`); }
+            const tu = document.getElementById('jatTopUser'); if (tu) tu.textContent = window.jatUsuarioSesion && jatUsuarioSesion() ? nombreUsuario() : '';
+        }
+        // "Menú completo" del menú Más abre este menú
+        const _irM = jatIrTab;
+        jatIrTab = function (tab) { if (tab === 'menu') { cerrar(); return abrir(); } return _irM.apply(this, arguments); };
+        document.addEventListener('click', (e) => { const b = e.target.closest('[data-mas="menu"]'); if (b) { e.stopImmediatePropagation(); document.body.classList.remove('menu-abierto'); abrir(); } }, true);
+        window.addEventListener('popstate', cerrar);
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ponerBoton); else ponerBoton();
+        new MutationObserver(() => { const tu = document.getElementById('jatTopUser'); if (tu && !tu.textContent && window.jatUsuarioSesion && jatUsuarioSesion()) tu.textContent = nombreUsuario(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    })();
     </script>
     <!-- ====================================================================
          NOTAS DE AUDITORÍA — SEGUNDA PASADA (Jorge reportó: "cámara no funciona")
