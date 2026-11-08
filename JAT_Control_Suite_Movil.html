@@ -1947,18 +1947,33 @@
     }
 
     function cargarEgresoParaVerificar(id) {
-        const egreso = egresosGuardados.find(e => e.id === id);
-        if (!egreso) { showAlert('Egreso no encontrado', 'error'); return; }
-        currentEgreso = egreso;
-        // FIX: copia profunda independiente para no mutar el array guardado antes de auto-save
-        currentProductos = JSON.parse(JSON.stringify(egreso.productos)).map(normalizarProducto);
-        historialAcciones = [];
-        document.getElementById('deshacerBtn').disabled = true;
-        actualizarHistorialUI();
-        actualizarSidebarEgresoActivo();
-        closeModal('buscarEgresosModal');
-        abrirVerificador();
-        setTimeout(vozAbrirEgreso, 300);
+        try {
+            let egreso = null;
+            if (typeof id === 'number' && egresosGuardados[id]) egreso = egresosGuardados[id];
+            if (!egreso) egreso = egresosGuardados.find(e => String(e.id) === String(id))
+                || egresosGuardados.find(e => String(e.secuencial || '') === String(id) || String(e.nombre || '') === String(id));
+            if (!egreso) { showAlert('Egreso no encontrado', 'error'); return; }
+            const prods = Array.isArray(egreso.productos) ? egreso.productos : [];
+            if (!prods.length) { showAlert('⚠️ Este egreso no tiene productos guardados. Vuelve a cargarlo desde el PDF.', 'warning'); return; }
+            currentEgreso = egreso;
+            // FIX: copia profunda independiente para no mutar el array guardado antes de auto-save
+            currentProductos = JSON.parse(JSON.stringify(prods)).map(normalizarProducto);
+            historialAcciones = [];
+            const dz = document.getElementById('deshacerBtn'); if (dz) dz.disabled = true;
+            try { actualizarHistorialUI(); } catch(e) {}
+            try { actualizarSidebarEgresoActivo(); } catch(e) {}
+            closeModal('buscarEgresosModal');
+            try { abrirVerificador(); }
+            catch (e) {
+                console.error('abrirVerificador falló, reintento sin estado guardado', e);
+                if (currentEgreso) currentEgreso.uiState = {};
+                abrirVerificador();
+            }
+            setTimeout(() => { try { vozAbrirEgreso(); } catch(e) {} }, 300);
+        } catch (e) {
+            console.error('No se pudo abrir el egreso', e);
+            showAlert('❌ No se pudo abrir el egreso: ' + (e && e.message ? e.message : e), 'error');
+        }
     }
 
     // ---- VERIFICADOR ----
@@ -3494,7 +3509,7 @@
         const cont = document.getElementById('iniLista'); if (!cont) return;
         document.querySelectorAll('.ini-filtro').forEach(f=>f.classList.toggle('on', f.dataset.f===iniFiltroEstado));
         const q = (document.getElementById('iniBuscar')?.value||'').toLowerCase().trim();
-        let lista = (egresosGuardados||[]).slice().reverse().filter(e=>{
+        let lista = (egresosGuardados||[]).map((e,ix)=>{ try{ Object.defineProperty(e,'__ix',{value:ix,enumerable:false,configurable:true,writable:true}); }catch(_){} return e; }).reverse().filter(e=>{
             const txt = [e.nombre,e.secuencial,e.bodegaOrigen,e.bodegaDestino,e.fechaCreacion].filter(Boolean).join(' ').toLowerCase();
             if (q && !q.split(/\s+/).every(w=>txt.includes(w))) return false;
             const {pct,total} = iniEstado(e);
@@ -3514,7 +3529,7 @@
             const {total,ver,pct} = iniEstado(e);
             const color = pct>=100 ? '#1e8e4e' : pct>0 ? '#e67e22' : '#2d6aa3';
             const ruta = [e.bodegaOrigen, e.bodegaDestino].filter(Boolean).join(' → ');
-            return `<div class="ini-eg" onclick="cargarEgresoParaVerificar('${e.id}')">
+            return `<div class="ini-eg" onclick="cargarEgresoParaVerificar(${e.__ix})">
                 <div class="info">
                     <div class="nom">${pct>=100?'✅':'📋'} ${htmlSeguro(e.nombre||e.secuencial||'Egreso')}</div>
                     <div class="det">${htmlSeguro(e.fechaCreacion||'')}${ruta?' · '+htmlSeguro(ruta):''} · ${ver}/${total}</div>
