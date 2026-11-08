@@ -6091,7 +6091,25 @@
         const clave = (todo.match(/\b(\d{49})\b/) || ['', ''])[1];
         const fecha = (todo.match(/Fecha\s*(?:de\s*)?Emisi[oó]n[^\d]{0,10}(\d{1,2}\/\d{1,2}\/\d{4})/i) || todo.match(/\b(\d{2}\/\d{2}\/\d{4})\b/) || ['', ''])[1];
         const total = jatNumFac((todo.match(/(?:VALOR\s+TOTAL|IMPORTE\s+TOTAL|TOTAL\s+A\s+PAGAR)[^\d]{0,10}([\d.,]+)/i) || ['', ''])[1]) || 0;
-        const nombre = (lineas.map(l => l.join(' ')).find(t => /[A-ZÁÉÍÓÚÑ]{3,}/.test(t) && !/R\.?U\.?C|FACTURA|N[UÚ]MERO|AUTORIZACI|AMBIENTE|EMISI|CLAVE|FECHA|OBLIGADO|DIRECCI|^\s*No\.?/i.test(t) && t.length < 80) || '').trim();
+        // cabecera del emisor: todo lo que está antes de los datos del comprador
+        const iCli = lineas.findIndex(l => /Raz[oó]n\s*Social.*(Nombres|Apellidos|Comprador)|Nombres\s*y\s*Apellidos|Identificaci[oó]n\s*:/i.test(l.join(' ')));
+        const cab = (iCli > 0 ? lineas.slice(0, iCli) : lineas.slice(0, 25)).map(l => l.filter(t => !/^\d{10,}$/.test(t.replace(/\s/g, ''))));
+        const ROT = /R\.?U\.?C|FACTURA|N[UÚ]MERO|AUTORIZACI|AMBIENTE|EMISI|CLAVE|FECHA|OBLIGADO|DIRECCI|CONTRIBUYENTE|AGENTE|R[EÉ]GIMEN|RIMPE|^\s*No\.?\s|^\s*(Matriz|Sucursal)\s*$|TEL[EÉ]F|CORREO|E-?MAIL|@/i;
+        const limpia = t => t.replace(/\b\d{10,}\b/g, '').replace(/\s+/g, ' ').trim();
+        let iNom = -1, nombre = '', comercial = '';
+        cab.forEach((l, i) => { if (iNom >= 0) return; const t = limpia(l[0] || ''); if (/[A-ZÁÉÍÓÚÑ]{3,}/.test(t) && !ROT.test(t) && t.length < 90) { iNom = i; nombre = t; } });
+        if (iNom >= 0) { const t = limpia((cab[iNom + 1] || [])[0] || ''); if (t && /[A-ZÁÉÍÓÚÑa-z]{3,}/.test(t) && !ROT.test(t) && t.length < 90) comercial = t; }
+        // dirección matriz (puede seguir en la línea de abajo)
+        let dir = '';
+        const iDir = cab.findIndex(l => /Direcci[oó]n\s*(Matriz)?\s*:/i.test(l[0] || ''));
+        if (iDir >= 0) {
+            dir = (cab[iDir][0] || '').replace(/^.*?Direcci[oó]n\s*(Matriz)?\s*:\s*/i, '');
+            for (let j = iDir + 1; j < cab.length && j <= iDir + 2; j++) { const t = (cab[j][0] || '').trim(); if (!t || /:/.test(t) || ROT.test(t) || /^[\d\s]+$/.test(t)) break; dir += ' ' + t; }
+            dir = dir.replace(/\s+/g, ' ').trim();
+        }
+        const cabTxt = cab.map(l => l.join(' ')).join('\n');
+        const tel = ((cabTxt.match(/(?:Tel[eé]fono|Telf?\.?|Tlf|Celular|Cel\.?)\s*:?\s*([+\d][\d\s\-\/]{6,20}\d)/i) || ['', ''])[1] || '').trim();
+        const mail = (cabTxt.match(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/) || [''])[0];
         const esNum = t => /^-?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?$|^-?\d+(?:[.,]\d+)?$/.test(t);
         const det = [];
         lineas.forEach(toks => {
@@ -6105,14 +6123,19 @@
             resto.forEach((t, i) => { if (q !== null || !esNum(t)) return; const v = jatNumFac(t); if (v > 0 && Math.abs(v * pu - de - tot) <= Math.max(0.03, tot * 0.01)) { q = v; qi = i; } });
             if (q === null && nums.length >= 4) { const v = nums[nums.length - 4].v; if (v > 0 && Math.abs(v * pu - de - tot) <= Math.max(0.03, tot * 0.01)) { q = v; qi = -2; } }
             if (q === null) return;
-            const palabras = resto.filter((t, i) => i !== qi);
-            let cp = '';
-            if (palabras.length && /\d/.test(palabras[0]) && palabras[0].length <= 25) cp = palabras.shift();
-            const desc = palabras.join(' ').trim();
+            let cp = '', ca = '', desc = '';
+            if (qi > 0 && qi <= 2 && resto.length > qi + 1) {
+                // formato SRI: Cod. Principal | Cod. Auxiliar | Cant | Descripción
+                cp = resto[0]; ca = qi === 2 ? resto[1] : ''; desc = resto.slice(qi + 1).join(' ').trim();
+            } else {
+                const palabras = resto.filter((t, i) => i !== qi);
+                if (palabras.length && /\d/.test(palabras[0]) && palabras[0].length <= 25) cp = palabras.shift();
+                desc = palabras.join(' ').trim();
+            }
             if (!desc || /TOTAL|SUBTOTAL|IVA|DESCUENTO/i.test(desc)) return;
-            det.push({ cp, ca: '', desc, q, pu, de, tot, costo: Math.round(tot / q * 10000) / 10000, barcode: '' });
+            det.push({ cp, ca, desc, q, pu, de, tot, costo: Math.round(tot / q * 10000) / 10000, barcode: '' });
         });
-        return { origen: 'pdf', ruc, nombre, comercial: '', dir: '', tel: '', mail: '', numero, clave, fecha, total, lineas: det };
+        return { origen: 'pdf', ruc, nombre, comercial, dir, tel, mail, numero, clave, fecha, total, lineas: det };
     }
     // ---- completar con proveedor registrado y equivalencias ----
     function jatCompletarFactura(f) {
@@ -6195,7 +6218,7 @@
                 <details ${f.provConocido ? '' : 'open'}><summary style="font-size:.84rem;color:#1a3a5c;cursor:pointer;min-height:30px;display:flex;align-items:center;">Más datos del proveedor</summary>
                     <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px;">${inp('facComercial', f.comercial, 'Nombre comercial')}${inp('facDir', f.dir, 'Dirección')}${inp('facTel', f.tel, 'Teléfono', 'inputmode="tel"')}${inp('facMail', f.mail, 'Correo', 'inputmode="email"')}</div></details>
             </div>
-            <div style="border:1px solid #e3e9f0;border-radius:14px;padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div style="border:1px solid #e3e9f0;border-radius:14px;padding:12px;display:grid;grid-template-columns:1.35fr 1fr;gap:8px;">
                 <b style="color:#1a3a5c;grid-column:span 2;">🧾 Factura</b>
                 ${inp('facNum', f.numero, 'N° 001-001-000000123')}${inp('facFecha', f.fecha, 'Fecha dd/mm/aaaa')}
                 ${f.total ? `<div style="grid-column:span 2;font-size:.8rem;color:#6b7c8f;">Total de la factura (con IVA): <b>${jatDinero(f.total)}</b></div>` : ''}
