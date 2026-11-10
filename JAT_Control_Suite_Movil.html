@@ -537,6 +537,7 @@
         .vl-card .tx { flex: 1; min-width: 0; }
         .vl-card .nm { font-weight: 700; font-size: .88rem; color: #1e293b; line-height: 1.25; }
         .vl-card .cd { font-size: .74rem; color: #64748b; margin-top: 2px; font-family: 'Fira Code', monospace; }
+        .vl-card .hr { font-family: inherit; font-weight: 700; color: #0f766e; margin-left: 8px; white-space: nowrap; }
         .vl-card .qt { flex: none; font-weight: 800; font-size: 1.05rem; color: #1a3a5c; }
         .vl-card.hecho .qt { color: #15803d; }
         .vl-vacio { text-align: center; color: #64748b; padding: 22px 10px; font-size: .9rem; }
@@ -3030,6 +3031,17 @@
 
     // ---- LISTA DEL EGRESO DEBAJO DE LA CÁMARA (Pendientes / Revisados / Todos) ----
     let vlFiltro = 'pend', vlPendiente = false;
+    // Hora en que se marcó el producto por última vez (sale del historial que ya guarda cada conteo)
+    function horaMarcado(p) {
+        const h = Array.isArray(p.historialMovimientos) ? p.historialMovimientos : [];
+        for (let k = h.length - 1; k >= 0; k--) {
+            if (h[k] && h[k].fecha && h[k].tipo !== 'series_observacion') {
+                const d = new Date(h[k].fecha);
+                if (!isNaN(d)) return d.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', hour12: false });
+            }
+        }
+        return '';
+    }
     function renderListaVerif() {
         const cont = document.getElementById('vlLista');
         if (!cont) return;
@@ -3044,7 +3056,7 @@
             cont.innerHTML = '<div class="vl-vacio">' + (vlFiltro === 'pend' ? (todos.length ? '🎉 No queda nada pendiente' : 'Abre un egreso para ver sus productos') : vlFiltro === 'hecho' ? 'Todavía no has revisado ningún producto completo' : 'Sin productos') + '</div>';
             return;
         }
-        cont.innerHTML = lista.map(x => `<button type="button" class="vl-card ${x.ok ? 'hecho' : x.v > 0 ? 'parcial' : ''} ${x.i === currentSelectedIndex ? 'sel' : ''}" data-i="${x.i}"><span class="tx"><span class="nm">${htmlSeguro(x.p.productName || '')}</span><div class="cd">${htmlSeguro(x.p.barcode || '')}</div></span><span class="qt">${formatearQty(x.v)}/${formatearQty(x.e)}</span></button>`).join('');
+        cont.innerHTML = lista.map(x => `<button type="button" class="vl-card ${x.ok ? 'hecho' : x.v > 0 ? 'parcial' : ''} ${x.i === currentSelectedIndex ? 'sel' : ''}" data-i="${x.i}"><span class="tx"><span class="nm">${htmlSeguro(x.p.productName || '')}</span><div class="cd">${htmlSeguro(x.p.barcode || '')}${x.v > 0 && horaMarcado(x.p) ? ` <span class="hr">🕒 ${horaMarcado(x.p)}</span>` : ''}</div></span><span class="qt">${formatearQty(x.v)}/${formatearQty(x.e)}</span></button>`).join('');
     }
     function renderListaVerifProgramado() {
         if (vlPendiente) return;

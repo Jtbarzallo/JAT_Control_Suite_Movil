@@ -23,6 +23,8 @@ arreglos ya hechos.
 - [ ] Lectura de texto (OCR) para productos sin código de barras.
 - [ ] Voz, sonido y vibración distintos por caso (correcto, repetido, no encontrado, completo).
 - [ ] Aviso de producto repetido y de "ya está completo".
+- [ ] **Hora de marcado**: cada producto contado muestra la hora (🕒 HH:MM) en que se marcó,
+      en la lista de Revisar y en la de Sacar.
 
 ## Egresos
 
@@ -57,3 +59,4 @@ arreglos ya hechos.
 
 - 2026-11-09: creada. Se agregaron los filtros y el gatillo en Sacar, la lista con filtros
   debajo de la cámara en Revisar, y el arreglo del menú "Más" de la cámara que se cortaba.
+  Después se agregó la hora de marcado en las tarjetas de Revisar y de Sacar (faltaba).

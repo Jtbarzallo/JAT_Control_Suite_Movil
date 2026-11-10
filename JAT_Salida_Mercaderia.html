@@ -27,6 +27,7 @@ input[type=text],input[type=number],select{width:100%;padding:13px;border:1.5px 
 .seg{display:flex;gap:6px;margin-top:8px;overflow-x:auto}
 .chip{flex:0 0 auto;padding:9px 14px;border-radius:20px;border:1.5px solid #cbd5e1;background:#eef2f7;font-weight:700;font-size:.85rem;color:#1a3a5c}
 .chip.on{background:#1a3a5c;color:#fff;border-color:#1a3a5c}
+.card .hr{color:#0f766e;margin-left:8px;white-space:nowrap}
 .seg.fil .chip{flex:1 1 0;text-align:center;padding:9px 6px;white-space:nowrap}
 .gh{background:#1a3a5c;color:#fff;font-weight:800;padding:10px 12px;margin-top:10px;font-size:.95rem}
 .card{background:#fff;margin:6px 10px;border-radius:14px;padding:12px;border-left:6px solid #f59e0b;box-shadow:0 1px 3px rgba(0,0,0,.08)}
@@ -194,7 +195,8 @@ const LS = {
 };
 let ubic = LS.get('jat_ubicaciones', {});                       // codigo -> {z, d, t}
 let zonas = LS.get('jat_zonas', ['Pasillo 1', 'Pasillo 2', 'Pasillo 3', 'Cuarto 1']);
-let egreso = null, productos = [], sacado = {}, egKey = '';
+let egreso = null, productos = [], sacado = {}, horas = {}, egKey = '';
+const horaTxt = t => t ? new Date(t).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
 let agrupar = 'ubi', filtro = 'pend', idxItem = -1, KC = null;
 
 function toast(t) { const e = $('toast'); e.textContent = t; e.style.display = 'block'; clearTimeout(toast.h); toast.h = setTimeout(() => e.style.display = 'none', 2600); }
@@ -519,6 +521,7 @@ function abrirEgreso(e) {
   if (e.secuencial && e.productos && !e._ya) recordarEgreso(e);
   egKey = claveEgreso(e);
   sacado = LS.get(egKey, null);
+  horas = LS.get(egKey + '_h', null) || {};
   if (!sacado) { // parte de lo que ya se revisó en el programa de verificación, si lo hay
     sacado = {};
   }
@@ -526,7 +529,7 @@ function abrirEgreso(e) {
   cerrar('shEgreso'); render();
   toast('Egreso cargado: ' + productos.length + ' productos');
 }
-function guardarProgreso() { LS.set(egKey, sacado); }
+function guardarProgreso() { LS.set(egKey, sacado); LS.set(egKey + '_h', horas); }
 
 function listarEgresos() {
   const lista = [...LS.get('jat_salida_lista', []), ...LS.get('oneliv_egresos', [])].filter((e, i, a) => a.findIndex(x => (x.id || x.nombre) === (e.id || e.nombre)) === i).reverse();
@@ -571,7 +574,7 @@ function render() {
     const ped = pedido(p), s = sacado[i] || 0, cls = s >= ped ? 'ok' : (s > 0 ? 'part' : '');
     const u = ubicTxt(p);
     html += `<div class="card ${cls}" data-i="${i}"><div class="n">${esc(nombre(p))}</div>
-      <div class="m"><span>${esc(p.barcode)}</span><span class="qty">${s}/${ped}</span></div>
+      <div class="m"><span>${esc(p.barcode)}${s > 0 && horas[i] ? ` <b class="hr">🕒 ${horaTxt(horas[i])}</b>` : ''}</span><span class="qty">${s}/${ped}</span></div>
       <div class="m"><span class="loc ${u ? '' : 'none'}">${u ? '📍 ' + esc(u) : 'Sin ubicación'}</span><span>${esc(agrupar === 'ubi' ? categoria(p) : '')}</span></div></div>`;
   }
   cont.innerHTML = html;
@@ -613,6 +616,7 @@ $('iGuardar').onclick = () => {
   const p = productos[idxItem], ped = pedido(p);
   let n = Math.max(0, Math.floor(+$('iQty').value || 0));
   if (n > ped) { n = ped; toast('Se guardó solo lo pedido (' + ped + ')'); }
+  if (n !== (sacado[idxItem] || 0)) { if (n > 0) horas[idxItem] = Date.now(); else delete horas[idxItem]; }   // hora de marcado
   sacado[idxItem] = n; guardarProgreso();
   const z = $('iZona').value, d = $('iDet').value.trim();
   const b = String(p.barcode).trim();
