@@ -27,6 +27,7 @@ input[type=text],input[type=number],select{width:100%;padding:13px;border:1.5px 
 .seg{display:flex;gap:6px;margin-top:8px;overflow-x:auto}
 .chip{flex:0 0 auto;padding:9px 14px;border-radius:20px;border:1.5px solid #cbd5e1;background:#eef2f7;font-weight:700;font-size:.85rem;color:#1a3a5c}
 .chip.on{background:#1a3a5c;color:#fff;border-color:#1a3a5c}
+.seg.fil .chip{flex:1 1 0;text-align:center;padding:9px 6px;white-space:nowrap}
 .gh{background:#1a3a5c;color:#fff;font-weight:800;padding:10px 12px;margin-top:10px;font-size:.95rem}
 .card{background:#fff;margin:6px 10px;border-radius:14px;padding:12px;border-left:6px solid #f59e0b;box-shadow:0 1px 3px rgba(0,0,0,.08)}
 .card.ok{border-left-color:#16a34a;background:#f0fdf4}.card.part{border-left-color:#3b82f6}
@@ -47,6 +48,13 @@ input[type=text],input[type=number],select{width:100%;padding:13px;border:1.5px 
 .scan .ret{position:absolute;left:5%;right:5%;top:22%;bottom:22%;border:3px solid #22c55e;border-radius:16px;box-shadow:0 0 0 9999px rgba(0,0,0,.35);pointer-events:none}
 .scan .st{position:absolute;left:0;right:0;top:0;background:rgba(0,0,0,.6);color:#fff;padding:10px 12px;font-weight:700;text-align:center;font-size:.95rem}
 .scan .bot{background:#fff;padding:10px 12px;display:flex;gap:8px}
+.scan .ret{border-color:#94a3b8;transition:border-color .1s}
+.scan.leyendo .ret{border-color:#22c55e}
+.scan .gat{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);width:108px;height:108px;border-radius:50%;border:5px solid #fff;background:#d62f3a;color:#fff;font-weight:800;font-size:.82rem;letter-spacing:.5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;touch-action:none;user-select:none;-webkit-user-select:none;box-shadow:0 6px 20px rgba(0,0,0,.5);cursor:pointer}
+.scan .gat i{font-style:normal;font-size:1.7rem;line-height:1}
+.scan .gat.on{background:#16a34a;transform:translateX(-50%) scale(.93)}
+.scan.continuo .gat{display:none}
+.scan .modo{position:absolute;right:10px;bottom:16px;border:1px solid rgba(255,255,255,.4);background:rgba(0,0,0,.55);color:#fff;border-radius:20px;padding:9px 12px;font-weight:700;font-size:.8rem}
 .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#1f2d3d;color:#fff;padding:12px 18px;border-radius:12px;z-index:90;display:none;max-width:90vw;text-align:center}
 </style>
 </head>
@@ -70,8 +78,11 @@ input[type=text],input[type=number],select{width:100%;padding:13px;border:1.5px 
   <div class="seg">
     <span class="chip on" data-g="ubi">📍 Por ubicación</span>
     <span class="chip" data-g="cat">📦 Por categoría</span>
-    <span class="chip on" data-f="pend">⏳ Pendientes</span>
-    <span class="chip" data-f="todos">Todos</span>
+  </div>
+  <div class="seg fil">
+    <span class="chip on" data-f="pend">⏳ Pendientes <b id="nPend"></b></span>
+    <span class="chip" data-f="hecho">✅ Sacados <b id="nHecho"></b></span>
+    <span class="chip" data-f="todos">Todos <b id="nTodos"></b></span>
   </div>
 </div>
 <div id="lista"></div>
@@ -166,7 +177,7 @@ input[type=text],input[type=number],select{width:100%;padding:13px;border:1.5px 
 </div></div>
 
 <div class="scan" id="scan">
-  <div class="vid"><video id="sVideo" playsinline muted autoplay></video><div class="ret"></div><div class="st" id="sSt">Iniciando cámara…</div></div>
+  <div class="vid"><video id="sVideo" playsinline muted autoplay></video><div class="ret"></div><div class="st" id="sSt">Iniciando cámara…</div><button type="button" class="gat" id="sGat"><i>◉</i>ESCANEAR</button><button type="button" class="modo" id="sModo"></button></div>
   <div class="bot"><button class="btn ghost" id="sCerrar" style="flex:1">✖ Cerrar</button><button class="btn" id="sTexto" style="flex:1">🔤 Leer texto</button><button class="btn warn" id="sManual" style="flex:1">⌨️ A mano</button></div>
 </div>
 <div class="toast" id="toast"></div>
@@ -535,7 +546,11 @@ function render() {
   const total = productos.reduce((s, p) => s + pedido(p), 0);
   const hecho = productos.reduce((s, p, i) => s + Math.min(pedido(p), sacado[i] || 0), 0);
   $('info').innerHTML = `<b>${esc(egreso.nombre || egreso.secuencial || 'Egreso')}</b> — sacado <b>${hecho}</b> de <b>${total}</b> unidades<div class="prog"><i style="width:${total ? hecho / total * 100 : 0}%"></i></div>`;
-  if (filtro === 'pend') items = items.filter(x => (sacado[x.i] || 0) < pedido(x.p));
+  const listo = x => (sacado[x.i] || 0) >= pedido(x.p);
+  const nH = items.filter(listo).length;
+  $('nPend').textContent = items.length - nH; $('nHecho').textContent = nH; $('nTodos').textContent = items.length;
+  if (filtro === 'pend') items = items.filter(x => !listo(x));
+  if (filtro === 'hecho') items = items.filter(listo);
   if (q) items = items.filter(x => norm(nombre(x.p)).includes(q) || String(x.p.barcode).includes(q) || norm(ubicTxt(x.p)).includes(q));
   const clave = x => agrupar === 'ubi' ? (ubic[String(x.p.barcode).trim()]?.z || '') : categoria(x.p);
   const ordenZ = z => z === '' ? 1e9 : (zonas.indexOf(z) >= 0 ? zonas.indexOf(z) : 1e6);
@@ -544,7 +559,7 @@ function render() {
     if (agrupar === 'ubi') { const d = ordenZ(ka) - ordenZ(kb); if (d) return d; if (ka !== kb) return ka.localeCompare(kb, 'es'); return (ubic[String(a.p.barcode).trim()]?.d || '').localeCompare(ubic[String(b.p.barcode).trim()]?.d || '', 'es', { numeric: true }) || a.i - b.i; }
     return ka.localeCompare(kb, 'es') || a.i - b.i;
   });
-  if (!items.length) { cont.innerHTML = '<div class="empty">' + (filtro === 'pend' && !q ? '🎉 No queda nada pendiente' : 'Sin resultados') + '</div>'; return; }
+  if (!items.length) { cont.innerHTML = '<div class="empty">' + (q ? 'Sin resultados' : filtro === 'pend' ? '🎉 No queda nada pendiente' : filtro === 'hecho' ? 'Todavía no has sacado ningún producto completo' : 'Sin resultados') + '</div>'; return; }
   let ult = null, html = '';
   for (const { p, i } of items) {
     const k = clave({ p, i });
@@ -845,21 +860,22 @@ function sEstado(t) { $('sSt').textContent = t; }
 async function abrirScanner() {
   if (!egreso && !modoReg) { toast('Primero elige un egreso'); return; }
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.isSecureContext) { toast('La cámara solo funciona abriendo el programa desde la dirección de GitHub (https)'); return; }
-  $('scan').style.display = 'flex'; sEstado('Iniciando cámara…');
+  $('scan').style.display = 'flex'; sEstado('Iniciando cámara…'); gatSoltar();
   try {
     sStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
     const v = $('sVideo'); v.srcObject = sStream; await v.play().catch(() => {});
     try { const tr = sStream.getVideoTracks()[0]; const cap = tr.getCapabilities ? tr.getCapabilities() : {}; if (cap.focusMode && cap.focusMode.includes('continuous')) await tr.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch (_) {}
     if (modoReg) sEstado('🟢 ' + $('rZona').value + ' — escanea cualquier producto');
     else { sEstado('🟢 Apunta al código de barras o al nombre del producto'); iniciarAutoOCR(); }
-     $('sManual').textContent = modoReg ? '✔ Terminar' : '⌨️ A mano';
+    $('sManual').textContent = modoReg ? '✔ Terminar' : '⌨️ A mano';
+    gatSoltar(); gatAyuda();
     if ('BarcodeDetector' in window) {
       try {
         const fm = await BarcodeDetector.getSupportedFormats();
         sDet = new BarcodeDetector({ formats: fm.filter(f => /ean|upc|code_|itf|codabar|qr/.test(f)) });
         sTimer = setInterval(async () => {
           if (sPausado() || v.readyState < 2) return;
-          try { const r = await sDet.detect(v); if (r.length) lectura(r.map(x => x.rawValue)); } catch (_) {}
+          try { const r = (await sDet.detect(v)).filter(x => enRecuadro(x.boundingBox)); if (r.length && !sPausado()) lectura(r.map(x => x.rawValue)); } catch (_) {}
         }, 220);
         return;
       } catch (_) {}
@@ -869,7 +885,45 @@ async function abrirScanner() {
     sZX.decodeFromVideoElementContinuously(v, r => { if (r && !sPausado()) lectura([r.getText()]); });
   } catch (e) { cerrarScanner(); toast('No se pudo abrir la cámara: ' + (e.message || e.name)); }
 }
-function sPausado() { return $('shItem').style.display === 'flex' || $('shNuevo').style.display === 'flex'; }
+function sPausado() { return $('shItem').style.display === 'flex' || $('shNuevo').style.display === 'flex' || !gatActivo(); }
+// ----- Gatillo: la cámara solo lee mientras aprietas ESCANEAR (un apretón = un producto). Un toque corto lee 2,5 s. -----
+let gatModo = (() => { try { return localStorage.getItem('jat_cam_modo') !== 'continuo'; } catch (_) { return true; } })();
+let gatOn = false, gatHasta = 0, gatT0 = 0;
+function gatActivo() { return !gatModo || gatOn || Date.now() < gatHasta; }
+function gatPintar() {
+  const a = gatModo && gatActivo();
+  $('scan').classList.toggle('continuo', !gatModo); $('scan').classList.toggle('leyendo', !gatModo || a);
+  $('sGat').classList.toggle('on', a); $('sModo').textContent = gatModo ? '🔫 Gatillo' : '♾️ Continuo';
+}
+function gatSoltar() { gatOn = false; gatHasta = 0; gatPintar(); }
+function gatAyuda() { if (gatModo && sStream) sEstado((modoReg ? $('rZona').value + ' — a' : 'A') + 'punta al producto y aprieta ESCANEAR'); }
+$('sGat').addEventListener('pointerdown', e => {
+  e.preventDefault(); try { $('sGat').setPointerCapture(e.pointerId); } catch (_) {}
+  gatOn = true; gatT0 = Date.now(); gatHasta = 0; sUlt = ''; ocrUlt = ''; sUltBarcode = Date.now() - 1800;
+  if (navigator.vibrate) navigator.vibrate(15);
+  sEstado('🔴 Leyendo…'); gatPintar();
+});
+const gatFin = () => {
+  if (!gatOn) return;
+  gatOn = false;
+  if (Date.now() - gatT0 < 350) { gatHasta = Date.now() + 2500; setTimeout(() => { gatPintar(); if (!gatActivo() && $('sSt').textContent === '🔴 Leyendo…') gatAyuda(); }, 2560); }
+  else if ($('sSt').textContent === '🔴 Leyendo…') gatAyuda();
+  gatPintar();
+};
+['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => $('sGat').addEventListener(ev, gatFin));
+$('sGat').addEventListener('contextmenu', e => e.preventDefault());
+$('sModo').onclick = () => {
+  gatModo = !gatModo; gatSoltar();
+  try { localStorage.setItem('jat_cam_modo', gatModo ? 'gatillo' : 'continuo'); } catch (_) {}
+  if (gatModo) gatAyuda(); else sEstado('🟢 Lectura continua: apunta al código');
+};
+// Solo se lee el código que está dentro del recuadro (no los de las cajas de al lado)
+function enRecuadro(b) {
+  const v = $('sVideo'), cw = v.clientWidth, ch = v.clientHeight, vw = v.videoWidth, vh = v.videoHeight;
+  if (!b || !vw || !cw) return true;
+  const sc = Math.max(cw / vw, ch / vh), x = (b.x + b.width / 2) * sc - (vw * sc - cw) / 2, y = (b.y + b.height / 2) * sc - (vh * sc - ch) / 2;
+  return x >= cw * .05 && x <= cw * .95 && y >= ch * .22 && y <= ch * .78;
+}
 function cerrarScanner() {
   clearInterval(sTimer); sTimer = null; sDet = null; clearInterval(ocrTimer); ocrTimer = null; ocrUlt = '';
   try { sZX && sZX.reset(); } catch (_) {} sZX = null;
@@ -885,6 +939,7 @@ function buscarIdx(cod) {
 }
 function lectura(codigos) {
   sUltBarcode = Date.now();
+  if (gatModo) gatSoltar();   // un apretón = una lectura
   if (modoReg) { registrarCodigo(codigos, true); return; }
   // De todos los códigos a la vista, se elige el que coincide COMPLETO con el egreso
   let idx = -1;
@@ -900,6 +955,7 @@ function lectura(codigos) {
   accionProducto(idx);
 }
 function accionProducto(idx) {
+  if (gatModo) gatSoltar();
   const p = productos[idx];
   if ((sacado[idx] || 0) >= pedido(p)) {
     if (navigator.vibrate) navigator.vibrate([40, 40, 40]);
@@ -1074,6 +1130,8 @@ window.JATSalida = { actual: () => egreso, abrir: e => abrirEgreso({ ...e, _ya: 
 // Dentro de la app (pestaña Sacar) se esconde el encabezado propio: los botones están en el ＋ de la app.
 if (new URLSearchParams(location.search).has('embed')) {
   const st = document.createElement('style'); st.textContent = 'header { display: none !important; } .sheet { padding-bottom: 96px !important; } #lista { padding-bottom: 96px; }'; document.head.appendChild(st);
+  const ocupado = () => { const o = $('scan').style.display === 'flex' || [...document.querySelectorAll('.sheet-bg')].some(x => x.style.display === 'flex'); try { parent.JATPersonal && parent.JATPersonal.ocupado && parent.JATPersonal.ocupado(o); } catch (_) {} };
+  new MutationObserver(ocupado).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['style'] });
   const info = document.getElementById('info');
   if (info) info.innerHTML = 'Abre un egreso en <b>Inicio</b> y aparecerá aquí ordenado por pasillo. También puedes tocar <b>＋</b> → <b>Elegir egreso para sacar</b> o <b>Registrar ubicaciones</b>.';
 }

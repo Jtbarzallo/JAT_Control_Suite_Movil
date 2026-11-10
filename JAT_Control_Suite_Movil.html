@@ -4911,6 +4911,7 @@
         .js-fab svg { width: 30px; height: 30px; }
         .js-fab.abierto { transform: rotate(45deg); background: #1a2b3c; }
         body.js-shell .js-fab.sin { display: none; }
+        body.js-shell.js-sin-fab .js-capa.on ~ .js-fab { display: none; }   /* hay una ventana de Sacar encima: el ＋ no tapa sus botones */
         body.js-shell .js-hoja.on { display: block; position: fixed; inset: 0; z-index: 4310; }
         .js-hoja .fondo { position: absolute; inset: 0; background: rgba(10,20,35,.45); }
         .js-hoja .panel { position: absolute; left: 0; right: 0; bottom: 0; max-height: 82vh; overflow-y: auto; background: #fff; border-radius: 22px 22px 0 0; padding: 10px 14px calc(150px + env(safe-area-inset-bottom)); animation: jsSube .18s ease-out; }
@@ -5118,6 +5119,7 @@ window.JATShell = (function () {
         });
     }
     window.JATPersonal = {
+        ocupado(v) { document.body.classList.toggle('js-sin-fab', !!v); },
         // Salida de Mercadería avisa qué egreso abrió
         desdeSacar(e) {
             if (!e || !Array.isArray(e.productos) || !e.productos.length) return;
