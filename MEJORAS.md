@@ -48,6 +48,15 @@ arreglos ya hechos.
 - [ ] Botones grandes para dedo; nada de atajos de teclado de Windows en el celular.
 - [ ] Icono distinto por programa: Personal azul y dorado, Venta rojo, Revisión verde.
 - [ ] El enlace corto de la página abre el programa (index.html), sin error.
+- [ ] **Diseño industrial** (bloque `<style id="jat-industrial">` al final del archivo, todo bajo
+      `body.d-ind`): cabecera oscura con marca y barra de estado (carpeta, egreso, guardado),
+      panel KPI (progreso, verificadas, pendientes, escáner), chips Todos / Pendientes /
+      Verificados, lista como tabla densa con código en monoespaciada y chip de estado,
+      vista dividida cámara | lista desde 900 px de ancho.
+- [ ] **Pantalla clara / oscura**: se cambia en la barra de estado, en Menú y en el "Más" de la
+      cámara; se recuerda (`jat_tema`). Todo color nuevo va por variables para que sirva en ambos.
+- [ ] En Menú se puede volver al diseño clásico (`jat_diseno`). El diseño nuevo no cambia IDs ni
+      funciones: solo agrega estilos y elementos de lectura.
 
 ## Versiones
 
@@ -60,3 +69,4 @@ arreglos ya hechos.
 - 2026-11-09: creada. Se agregaron los filtros y el gatillo en Sacar, la lista con filtros
   debajo de la cámara en Revisar, y el arreglo del menú "Más" de la cámara que se cortaba.
   Después se agregó la hora de marcado en las tarjetas de Revisar y de Sacar (faltaba).
+  Rediseño industrial con tema claro y oscuro, también dentro de Sacar.

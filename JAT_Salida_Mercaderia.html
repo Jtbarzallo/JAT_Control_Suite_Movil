@@ -57,7 +57,26 @@ input[type=text],input[type=number],select{width:100%;padding:13px;border:1.5px 
 .scan.continuo .gat{display:none}
 .scan .modo{position:absolute;right:10px;bottom:16px;border:1px solid rgba(255,255,255,.4);background:rgba(0,0,0,.55);color:#fff;border-radius:20px;padding:9px 12px;font-weight:700;font-size:.8rem}
 .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#1f2d3d;color:#fff;padding:12px 18px;border-radius:12px;z-index:90;display:none;max-width:90vw;text-align:center}
+/* Diseño industrial (cuando se abre dentro de JAT Control Suite) */
+body.d-ind{--bg:#f8fafc;--sf:#fff;--tx:#0f172a;--mu:#64748b;--bd:#e2e8f0;--hd:#0f172a;font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--tx)}
+body.d-ind.d-osc{--bg:#0b1220;--sf:#111a2c;--tx:#e5e9f0;--mu:#94a3b8;--bd:#243049;--hd:#060b16;color-scheme:dark}
+body.d-ind .tools,body.d-ind #info{background:var(--sf);color:var(--tx);border-color:var(--bd)}
+body.d-ind .gh{background:var(--hd);font-size:.7rem;letter-spacing:.07em;text-transform:uppercase;padding:8px 12px;margin-top:8px}
+body.d-ind .card{background:var(--sf);color:var(--tx);border-radius:10px;box-shadow:none;border-top:1px solid var(--bd);border-right:1px solid var(--bd);border-bottom:1px solid var(--bd)}
+body.d-ind.d-osc .card.ok{background:#0c2a22}
+body.d-ind .card .m{color:var(--mu)}
+body.d-ind .card .m>span:first-child,body.d-ind .qty{font-family:'JetBrains Mono','Roboto Mono',monospace;font-variant-numeric:tabular-nums}
+body.d-ind .qty{color:var(--tx)}
+body.d-ind .chip{background:var(--sf);border:1px solid var(--bd);color:var(--mu);border-radius:999px}
+body.d-ind .chip.on{background:#2563eb;border-color:#2563eb;color:#fff}
+body.d-ind input,body.d-ind select{background:var(--sf);color:var(--tx);border-color:var(--bd)}
+body.d-ind #q{font-family:'JetBrains Mono','Roboto Mono',monospace;border:2px solid #2563eb;border-radius:10px}
+body.d-ind.d-osc .sheet{background:var(--sf);color:var(--tx)}
+body.d-ind.d-osc .li{background:var(--bg);color:var(--tx);border-color:var(--bd)}
+body.d-ind.d-osc .empty{color:var(--mu)}
+body.d-ind.d-osc .scan .bot{background:var(--sf)}
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
 </head>
 <body>
 <header>
@@ -1134,6 +1153,7 @@ window.JATSalida = { actual: () => egreso, abrir: e => abrirEgreso({ ...e, _ya: 
 // Dentro de la app (pestaña Sacar) se esconde el encabezado propio: los botones están en el ＋ de la app.
 if (new URLSearchParams(location.search).has('embed')) {
   const st = document.createElement('style'); st.textContent = 'header { display: none !important; } .sheet { padding-bottom: 96px !important; } #lista { padding-bottom: 96px; }'; document.head.appendChild(st);
+  try { const pb = parent.document.body.classList; document.body.classList.toggle('d-ind', pb.contains('d-ind')); document.body.classList.toggle('d-osc', pb.contains('d-osc')); } catch (_) {}
   const ocupado = () => { const o = $('scan').style.display === 'flex' || [...document.querySelectorAll('.sheet-bg')].some(x => x.style.display === 'flex'); try { parent.JATPersonal && parent.JATPersonal.ocupado && parent.JATPersonal.ocupado(o); } catch (_) {} };
   new MutationObserver(ocupado).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['style'] });
   const info = document.getElementById('info');

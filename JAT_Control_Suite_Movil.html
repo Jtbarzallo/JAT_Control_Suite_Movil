@@ -757,6 +757,7 @@
                         <button class="cam-mini-btn" id="camMasBtn" aria-haspopup="true" aria-expanded="false">⋮ Más</button>
                         <div class="cam-dropdown" id="camDropdown" style="display:none;">
                             <button class="cam-dropdown-item" id="camModoBtn">🎯 Modo: Gatillo</button>
+                            <button class="cam-dropdown-item" id="camTemaBtn" onclick="window.JATDiseno && JATDiseno.industrial() ? JATDiseno.cambiarTema() : JATDiseno.cambiarDiseno()">🌗 Pantalla clara / oscura</button>
                             <button class="cam-dropdown-item" id="camFullscreenBtn">⛶ Pantalla completa</button>
                             <button class="cam-dropdown-item" id="camLeerTextoBtn">🔤 Leer texto</button>
                             <button class="cam-dropdown-item" id="camAutoOcrBtn">🔤 Auto-leer: OFF</button>
@@ -849,6 +850,7 @@
                 <button type="button" class="vl-chip" data-vl="hecho">✅ Revisados <b id="vlNHecho">0</b></button>
                 <button type="button" class="vl-chip" data-vl="todos">Todos <b id="vlNTodos">0</b></button>
             </div>
+            <div id="vlCab"><span>Producto / código</span><span>Cont.</span><span>Estado</span></div>
             <div class="vl-lista" id="vlLista"></div>
             </div><!-- /.verif-bottom-pane -->
             <button type="button" class="jat-fab jat-fab-mas" id="jatMasAcciones" aria-label="Más acciones">＋</button>
@@ -3056,7 +3058,7 @@
             cont.innerHTML = '<div class="vl-vacio">' + (vlFiltro === 'pend' ? (todos.length ? '🎉 No queda nada pendiente' : 'Abre un egreso para ver sus productos') : vlFiltro === 'hecho' ? 'Todavía no has revisado ningún producto completo' : 'Sin productos') + '</div>';
             return;
         }
-        cont.innerHTML = lista.map(x => `<button type="button" class="vl-card ${x.ok ? 'hecho' : x.v > 0 ? 'parcial' : ''} ${x.i === currentSelectedIndex ? 'sel' : ''}" data-i="${x.i}"><span class="tx"><span class="nm">${htmlSeguro(x.p.productName || '')}</span><div class="cd">${htmlSeguro(x.p.barcode || '')}${x.v > 0 && horaMarcado(x.p) ? ` <span class="hr">🕒 ${horaMarcado(x.p)}</span>` : ''}</div></span><span class="qt">${formatearQty(x.v)}/${formatearQty(x.e)}</span></button>`).join('');
+        cont.innerHTML = lista.map(x => `<button type="button" class="vl-card ${x.ok ? 'hecho' : x.v > 0 ? 'parcial' : ''} ${x.i === currentSelectedIndex ? 'sel' : ''}" data-i="${x.i}"><span class="tx"><span class="nm">${htmlSeguro(x.p.productName || '')}</span><div class="cd">${htmlSeguro(x.p.barcode || '')}${x.v > 0 && horaMarcado(x.p) ? ` <span class="hr">🕒 ${horaMarcado(x.p)}</span>` : ''}</div></span><span class="qt">${formatearQty(x.v)}/${formatearQty(x.e)}</span><span class="bd">${x.ok ? 'VERIFICADO' : x.v > 0 ? 'PARCIAL' : 'PENDIENTE'}</span></button>`).join('');
     }
     function renderListaVerifProgramado() {
         if (vlPendiente) return;
@@ -5249,6 +5251,8 @@ window.JATShell = (function () {
         { ico: '📝', txt: 'Cartas de constancia', run: () => accion('constancias') },
         { ico: '📋', txt: 'Historial / avances', run: () => accion('historial') },
         { ico: '🗂️', txt: 'Carpeta de trabajo', sub: 'OneDrive / respaldo', run: () => accion('carpetaTrabajo') },
+        (window.JATDiseno && JATDiseno.industrial()) ? { ico: '🌗', txt: 'Pantalla: ' + (JATDiseno.oscuro() ? 'Oscura' : 'Clara'), sub: 'Toca para cambiar entre clara y oscura', run: () => { JATDiseno.cambiarTema(); if (JATShell.actual() === 'menu') vistaMenu(); } } : null,
+        { ico: '🎨', txt: 'Diseño: ' + (window.JATDiseno && JATDiseno.industrial() ? 'Industrial' : 'Clásico'), sub: 'Toca para cambiar (la app se recarga)', run: () => JATDiseno.cambiarDiseno() },
         { ico: '⛶', txt: 'Pantalla completa: ' + (JAT_FS.quiere() ? 'SÍ' : 'NO'), sub: 'Toca para cambiar', run: () => { JAT_FS.set(!JAT_FS.quiere()); if (JATShell.actual() === 'menu') vistaMenu(); } },
         JAT_FS.enApp() ? null : { ico: '📲', txt: 'Instalar como app', sub: 'Se abre siempre en pantalla completa', run: instalar }
     ];
@@ -5311,6 +5315,263 @@ window.JATShell = (function () {
     // Cuando el programa vuelve al inicio por su cuenta (por ejemplo, el botón 🏠 del verificador), se marca Revisión.
     const _irInicio = irInicio;
     irInicio = function () { JATShell.marcar('revision'); return _irInicio.apply(this, arguments); };
+})();
+</script>
+
+<!-- ============ DISEÑO INDUSTRIAL (tema claro / oscuro). Solo estilos: la lógica no cambia. ============ -->
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style id="jat-industrial">
+/* ---------- 1. Variables del sistema de diseño ---------- */
+body.d-ind {
+  --bg-main: #f8fafc; --bg-surface: #ffffff; --bg-header: #0f172a; --bg-soft: #f1f5f9;
+  --text-main: #0f172a; --text-muted: #64748b;
+  --accent-blue: #2563eb; --status-success: #10b981; --status-warning: #f59e0b;
+  --border-color: #e2e8f0;
+  --ok-bg: #dcfce7; --ok-tx: #15803d; --pen-bg: #fef3c7; --pen-tx: #b45309; --par-bg: #dbeafe; --par-tx: #1d4ed8;
+  --sel-bg: #eff6ff;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Roboto Mono', monospace;
+  background-color: var(--bg-main); font-family: var(--font-sans); color: var(--text-main);
+}
+body.d-ind.d-osc {
+  --bg-main: #0b1220; --bg-surface: #111a2c; --bg-header: #060b16; --bg-soft: #17223a;
+  --text-main: #e5e9f0; --text-muted: #94a3b8; --border-color: #243049;
+  --ok-bg: #063b2b; --ok-tx: #6ee7b7; --pen-bg: #45300a; --pen-tx: #fcd34d; --par-bg: #172f5c; --par-tx: #93c5fd;
+  --sel-bg: #16284a; color-scheme: dark;
+}
+body.d-ind button, body.d-ind input, body.d-ind select, body.d-ind textarea { font-family: inherit; }
+body.d-ind .font-mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+#indStatus, .ind-brand, .ind-kpi, #vlCab { display: none; }
+.vl-card .bd { display: none; }
+
+/* ---------- 2. Cabecera ejecutiva y barra de estado (celular) ---------- */
+@media (max-width: 760px) {
+  body.d-ind.js-shell { padding-top: calc(88px + env(safe-area-inset-top)); background: var(--bg-main); }
+  body.d-ind.js-shell .js-top { background: var(--bg-header); border-bottom: none; }
+  body.d-ind .js-top h1 { display: none; }
+  body.d-ind .ind-brand { display: flex; flex-direction: column; flex: 1; min-width: 0; margin-left: 10px; color: #fff; line-height: 1.18; }
+  body.d-ind .ind-brand b { font-size: 1.02rem; font-weight: 700; letter-spacing: -.2px; }
+  body.d-ind .ind-brand small { font-size: .68rem; color: #94a3b8; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  body.d-ind .js-logo { border: 1px solid rgba(255,255,255,.18); border-radius: 9px; }
+  body.d-ind .js-ib { color: #e2e8f0; }
+  body.d-ind .js-ib:active { background: rgba(255,255,255,.14); }
+  body.d-ind #indStatus { display: flex; position: fixed; left: 0; right: 0; top: calc(56px + env(safe-area-inset-top)); height: 32px; z-index: 4300; align-items: center; gap: 6px; padding: 0 8px; background: var(--bg-header); border-top: 1px solid rgba(148,163,184,.18); overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+  body.d-ind #indStatus::-webkit-scrollbar { display: none; }
+  body.d-ind.js-shell .js-capa.on { top: calc(88px + env(safe-area-inset-top)); background: var(--bg-main); }
+  body.d-ind.js-shell.js-oculto #indStatus { display: none; }
+  body.d-ind.js-shell .js-tabs { background: var(--bg-surface); border-top: 1px solid var(--border-color); box-shadow: none; }
+  body.d-ind .js-tabs button { color: var(--text-muted); }
+  body.d-ind .js-tabs button.on { color: var(--accent-blue); }
+  body.d-ind.d-osc .js-tabs button.on { color: #60a5fa; }
+  body.d-ind.js-shell .js-fab { background: var(--accent-blue); box-shadow: 0 6px 16px rgba(37,99,235,.4); }
+}
+.ind-chip { flex: none; display: inline-flex; align-items: center; gap: 5px; font-size: .68rem; font-weight: 600; color: #cbd5e1; background: rgba(148,163,184,.14); border: 1px solid rgba(148,163,184,.16); border-radius: 6px; padding: 3px 8px; }
+.ind-chip .font-mono { font-family: 'JetBrains Mono', 'Roboto Mono', monospace; max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+.ind-dot { width: 7px; height: 7px; border-radius: 50%; background: #64748b; flex: none; }
+.ind-dot.ok { background: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,.2); }
+button.ind-chip { cursor: pointer; margin-left: auto; color: #fff; }
+
+/* ---------- 3. Panel KPI ---------- */
+body.d-ind .ind-kpi { display: grid; grid-template-columns: 1.25fr 1fr 1fr 1fr; gap: 6px; padding: 8px 10px; background: var(--bg-main); flex: none; }
+.ind-kpi .k { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 10px; padding: 6px 8px 7px; min-width: 0; }
+.ind-kpi .k label { display: block; font-size: .56rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ind-kpi .k .n { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 1.2rem; font-weight: 700; line-height: 1.25; color: var(--text-main); }
+.ind-kpi .k .n.v { color: var(--status-success); }
+.ind-kpi .k .n.p { color: var(--status-warning); }
+.ind-kpi .progress-bar { height: 5px; border-radius: 3px; background: var(--bg-soft); overflow: hidden; margin-top: 2px; }
+.ind-kpi .progress-bar i { display: block; height: 100%; width: 0; background: var(--status-success); border-radius: 3px; transition: width .25s; }
+.ind-kpi .cam { display: flex; align-items: center; gap: 6px; font-size: .78rem; font-weight: 700; line-height: 1.9; color: var(--text-muted); }
+.ind-kpi .cam.on { color: var(--status-success); }
+.ini-wrap > .ind-kpi { padding: 0; }
+
+/* ---------- 4. Inicio, menú y hojas ---------- */
+body.d-ind .content-area { background: var(--bg-main); }
+body.d-ind .ini-btn { border-radius: 12px; box-shadow: none; }
+body.d-ind .ini-cargar { background: var(--accent-blue); }
+body.d-ind .ini-ingresar { background: #059669; }
+body.d-ind .ini-abrir { background: #334155; }
+body.d-ind .ini-continuar { background: var(--bg-header); border: 1px solid #1e293b; }
+body.d-ind .ini-card { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 12px; color: var(--text-main); }
+body.d-ind .ini-eg { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 10px; color: var(--text-main); }
+body.d-ind .ini-card input, body.d-ind .js-vista input { background: var(--bg-surface); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 10px; }
+body.d-ind .js-op { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 10px; color: var(--text-main); }
+body.d-ind .js-op .ic { background: var(--bg-soft); box-shadow: none; border-radius: 8px; }
+body.d-ind .js-op small { color: var(--text-muted); }
+body.d-ind .js-hoja .panel { background: var(--bg-surface); color: var(--text-main); }
+body.d-ind.d-osc .ini-wrap, body.d-ind.d-osc .ini-wrap h2, body.d-ind.d-osc .ini-wrap h3, body.d-ind.d-osc .js-vista { color: var(--text-main); }
+body.d-ind.d-osc .ini-wrap p, body.d-ind.d-osc .ini-wrap small { color: var(--text-muted); }
+body.d-ind.d-osc .ini-btn small { color: rgba(255,255,255,.8); }
+
+/* ---------- 5. Verificador: cabecera, visor y entrada manual ---------- */
+body.d-ind #verificadorModal .modal-content { background: var(--bg-main); }
+body.d-ind #verificadorModal .verificador-header { background: var(--bg-header); border-bottom: none; padding: 8px 12px; }
+body.d-ind #verificadorNombreEgreso { color: #e2e8f0 !important; font-family: var(--font-mono); font-size: .74rem !important; }
+body.d-ind #verificadorModal .badge-status { background: rgba(16,185,129,.16); color: #6ee7b7; border: 1px solid rgba(16,185,129,.35); border-radius: 6px; }
+body.d-ind .vf-home-btn { background: rgba(148,163,184,.16); border: 1px solid rgba(148,163,184,.28); border-radius: 8px; }
+body.d-ind #verificadorModal .cam-panel { background: #020617; border-bottom: 2px solid #1e293b; }
+body.d-ind #verificadorModal .cam-reticle .box { border: 2px solid #10b981; border-radius: 10px; animation: indFoco 1.4s ease-in-out infinite; }
+@keyframes indFoco { 50% { border-color: rgba(16,185,129,.22); } }
+body.d-ind #verificadorModal .cam-panel.disparando .cam-reticle .box { animation: none; border-color: #ef4444; }
+body.d-ind .cam-insecure-warning { background: #fffbeb; color: #92400e; border-bottom: 1px solid #fde68a; font-weight: 500 !important; font-size: .66rem; line-height: 1.35; padding: 5px 12px; text-align: left; max-height: 2.9em; overflow: hidden; }
+body.d-ind.d-osc .cam-insecure-warning { background: #2b2108; color: #fcd34d; border-bottom-color: #4a3a10; }
+body.d-ind #verificadorModal .verif-bottom-pane { background: var(--bg-main); }
+body.d-ind #verificadorModal .scanner-section { background: var(--bg-surface); border-bottom: 1px solid var(--border-color); box-shadow: none; padding: 8px 10px; }
+body.d-ind #verificadorModal .scanner-input { font-family: var(--font-mono); border: 2px solid var(--accent-blue); border-radius: 10px; background: var(--bg-surface); color: var(--text-main); box-shadow: 0 0 0 3px rgba(37,99,235,.14); }
+body.d-ind #verificadorModal .progress-bar-wrap { display: none; }
+body.d-ind #verificadorModal .stats-row { background: var(--bg-main); border-bottom: none; padding: 0 10px 6px; gap: 8px; }
+body.d-ind #verificadorModal .stats-row .stat-item { display: none; }
+body.d-ind #verificadorModal .voice-pill { background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--text-muted); border-radius: 8px; }
+body.d-ind #verificadorModal .btn-undo { border-radius: 8px; }
+body.d-ind .quick-count-row { background: var(--bg-main); }
+body.d-ind .qc-btn { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-main); font-family: var(--font-mono); }
+body.d-ind .qc-btn.qc-minus { color: #dc2626; }
+body.d-ind .qc-btn.qc-custom { color: var(--accent-blue); font-family: var(--font-sans); }
+body.d-ind.d-osc .qc-btn.qc-custom { color: #93c5fd; }
+body.d-ind .selected-panel, body.d-ind .last-scan-panel { border-radius: 10px; }
+body.d-ind.d-osc .selected-panel, body.d-ind.d-osc .last-scan-panel { background: var(--bg-surface); border-color: var(--border-color); color: var(--text-main); }
+body.d-ind.d-osc .selected-panel *, body.d-ind.d-osc .last-scan-panel * { color: var(--text-main); }
+body.d-ind.d-osc .work-panels, body.d-ind.d-osc .search-status { background: var(--bg-main); color: var(--text-main); }
+body.d-ind #verificadorModal .work-panels { background: var(--bg-main); }
+body.d-ind.d-osc #verificadorModal .historial-acciones, body.d-ind.d-osc #verificadorModal .completado-banner { background: var(--bg-surface); color: var(--text-main); }
+/* Inicio en oscuro: textos y chips legibles */
+body.d-ind.d-osc .ini-wrap :not(.ini-btn):not(.ini-btn *):not(.chip):not(.ind-kpi *) { color: var(--text-main); }
+body.d-ind.d-osc .ini-wrap .ini-card small, body.d-ind.d-osc .ini-wrap .ini-eg small, body.d-ind.d-osc .ini-wrap > div > p { color: var(--text-muted); }
+body.d-ind .ini-filtro { background: var(--bg-surface) !important; border: 1px solid var(--border-color) !important; color: var(--text-muted) !important; border-radius: 999px; }
+body.d-ind .ini-filtro.on, body.d-ind .ini-filtro.active, body.d-ind .ini-filtro.activo { background: var(--accent-blue) !important; border-color: var(--accent-blue) !important; color: #fff !important; }
+body.d-ind .ini-wrap .chip { background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--text-muted); border-radius: 999px; }
+body.d-ind .ini-wrap .chip.active { background: var(--accent-blue); border-color: var(--accent-blue); color: #fff; }
+body.d-ind.d-osc .ini-wrap .ini-eg * { color: var(--text-main); }
+body.d-ind .jat-fab-mas { background: var(--bg-header); border: 1px solid #334155; }
+
+/* ---------- 6. Chips de filtro y tabla de alta densidad ---------- */
+body.d-ind .vl-filtros { background: var(--bg-main); border: none; padding: 8px 10px; gap: 8px; }
+body.d-ind .vl-chip { flex: 0 0 auto; padding: 7px 12px; border-radius: 999px; background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--text-muted); font-size: .76rem; box-shadow: 0 1px 2px rgba(15,23,42,.08); }
+body.d-ind .vl-chip.on { background: var(--accent-blue); border-color: var(--accent-blue); color: #fff; }
+body.d-ind .vl-chip b { font-family: var(--font-mono); margin-left: 2px; }
+body.d-ind #vlCab { display: grid; grid-template-columns: 1fr 58px 96px; gap: 6px; padding: 7px 12px; background: var(--bg-soft); border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); font-size: .6rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--text-muted); }
+body.d-ind #vlCab span:nth-child(2) { text-align: center; }
+body.d-ind #vlCab span:nth-child(3) { text-align: right; }
+body.d-ind .vl-lista { padding: 0; gap: 0; background: var(--bg-surface); }
+body.d-ind .vl-card { display: grid; grid-template-columns: 1fr 58px 96px; gap: 6px; align-items: center; border: none; border-bottom: 1px solid var(--border-color); border-left: 3px solid var(--status-warning); border-radius: 0; padding: 8px 12px 8px 9px; background: var(--bg-surface); color: var(--text-main); }
+body.d-ind .vl-card.parcial { border-left-color: var(--accent-blue); }
+body.d-ind .vl-card.hecho { border-left-color: var(--status-success); background: var(--bg-surface); }
+body.d-ind .vl-card.sel { box-shadow: none; background: var(--sel-bg); }
+body.d-ind .vl-card .nm { font-size: .82rem; font-weight: 700; color: var(--text-main); }
+body.d-ind .vl-card .cd { font-family: var(--font-mono); font-size: .68rem; color: var(--text-muted); }
+body.d-ind .vl-card .hr { font-family: var(--font-mono); color: var(--status-success); }
+body.d-ind .vl-card .qt { text-align: center; font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: .9rem; color: var(--text-main); }
+body.d-ind .vl-card .bd { display: inline-block; justify-self: end; padding: 3px 8px; border-radius: 999px; font-size: .58rem; font-weight: 700; letter-spacing: .04em; background: var(--pen-bg); color: var(--pen-tx); white-space: nowrap; }
+body.d-ind .vl-card.parcial .bd { background: var(--par-bg); color: var(--par-tx); }
+body.d-ind .vl-card.hecho .bd { background: var(--ok-bg); color: var(--ok-tx); }
+body.d-ind .vl-vacio { color: var(--text-muted); background: var(--bg-surface); }
+/* tabla completa */
+body.d-ind .data-table th { background: #f8fafc; font-size: .62rem; letter-spacing: .07em; color: #64748b; }
+body.d-ind .data-table td:first-child, body.d-ind .data-table td:nth-child(2) { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+body.d-ind .data-table td:nth-child(4) { font-weight: 700; }
+body.d-ind .status-badge.status-verificado { background: #dcfce7; color: #15803d; }
+body.d-ind .status-badge.status-pendiente { background: #fef3c7; color: #b45309; }
+
+/* ---------- 7. Vista dividida en tablet / pantalla ancha ---------- */
+@media (min-width: 900px) {
+  body.d-ind #verificadorModal .verificador-fullscreen-content { display: grid !important; grid-template-columns: minmax(320px, 42%) 1fr; grid-template-rows: auto auto auto minmax(0, 1fr); }
+  body.d-ind #verificadorModal .verificador-header, body.d-ind #verificadorModal .cam-insecure-warning, body.d-ind #verificadorModal .toolbar-topbar { grid-column: 1 / -1; }
+  body.d-ind #verificadorModal .cam-panel { height: auto !important; max-height: none !important; min-height: 0; border-bottom: none; border-right: 2px solid #1e293b; }
+  body.d-ind #verificadorModal .verif-bottom-pane { min-height: 0; }
+  body.d-ind .top-bar { background: var(--bg-header); }
+}
+</style>
+
+<script>
+/* Diseño industrial: cabecera con estado, panel KPI y tema claro/oscuro. No toca la lógica de escaneo ni de guardado. */
+(function () {
+  const leer = (k, d) => { try { return localStorage.getItem(k) || d; } catch (_) { return d; } };
+  const poner = (k, v) => { try { localStorage.setItem(k, v); } catch (_) {} };
+  const industrial = leer('jat_diseno', 'industrial') !== 'clasico';
+  let oscuro = leer('jat_tema', 'claro') === 'oscuro';
+  const marco = () => document.getElementById('jsBodegaFrame')?.contentDocument?.body;
+  function aplicarTema() {
+    document.body.classList.toggle('d-osc', industrial && oscuro);
+    const b = marco(); if (b) b.classList.toggle('d-osc', industrial && oscuro);
+    const t = document.getElementById('indTema'); if (t) t.textContent = oscuro ? '☀ Claro' : '☾ Oscuro';
+    const m = document.querySelector('meta[name="theme-color"]'); if (m && industrial) m.setAttribute('content', oscuro ? '#060b16' : '#0f172a');
+  }
+  window.JATDiseno = {
+    industrial: () => industrial, oscuro: () => oscuro,
+    cambiarDiseno() { poner('jat_diseno', industrial ? 'clasico' : 'industrial'); location.reload(); },
+    cambiarTema() { oscuro = !oscuro; poner('jat_tema', oscuro ? 'oscuro' : 'claro'); aplicarTema(); }
+  };
+  if (!industrial) return;
+  document.body.classList.add('d-ind');
+  const $ = id => document.getElementById(id);
+
+  // --- Cabecera: marca + sección ---
+  const h1 = $('jsTitulo');
+  if (h1) {
+    const marca = document.createElement('div'); marca.className = 'ind-brand';
+    marca.innerHTML = '<b>Control Suite</b><small>v2.0 Personal · <span id="indSeccion">Inicio</span></small>';
+    h1.after(marca);
+    const sec = () => { $('indSeccion').textContent = /^JAT/.test(h1.textContent) ? 'Inicio' : h1.textContent; };
+    new MutationObserver(sec).observe(h1, { childList: true, characterData: true, subtree: true }); sec();
+  }
+  // --- Barra de estado ---
+  const st = document.createElement('div'); st.id = 'indStatus';
+  st.innerHTML = '<span class="ind-chip"><i class="ind-dot" id="indDotCon"></i><span id="indCon">Local</span></span>'
+    + '<span class="ind-chip">📁 <span id="indEg" class="font-mono">Sin egreso</span></span>'
+    + '<span class="ind-chip"><i class="ind-dot" id="indDotSave"></i><span id="indSave">Auto-guardado</span></span>'
+    + '<button type="button" class="ind-chip" id="indTema"></button>';
+  ($('jsTop') || document.body).after(st);
+  $('indTema').addEventListener('click', () => JATDiseno.cambiarTema());
+
+  // --- Panel KPI (uno en el verificador y otro en Inicio) ---
+  const kpi = () => { const d = document.createElement('div'); d.className = 'ind-kpi';
+    d.innerHTML = '<div class="k"><label>Progreso</label><div class="n k-pct">0%</div><div class="progress-bar"><i></i></div></div>'
+      + '<div class="k"><label>Verificadas</label><div class="n v k-ver">0</div></div>'
+      + '<div class="k"><label>Pendientes</label><div class="n p k-pen">0</div></div>'
+      + '<div class="k"><label>Escáner</label><div class="cam k-cam"><i class="ind-dot"></i><span>Inactivo</span></div></div>';
+    return d; };
+  const panel = $('verifBottomPane'); if (panel) panel.prepend(kpi());
+
+  function pintar() {
+    let hay = false, t = 0, v = 0;
+    try { hay = !!(currentEgreso && currentProductos.length); if (hay) { t = totalEsperado(); v = totalVerificado(); } } catch (_) {}
+    const pct = t > 0 ? Math.floor(v / t * 100) : 0, cam = !!$('camVideo')?.srcObject;
+    document.querySelectorAll('.ind-kpi').forEach(k => {
+      k.querySelector('.k-pct').textContent = pct + '%';
+      k.querySelector('.progress-bar i').style.width = pct + '%';
+      k.querySelector('.k-ver').textContent = formatearQty(v);
+      k.querySelector('.k-pen').textContent = formatearQty(Math.max(0, t - v));
+      const c = k.querySelector('.k-cam'); c.classList.toggle('on', cam); c.querySelector('i').classList.toggle('ok', cam); c.querySelector('span').textContent = cam ? 'Activo' : 'Inactivo';
+    });
+    // estado de carpeta, egreso y guardado (se leen de la línea de estado que el programa ya mantiene)
+    const car = ($('hatFolderStatus')?.textContent || '').replace(/^Carpeta:\s*/i, '').trim(), sinCar = !car || /no seleccionada|ningun/i.test(car);
+    $('indDotCon').classList.toggle('ok', !sinCar);
+    $('indCon').textContent = sinCar ? 'Local' : (/onedrive/i.test(car) ? 'OneDrive sincronizado' : 'Carpeta: ' + car);
+    let eg = ''; try { eg = hay ? (currentEgreso.secuencial || currentEgreso.nombre || '') : ''; } catch (_) {}
+    $('indEg').textContent = eg || 'Sin egreso';
+    let ult = ''; try { ult = persistLastOk; } catch (_) {}
+    $('indDotSave').classList.toggle('ok', !!ult);
+    $('indSave').textContent = ult ? 'Guardado ' + ult : 'Auto-guardado activo';
+  }
+  // Inicio: el panel aparece cuando hay un egreso abierto
+  const _ini = irInicio;
+  irInicio = function () {
+    const r = _ini.apply(this, arguments);
+    try { const w = document.querySelector('#mainContent .ini-wrap'); if (w && currentEgreso && currentProductos.length && !w.querySelector('.ind-kpi')) w.prepend(kpi()); } catch (_) {}
+    pintar(); return r;
+  };
+  const _st = actualizarStatsVerificador;
+  actualizarStatsVerificador = function () { const r = _st.apply(this, arguments); pintar(); return r; };
+  setInterval(pintar, 1000);
+
+  // --- Chips de filtro en el orden del diseño: Todos · Pendientes · Verificados ---
+  const fil = $('vlFiltros');
+  if (fil) {
+    const c = n => fil.querySelector('[data-vl="' + n + '"]');
+    fil.append(c('todos'), c('pend'), c('hecho'));
+    c('hecho').childNodes[0].nodeValue = '✅ Verificados ';
+  }
+  aplicarTema(); pintar();
+  try { if (document.querySelector('#mainContent .ini-wrap')) irInicio(); } catch (_) {}
 })();
 </script>
 </body>
