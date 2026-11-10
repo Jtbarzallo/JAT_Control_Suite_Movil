@@ -43,6 +43,13 @@ arreglos ya hechos.
 
 - [ ] El kardex se carga desde el Excel de inventario tal como viene (encabezados en la fila 4).
 - [ ] Lista agrupada por categoría del kardex o por ubicación.
+- [ ] **Sacar: categorías grandes de bodega** (Cables, Guitarras y bajos, Cuerdas, Parlantes y
+      amplificadores, Micrófonos, Redes y WiFi, Laptops…): cada categoría fina del kardex se junta en
+      su familia (tabla `FAMILIAS` + correcciones `FAM_FIJA`); si no hay categoría, se adivina por el
+      nombre. "Por categoría" es la vista por defecto y se recuerda (`jat_sacar_agrupar`).
+- [ ] **Sacar: fila de chips por categoría** con pendientes/total para ver solo esa categoría.
+- [ ] **Sacar: cambiar la categoría de un producto** en su ficha (o crear una nueva); se recuerda
+      por código (`jat_familias`) y viaja en el archivo de ubicaciones.
 - [ ] Las ubicaciones guardadas no se borran al reemplazar el kardex.
 - [ ] Las ubicaciones se guardan en un archivo para subir a OneDrive.
 
@@ -76,3 +83,6 @@ arreglos ya hechos.
   Después se agregó la hora de marcado en las tarjetas de Revisar y de Sacar (faltaba).
   Rediseño industrial con tema claro y oscuro, también dentro de Sacar.
   Búsqueda escrita con lista para elegir, sin trabarse y sin que el teclado tape los resultados.
+
+- 2026-11-10: Sacar clasificado por categorías grandes de bodega (cables, guitarras, cuerdas…),
+  con chips para filtrar y opción de corregir la categoría de cada producto.

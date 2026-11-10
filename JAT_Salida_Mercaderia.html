@@ -28,6 +28,7 @@ input[type=text],input[type=number],select{width:100%;padding:13px;border:1.5px 
 .chip{flex:0 0 auto;padding:9px 14px;border-radius:20px;border:1.5px solid #cbd5e1;background:#eef2f7;font-weight:700;font-size:.85rem;color:#1a3a5c}
 .chip.on{background:#1a3a5c;color:#fff;border-color:#1a3a5c}
 .card .hr{color:#0f766e;margin-left:8px;white-space:nowrap}
+.seg.fam{margin-top:6px;padding-bottom:2px}.seg.fam .chip{padding:7px 12px;font-size:.8rem;white-space:nowrap}.seg.fam .chip.done{opacity:.55}.seg.fam:empty{display:none}
 .seg.fil .chip{flex:1 1 0;text-align:center;padding:9px 6px;white-space:nowrap}
 .gh{background:#1a3a5c;color:#fff;font-weight:800;padding:10px 12px;margin-top:10px;font-size:.95rem}
 .card{background:#fff;margin:6px 10px;border-radius:14px;padding:12px;border-left:6px solid #f59e0b;box-shadow:0 1px 3px rgba(0,0,0,.08)}
@@ -96,9 +97,10 @@ body.d-ind.d-osc .scan .bot{background:var(--sf)}
   <button class="btn pri" id="bEscanear" style="width:100%;margin-bottom:8px;font-size:1.05rem">📷 Escanear código de barras</button>
   <input type="text" id="q" placeholder="🔎 Buscar por nombre o código…" autocomplete="off">
   <div class="seg">
-    <span class="chip on" data-g="ubi">📍 Por ubicación</span>
     <span class="chip" data-g="cat">📦 Por categoría</span>
+    <span class="chip" data-g="ubi">📍 Por ubicación</span>
   </div>
+  <div class="seg fam" id="famChips"></div>
   <div class="seg fil">
     <span class="chip on" data-f="pend">⏳ Pendientes <b id="nPend"></b></span>
     <span class="chip" data-f="hecho">✅ Sacados <b id="nHecho"></b></span>
@@ -122,6 +124,8 @@ body.d-ind.d-osc .scan .bot{background:var(--sf)}
   <label>Cantidad sacada <span id="iPed"></span></label>
   <div class="row"><button class="btn ghost" id="iMenos">−</button><input type="number" id="iQty" inputmode="numeric" min="0" style="flex:2;text-align:center;font-size:1.3rem;font-weight:800"><button class="btn ghost" id="iMas">+</button></div>
   <button class="btn ghost" style="width:100%;margin-top:8px" id="iTodo">Completar todo</button>
+  <label>📦 Categoría</label>
+  <select id="iFam"></select>
   <label>📍 Zona (pasillo / cuarto)</label>
   <select id="iZona"></select>
   <label>Detalle (estante, nivel, referencia)</label>
@@ -216,7 +220,7 @@ let ubic = LS.get('jat_ubicaciones', {});                       // codigo -> {z,
 let zonas = LS.get('jat_zonas', ['Pasillo 1', 'Pasillo 2', 'Pasillo 3', 'Cuarto 1']);
 let egreso = null, productos = [], sacado = {}, horas = {}, egKey = '';
 const horaTxt = t => t ? new Date(t).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
-let agrupar = 'ubi', filtro = 'pend', idxItem = -1, KC = null;
+let agrupar = LS.get('jat_sacar_agrupar', 'cat'), filtro = 'pend', famFiltro = 'todas', idxItem = -1, KC = null;
 
 function toast(t) { const e = $('toast'); e.textContent = t; e.style.display = 'block'; clearTimeout(toast.h); toast.h = setTimeout(() => e.style.display = 'none', 2600); }
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -347,8 +351,80 @@ function categoria(p) {
     let i = KC.m[b]; if (i === undefined) i = KC.m[b.replace(/^0+/, '')]; if (i === undefined) i = KC.m[b.padStart(12, '0')];
     if (i !== undefined) return KC.c[i];
   }
-  return 'Otros';
+  const ex = (typeof extra !== 'undefined') && extra[String(p.barcode || '').trim()];
+  return ex && ex.cat ? ex.cat : 'Otros';
 }
+// ===== CATEGORÍAS GRANDES PARA SACAR (familias de bodega) =====
+// Se revisan en orden; la primera que coincide con la categoría del kardex (o, si no hay, con el nombre) gana.
+const FAMILIAS = [
+  ['Cuerdas', ['cuerdas de instrumento', 'cuerda', 'encordado', 'string']],
+  ['Estuches y mochilas', ['estuche', 'mochila', 'maletin', 'lonchera', 'estante para cd']],
+  ['Cables', ['cable', 'extension', 'cables y conductores', 'conectores para red', 'plug', 'hdmi']],
+  ['Guitarras y bajos', ['guitarra', 'requinto', 'charango', 'ukulele', 'ukelele', 'bajo electrico', 'bajo acustico', 'bajo']],
+  ['Violines y cuerda frotada', ['violin', 'viola', 'cello', 'contrabajo', 'mentonera', 'arco de']],
+  ['Instrumentos de viento', ['instrumentos de viento', 'acordeon', 'clarinete', 'flauta', 'saxo', 'trombon', 'trompeta', 'harmonica', 'rondador', 'melodica', 'quena']],
+  ['Percusión', ['bateria de percusion', 'instrumentos de percusion', 'bombo', 'bongo', 'cencerro', 'sapito', 'pandereta', 'lira', 'guiro', 'maracas', 'tambor', 'timbal', 'conga', 'platillo', 'redoblante', 'castanuelas', 'clave', 'xilofono', 'cajon de percucion', 'cajon', 'cabasa', 'palillos', 'parches', 'mazo', 'canas']],
+  ['Teclados y pianos', ['sintetizador', 'piano', 'controlador midi', 'teclado musical', 'organeta']],
+  ['Accesorios de instrumentos', ['capodastro', 'vitelas', 'clavijero', 'pedestal y mesa de instrumento', 'correas para intrumentos', 'sejillas', 'pedales y pedalera', 'afinador', 'atril', 'pulidor', 'asientos de instrumento', 'metronomo', 'cancioneros', 'complementos musicales', 'boton de guitarra', 'entraste', 'implementos', 'pedal de efecto', 'instrumentos miniatura']],
+  ['Micrófonos y pedestales', ['microfono', 'pedestal de microfono', 'pedestal de parlante']],
+  ['Audífonos', ['audifono', 'manos libres', 'earbuds', 'in ear', 'headset']],
+  ['Parlantes y amplificadores', ['parlante', 'amplificador', 'potencia', 'megafono', 'corneta', 'sound bar', 'crossover', 'ecualizador', 'compresor', 'mezcladora', 'consolas dj', 'controladores', 'interfases', 'karaoke', 'equipo de sonido', 'mini componente', 'radio', 'tocadiscos', 'vitrola', 'reproductor', 'mp3', 'discman', 'grabador', 'transmisor', 'bluetooth para equipos', 'convertidores de audio', 'audio', 'luces y efectos', 'maquina de humo', 'maquina de burbujas', 'maquina de nieve', 'mueble para dj', 'cine en casa']],
+  ['Televisores y video', ['televisor', 'monitor de video', 'dvd', 'blueray', 'decodificador', 'tv box', 'tv stick', 'roku', 'chromecast', 'fire tv', 'apple tv', 'google tv', 'mirascreen', 'proyector', 'soportes de television', 'antena', 'control universal', 'control smart', 'control inteligente', 'convertidores de video', 'repartidor de video', 'capturadora']],
+  ['Foto, cámaras y seguridad', ['camara', 'filmadora', 'lente para camara', 'tripode', 'monopod', 'gimbal', 'foto', 'flash', 'filtros para camara', 'aro de luz', 'dvr', 'nvr', 'alarma', 'seguridad', 'editor de video', 'lamparas y focos']],
+  ['Redes y WiFi', ['router', 'wi-fi', 'wifi', 'mesh', 'access point', 'ranger extender', 'extender', 'switch', 'tarjeta de red', 'adaptadores de red', 'ponchadora', 'modem']],
+  ['Memorias y discos', ['memoria', 'disco', 'microsd', 'pendrive', 'compact flash', 'enclousure', 'lector de memorias', 'cd-dvd writer', 'dvd y cd', 'usb flash']],
+  ['Laptops y computadoras', ['laptop', 'desktop', 'pc de escritorio', 'todo en uno', 'case', 'mainboard', 'procesador', 'tarjetas de video', 'tarjetas de sonido', 'pasta termica', 'ventilador para pc', 'lector de tarjetas interno', 'tablet', 'digitalizadora', 'lapiz optico', 'core i', 'ryzen', 'notebook', 'chromebook']],
+  ['Accesorios de computación', ['raton', 'mouse', 'teclado', 'webcam', 'joystick', 'controles y', 'hub', 'lector de barras', 'scanner', 'monitor', 'parlante para pc', 'adaptadores bluetooth', 'pad mouse', 'silla gamer', 'muebles de computadora', 'licencias', 'impresora', 'tinta', 'toner', 'cartucho', 'cintas', 'papel fotografico', 'suministros de impresora', 'micas', 'presentadores laser', 'pantallas', 'soporte de proyector', 'accesorios para proyector', 'adaptadores para tablet']],
+  ['Celulares y teléfonos', ['celular', 'telefon', 'chip', 'telefax', 'cajetin', 'intercomunicador', 'gps', 'recarga']],
+  ['Cargadores, pilas y energía', ['cargador', 'power bank', 'adaptadores', 'convertidor de voltaje', 'estacion de energia', 'supresor', 'ups', 'regulador', 'bateria', 'pilas', 'generador', 'fuente de poder', 'multimetro']],
+  ['Inteligentes (smart home)', ['inteligente']],
+  ['Línea blanca', ['linea blanca', 'refrigeradora', 'nevera', 'lavadora', 'secadora de ropa', 'aire acondicionado', 'dispensador de agua', 'calefactor', 'aspiradora', 'hidrolavador', 'horno microondas', 'extractor de olores', 'cocina']],
+  ['Ollas y sartenes', ['olla', 'sarten', 'vajilla', 'cuchillo', 'tetera', 'termos', 'utensilios de cocina', 'hielera', 'bazar']],
+  ['Pequeños electrodomésticos', ['licuadora', 'cafetera', 'tostador', 'arrocera', 'freidora', 'batidora', 'waflera', 'plancha', 'vaporera', 'procesador de alimento', 'picatodo', 'extractor de jugo', 'parrilla electrica', 'abrelata', 'asistente de cocina', 'canguilera', 'ventilador', 'cuchillo electrico', 'balanza de cocina', 'molinos', 'maquina de coser']],
+  ['Cuidado personal', ['cabello', 'depilador', 'rasuradora', 'afeitadora', 'masajeador', 'sauna', 'cortaunas', 'manicure', 'peinilla', 'medidores de presion', 'balanzas']],
+  ['Relojes', ['reloj', 'cronometro', 'pasadores']],
+  ['Juguetes y juegos', ['juguete', 'juqueste', 'juquetes', 'consola', 'juegos', 'carros', 'barco', 'motos', 'aviones', 'bicicleta', 'naipe', 'ajedrez', 'jenga', 'monopolio', 'bingo', 'rompecabezas', 'ping pong', 'futbolin', 'billar', 'superheroes', 'spinner', 'pistola', 'helicoptero', 'dron', 'tacos', 'bolas']],
+  ['Deportes', ['patin', 'scooter', 'patineta', 'raqueta', 'pelota', 'balones', 'guantes', 'pesas', 'natacion', 'salvavidas', 'trajes de bano', 'bote', 'cana de pescar', 'aro de basket', 'proteccion']],
+  ['Oficina y papelería', ['esfero', 'papeleria', 'calculadora', 'sumadora', 'caja registradora', 'etiquetadora', 'fax', 'punteros', 'oficina', 'emplasticadora', 'traductor', 'agenda', 'maquinas de escribir', 'contador de billetes', 'pizarrones', 'utiles', 'tarjetas']],
+  ['Herramientas', ['herramienta', 'pegamento', 'navaja', 'linterna', 'limpieza', 'limpiador', 'podadora', 'bomba de fumigacion', 'cerradura', 'extinguidor', 'gas de defensa']],
+  ['Hogar y bazar', ['hogar', 'lampara', 'luz de navidad', 'adorno', 'cuadro', 'portaretrato', 'porta retrato', 'florero', 'vela', 'espejo', 'colchon', 'edredon', 'tabla de planchar', 'sombrilla', 'muebles', 'joyero', 'album', 'cenicero', 'fuente de agua', 'humificador', 'soportes', 'caminera', 'llavero', 'billetera', 'gafas', 'binocular', 'lupa', 'telescopio', 'brujula', 'baston', 'tijeras', 'rollos', 'porta vino', 'destapadores', 'mascarillas', 'exibidores', 'repuesto', 'diario', 'fosforera', 'cigarr', 'esencias']],
+  ['Licores', ['vino', 'tequila', 'vodka', 'whisky', 'ron']],
+  ['Servicios', ['servicio', 'transporte', 'financiamiento', 'descuento', 'intereses']]
+];
+// Categorías del kardex que las palabras clasificarían mal (se corrigen a mano)
+const FAM_FIJA = {
+  'microfono de cable': 'Micrófonos y pedestales', 'audifonos con microfono': 'Audífonos',
+  'baterias de reloj y audifono': 'Cargadores, pilas y energía', 'pilas y baterias recargables': 'Cargadores, pilas y energía',
+  'cargador de celular tablet': 'Cargadores, pilas y energía', 'bateria de telefono': 'Cargadores, pilas y energía', 'baterias de celular': 'Cargadores, pilas y energía',
+  'procesador de alimento': 'Pequeños electrodomésticos', 'cuchillo electrico': 'Pequeños electrodomésticos', 'balanza de cocina': 'Pequeños electrodomésticos',
+  'asistente de cocina': 'Pequeños electrodomésticos', 'plancha de cabello': 'Cuidado personal', 'cepillo clavo electrico': 'Cuidado personal',
+  'amplificador de guitarra': 'Parlantes y amplificadores', 'amplificador de bajo': 'Parlantes y amplificadores', 'amplificador de sintetizador': 'Parlantes y amplificadores',
+  'boton de guitarra': 'Accesorios de instrumentos', 'utensilios de cocina': 'Ollas y sartenes', 'bazar cocina': 'Ollas y sartenes',
+  'muebles para cocina': 'Hogar y bazar', 'tabla de planchar': 'Hogar y bazar', 'album de fotos': 'Hogar y bazar', 'compact flash': 'Memorias y discos',
+  'papel fotografico': 'Accesorios de computación', 'dispositivos de entrada': 'Accesorios de computación', 'tarjeta de sonido usb': 'Accesorios de computación',
+  'accesorios para video': 'Foto, cámaras y seguridad', 'cassette s': 'Parlantes y amplificadores', 'reloj de pulsera inteligente': 'Relojes'
+};
+const famLimpio = t => ' ' + norm(t).replace(/[^a-z0-9ñ]+/g, ' ').trim() + ' ';
+const FAM_NORM = FAMILIAS.map(([f, ws]) => [f, ws.map(w => ' ' + famLimpio(w).trim())]);
+function familiaDeTexto(t) {
+  if (!t) return '';
+  const n = famLimpio(t);
+  const fija = FAM_FIJA[n.trim()]; if (fija) return fija;
+  for (const [f, ws] of FAM_NORM) if (ws.some(w => n.includes(w))) return f;
+  return '';
+}
+let famCod = LS.get('jat_familias', {});        // codigo -> categoría elegida a mano en Sacar
+function familia(p) {
+  const b = String(p.barcode || '').trim();
+  if (famCod[b]) return famCod[b];
+  return familiaAuto(p);
+}
+function familiaAuto(p) {
+  const c = categoria(p);
+  return familiaDeTexto(c !== 'Otros' ? c : '') || familiaDeTexto(nombre(p)) || (c !== 'Otros' ? c : 'Otros');
+}
+const ordenFam = (a, b) => (a === 'Otros') - (b === 'Otros') || a.localeCompare(b, 'es');
+
 function ubicTxt(p) { const u = ubic[String(p.barcode).trim()]; return u && u.z ? (u.z + (u.d ? ' · ' + u.d : '')) : ''; }
 
 
@@ -560,6 +636,18 @@ function listarEgresos() {
 }
 
 // ---------- Lista ----------
+function renderFamChips() {
+  const cont = $('famChips'); if (!cont) return;
+  if (agrupar !== 'cat' || !productos.length) { cont.innerHTML = ''; return; }
+  const listo = i => (sacado[i] || 0) >= pedido(productos[i]);
+  const mapa = {};
+  productos.forEach((p, i) => { const f = familia(p); mapa[f] = mapa[f] || { t: 0, p: 0 }; mapa[f].t++; if (!listo(i)) mapa[f].p++; });
+  const fams = Object.keys(mapa).sort(ordenFam);
+  if (famFiltro !== 'todas' && !mapa[famFiltro]) famFiltro = 'todas';
+  const pend = productos.filter((p, i) => !listo(i)).length;
+  cont.innerHTML = `<span class="chip ${famFiltro === 'todas' ? 'on' : ''}" data-fam="todas">Todas ${pend}/${productos.length}</span>` +
+    fams.map(f => `<span class="chip ${famFiltro === f ? 'on' : ''} ${mapa[f].p ? '' : 'done'}" data-fam="${esc(f)}">${esc(f)} ${mapa[f].p}/${mapa[f].t}</span>`).join('');
+}
 function render() {
   const cont = $('lista');
   if (!egreso) { cont.innerHTML = ''; return; }
@@ -573,13 +661,15 @@ function render() {
   $('nPend').textContent = items.length - nH; $('nHecho').textContent = nH; $('nTodos').textContent = items.length;
   if (filtro === 'pend') items = items.filter(x => !listo(x));
   if (filtro === 'hecho') items = items.filter(listo);
-  if (q) items = items.filter(x => norm(nombre(x.p)).includes(q) || String(x.p.barcode).includes(q) || norm(ubicTxt(x.p)).includes(q));
-  const clave = x => agrupar === 'ubi' ? (ubic[String(x.p.barcode).trim()]?.z || '') : categoria(x.p);
+  renderFamChips();
+  if (agrupar === 'cat' && famFiltro !== 'todas') items = items.filter(x => familia(x.p) === famFiltro);
+  if (q) items = items.filter(x => norm(nombre(x.p)).includes(q) || String(x.p.barcode).includes(q) || norm(ubicTxt(x.p)).includes(q) || norm(familia(x.p)).includes(q));
+  const clave = x => agrupar === 'ubi' ? (ubic[String(x.p.barcode).trim()]?.z || '') : familia(x.p);
   const ordenZ = z => z === '' ? 1e9 : (zonas.indexOf(z) >= 0 ? zonas.indexOf(z) : 1e6);
   items.sort((a, b) => {
     const ka = clave(a), kb = clave(b);
     if (agrupar === 'ubi') { const d = ordenZ(ka) - ordenZ(kb); if (d) return d; if (ka !== kb) return ka.localeCompare(kb, 'es'); return (ubic[String(a.p.barcode).trim()]?.d || '').localeCompare(ubic[String(b.p.barcode).trim()]?.d || '', 'es', { numeric: true }) || a.i - b.i; }
-    return ka.localeCompare(kb, 'es') || a.i - b.i;
+    return ordenFam(ka, kb) || categoria(a.p).localeCompare(categoria(b.p), 'es') || a.i - b.i;
   });
   if (!items.length) { cont.innerHTML = '<div class="empty">' + (q ? 'Sin resultados' : filtro === 'pend' ? '🎉 No queda nada pendiente' : filtro === 'hecho' ? 'Todavía no has sacado ningún producto completo' : 'Sin resultados') + '</div>'; return; }
   let ult = null, html = '';
@@ -594,7 +684,7 @@ function render() {
     const u = ubicTxt(p);
     html += `<div class="card ${cls}" data-i="${i}"><div class="n">${esc(nombre(p))}</div>
       <div class="m"><span>${esc(p.barcode)}${s > 0 && horas[i] ? ` <b class="hr">🕒 ${horaTxt(horas[i])}</b>` : ''}</span><span class="qty">${s}/${ped}</span></div>
-      <div class="m"><span class="loc ${u ? '' : 'none'}">${u ? '📍 ' + esc(u) : 'Sin ubicación'}</span><span>${esc(agrupar === 'ubi' ? categoria(p) : '')}</span></div></div>`;
+      <div class="m"><span class="loc ${u ? '' : 'none'}">${u ? '📍 ' + esc(u) : 'Sin ubicación'}</span><span>${esc(agrupar === 'ubi' ? familia(p) : (categoria(p) !== 'Otros' && categoria(p) !== familia(p) ? categoria(p) : ''))}</span></div></div>`;
   }
   cont.innerHTML = html;
   cont.querySelectorAll('.card').forEach(c => c.onclick = () => abrirItem(+c.dataset.i));
@@ -619,11 +709,15 @@ function llenarZonas(sel, actual) {
 function abrirItem(i) {
   idxItem = i; const p = productos[i], u = ubic[String(p.barcode).trim()] || {};
   $('iNom').textContent = nombre(p);
-  $('iSub').textContent = p.barcode + ' · ' + categoria(p) + (stockTxt(String(p.barcode).trim()) ? ' · ' + stockTxt(String(p.barcode).trim()) : '');
+  $('iSub').textContent = p.barcode + ' · ' + familia(p) + (categoria(p) !== 'Otros' && categoria(p) !== familia(p) ? ' (' + categoria(p) + ')' : '') + (stockTxt(String(p.barcode).trim()) ? ' · ' + stockTxt(String(p.barcode).trim()) : '');
   $('iPed').textContent = '(pedido: ' + pedido(p) + ')';
   $('iQty').value = sacado[i] || 0;
   llenarZonas($('iZona'), u.z || '');
   $('iDet').value = u.d || '';
+  const fAct = familia(p), fAuto = familiaAuto(p);
+  const fs = [...new Set([...FAMILIAS.map(f => f[0]), ...Object.values(famCod), fAuto, fAct, 'Otros'])].sort(ordenFam);
+  $('iFam').innerHTML = fs.map(f => `<option ${f === fAct ? 'selected' : ''} value="${esc(f)}">${esc(f)}${f === fAuto ? ' (automática)' : ''}</option>`).join('') + '<option value="__nueva">➕ Categoría nueva…</option>';
+  $('iFam').dataset.prev = fAct;
   const dets = [...new Set(Object.values(ubic).map(x => x.d).filter(Boolean))].slice(0, 60);
   $('detList').innerHTML = dets.map(d => `<option value="${esc(d)}">`).join('');
   $('shItem').style.display = 'flex';
@@ -631,6 +725,14 @@ function abrirItem(i) {
 $('iMenos').onclick = () => $('iQty').value = Math.max(0, (+$('iQty').value || 0) - 1);
 $('iMas').onclick = () => $('iQty').value = Math.min(pedido(productos[idxItem]), (+$('iQty').value || 0) + 1);
 $('iTodo').onclick = () => $('iQty').value = pedido(productos[idxItem]);
+$('iFam').addEventListener('change', () => {
+  const sel = $('iFam');
+  if (sel.value !== '__nueva') { sel.dataset.prev = sel.value; return; }
+  const v = (prompt('Nombre de la categoría nueva (ej: Cables, Guitarras, Cuerdas):') || '').trim();
+  if (!v) { sel.value = sel.dataset.prev; return; }
+  if (![...sel.options].some(o => o.value === v)) sel.insertAdjacentHTML('afterbegin', `<option value="${esc(v)}">${esc(v)}</option>`);
+  sel.value = v; sel.dataset.prev = v;
+});
 $('iGuardar').onclick = () => {
   const p = productos[idxItem], ped = pedido(p);
   let n = Math.max(0, Math.floor(+$('iQty').value || 0));
@@ -641,6 +743,8 @@ $('iGuardar').onclick = () => {
   const b = String(p.barcode).trim();
   if (z || d) ubic[b] = { z, d, t: Date.now() }; else delete ubic[b];
   LS.set('jat_ubicaciones', ubic);
+  const f = $('iFam').value;
+  if (f && f !== '__nueva') { if (f === familiaAuto(p)) delete famCod[b]; else famCod[b] = f; LS.set('jat_familias', famCod); }
   cerrar('shItem'); render();
   if (n > 0 && !z) toast('Anotado. Falta la ubicación de este producto.');
   else toast('✅ Guardado');
@@ -658,7 +762,7 @@ $('zAdd').onclick = () => { const v = $('zNueva').value.trim(); if (!v) return; 
 async function guardarUbicaciones() {
   const n = Object.keys(ubic).length;
   if (!n) { toast('Aún no hay ubicaciones para guardar'); return; }
-  const data = JSON.stringify({ tipo: 'jat_ubicaciones', version: 2, fecha: new Date().toISOString(), zonas, ubic, extra });
+  const data = JSON.stringify({ tipo: 'jat_ubicaciones', version: 2, fecha: new Date().toISOString(), zonas, ubic, extra, familias: famCod });
   const file = new File([data], 'ubicaciones_bodega.json', { type: 'application/json' });
   try {
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -679,6 +783,8 @@ $('fUbic').onchange = async e => {
     (j.zonas || []).forEach(z => { if (!zonas.includes(z)) zonas.push(z); });
     for (const [b, v] of Object.entries(j.extra || {})) if (!extra[b] || (v.t || 0) > (extra[b].t || 0)) extra[b] = v;
     LS.set('jat_kardex_extra', extra);
+    for (const [b, f] of Object.entries(j.familias || {})) if (!famCod[b]) famCod[b] = f;
+    LS.set('jat_familias', famCod);
     LS.set('jat_ubicaciones', ubic); LS.set('jat_zonas', zonas); render();
     toast('✅ Ubicaciones cargadas (' + nuevos + ' nuevas o actualizadas)');
   } catch (_) { toast('Ese archivo no es de ubicaciones'); }
@@ -1107,7 +1213,8 @@ $('bZonas').onclick = () => { renderZonas(); abrir('shZonas'); };
 $('bGuardar').onclick = guardarUbicaciones;
 $('bCargar').onclick = () => $('fUbic').click();
 $('q').oninput = render;
-document.querySelectorAll('.chip[data-g]').forEach(c => c.onclick = () => { agrupar = c.dataset.g; document.querySelectorAll('.chip[data-g]').forEach(x => x.classList.toggle('on', x === c)); render(); });
+document.querySelectorAll('.chip[data-g]').forEach(c => { c.classList.toggle('on', c.dataset.g === agrupar); c.onclick = () => { agrupar = c.dataset.g; LS.set('jat_sacar_agrupar', agrupar); famFiltro = 'todas'; document.querySelectorAll('.chip[data-g]').forEach(x => x.classList.toggle('on', x === c)); render(); }; });
+$('famChips').addEventListener('click', e => { const c = e.target.closest('.chip[data-fam]'); if (!c) return; famFiltro = famFiltro === c.dataset.fam ? 'todas' : c.dataset.fam; render(); });
 document.querySelectorAll('.chip[data-f]').forEach(c => c.onclick = () => { filtro = c.dataset.f; document.querySelectorAll('.chip[data-f]').forEach(x => x.classList.toggle('on', x === c)); render(); });
 </script>
 <script>
