@@ -7,9 +7,10 @@
     <meta name="theme-color" content="#061b34">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-personal-192.png">
+    <link rel="icon" href="icon-personal-192.png">
 
-    <title>JAT Control Suite 2.0 - Verificador Profesional</title>
+    <title>JAT Control Suite Personal</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif; background: #f0f2f5; color: #1a1a2e; height: 100vh; overflow: hidden; }
@@ -4897,6 +4898,7 @@
         body.js-shell { padding-top: calc(56px + env(safe-area-inset-top)); padding-bottom: calc(64px + env(safe-area-inset-bottom)); background: #f7f8fa; }
         body.js-shell .content-area { padding-bottom: 90px !important; }
         body.js-shell .js-top { display: flex; position: fixed; top: 0; left: 0; right: 0; height: calc(56px + env(safe-area-inset-top)); padding: env(safe-area-inset-top) 4px 0 6px; align-items: center; gap: 2px; background: #fff; border-bottom: 1px solid #eef1f5; z-index: 4300; }
+        .js-logo { flex: none; width: 36px; height: 36px; margin-left: 6px; border-radius: 10px; }
         .js-top h1 { flex: 1; margin: 0 0 0 10px; font-size: 1.4rem; font-weight: 600; color: #1a2b3c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -.2px; }
         .js-ib { flex: none; width: 46px; height: 46px; border: none; background: none; border-radius: 50%; color: #1a2b3c; display: flex; align-items: center; justify-content: center; cursor: pointer; -webkit-tap-highlight-color: transparent; }
         .js-ib:active { background: #eef1f5; }
@@ -4944,7 +4946,7 @@
     }
 </style>
 <header class="js-top" id="jsTop">
-    <h1 id="jsTitulo">JAT</h1>
+    <img src="logo-jat-personal.svg" alt="JAT" class="js-logo"><h1 id="jsTitulo">JAT</h1>
     <button type="button" class="js-ib" id="jsBuscar" data-teclado aria-label="Buscar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg></button>
     <button type="button" class="js-ib" id="jsEscanear" aria-label="Escanear"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7V4h3M21 7V4h-3M3 17v3h3M21 17v3h-3"/><path d="M7 8v8M10 8v8M13 8v8M15.5 8v8M17.5 8v8" stroke-width="1.6"/></svg></button>
     <button type="button" class="js-ib" id="jsPuntos" aria-label="Más opciones"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></button>
@@ -4958,6 +4960,8 @@ window.JATShell = (function () {
     const $ = id => document.getElementById(id);
     const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     const ICO = {
+        inicio: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z"/></svg>',
+        sacar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-5 9 5v8l-9 5-9-5z"/><path d="M12 16V9M9 12l3-3 3 3"/></svg>',
         revision: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 12l2 2 4-4M9 17h6"/></svg>',
         ingreso: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l9-5 9 5v9l-9 5-9-5z"/><path d="M12 8v7M9 12l3 3 3-3"/></svg>',
         kardex: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>',
@@ -5089,12 +5093,60 @@ window.JATShell = (function () {
         $('kmMas')?.addEventListener('click', () => { kmMax += 100; kmRender(); });
     }
 
-    // ---------- BODEGA (Salida de mercadería y ubicaciones, dentro de la app) ----------
+    // ---------- SACAR (Salida de mercadería y ubicaciones, dentro de la app) ----------
     function bodega() {
         const capa = $('jsCapa');
-        if (!$('jsBodegaFrame')) capa.innerHTML = '<iframe id="jsBodegaFrame" src="JAT_Salida_Mercaderia.html?embed=1" allow="camera; fullscreen" title="Bodega"></iframe>';
+        if (!$('jsBodegaFrame')) capa.innerHTML = '<iframe id="jsBodegaFrame" src="JAT_Salida_Mercaderia.html?embed=1" allow="camera; fullscreen" title="Sacar mercadería"></iframe>';
+        mismoEgresoEnSacar();
     }
-    const enBodega = id => () => { const f = $('jsBodegaFrame'); const run = () => f.contentDocument?.getElementById(id)?.click(); if (f.contentDocument?.readyState === 'complete') run(); else f.addEventListener('load', run, { once: true }); };
+    const conBodega = fn => { const f = $('jsBodegaFrame'); if (!f) return; const run = () => { try { fn(f); } catch (e) { console.warn(e); } }; if (f.contentDocument?.readyState === 'complete' && f.contentWindow.JATSalida) run(); else f.addEventListener('load', run, { once: true }); };
+    const enBodega = id => () => conBodega(f => f.contentDocument.getElementById(id)?.click());
+
+    // ---------- EL MISMO EGRESO EN SACAR Y EN REVISAR ----------
+    // Lo que se abre en una ventana queda abierto en la otra: se saca y se revisa el mismo documento.
+    const claveEg = e => e ? String(e.secuencial || e.id || e.nombre || '') : '';
+    let revEnviado = '', pendienteDeSacar = null;
+    function mismoEgresoEnSacar() {
+        if (!hayEgreso()) return;
+        const k = claveEg(currentEgreso);
+        if (!k || k === revEnviado) return;            // ya se pasó este egreso: no se pisa lo que elijas después en Sacar
+        conBodega(f => {
+            const S = f.contentWindow.JATSalida;
+            revEnviado = k;
+            if (claveEg(S.actual()) === k) return;
+            S.abrir({ id: currentEgreso.id ?? k, nombre: currentEgreso.nombre || k, secuencial: currentEgreso.secuencial || '', bodegaOrigen: currentEgreso.bodegaOrigen || '', bodegaDestino: currentEgreso.bodegaDestino || '', productos: JSON.parse(JSON.stringify(currentProductos)) });
+        });
+    }
+    window.JATPersonal = {
+        // Salida de Mercadería avisa qué egreso abrió
+        desdeSacar(e) {
+            if (!e || !Array.isArray(e.productos) || !e.productos.length) return;
+            if (hayEgreso() && claveEg(e) === claveEg(currentEgreso)) { pendienteDeSacar = null; return; }
+            pendienteDeSacar = e;
+        }
+    };
+    function revisarElDeSacar() {
+        const e = pendienteDeSacar; pendienteDeSacar = null;
+        if (!e) return false;
+        const k = claveEg(e);
+        let ix = egresosGuardados.findIndex(g => claveEg(g) === k || String(g.id) === String(e.id));
+        if (ix === -1) {   // egreso que solo estaba en Sacar: se agrega a la lista de revisión, sin nada verificado
+            const productos = JSON.parse(JSON.stringify(e.productos)).map(p => { p.verifiedQty = 0; p.verified = false; return p; });
+            egresosGuardados.push({ id: e.id || k, nombre: e.nombre || k, secuencial: e.secuencial || '', bodegaOrigen: e.bodegaOrigen || '', bodegaDestino: e.bodegaDestino || '', totalDocumento: e.totalDocumento, fechaCreacion: new Date().toLocaleDateString('es-EC'), productos });
+            ix = egresosGuardados.length - 1;
+            try { guardarEgresosStorage(); } catch (_) {}
+        }
+        revEnviado = k;
+        cargarEgresoParaVerificar(ix);
+        return true;
+    }
+    function irRevisar() {
+        if (revisarElDeSacar()) return;
+        if (hayEgreso()) { irIngresarMercaderia(); return; }
+        JATShell.ir('revision');
+        showAlert('📦 Primero abre un egreso: elige uno de la lista o toca ＋ → Egreso nuevo desde PDF', 'warning');
+    }
+    function irSacar(accionBodega) { JATShell.ir('bodega'); if (accionBodega) enBodega(accionBodega)(); }
 
     // ---------- MENÚ ----------
     const OPS_MENU = () => [
@@ -5117,41 +5169,45 @@ window.JATShell = (function () {
         if (window.JAT_INSTALAR) window.JAT_INSTALAR();
         else alert('Para que se abra siempre en pantalla completa, como una app:\n\n1. En Chrome toca ⋮ (arriba a la derecha).\n2. Elige "Agregar a la pantalla principal" o "Instalar app".\n3. Ábrela desde el ícono JAT de tu teléfono.');
     }
-    const escanearEgreso = () => { if (hayEgreso()) irIngresarMercaderia(); else { JATShell.ir('revision'); showAlert('📦 Primero abre un egreso: toca ＋ → Cargar egreso, o elige uno de la lista', 'warning'); } };
+    const escanearEgreso = irRevisar;
 
     JATShell.init({
         inicial: 'revision',
         escanear: escanearEgreso,
         tabs: [
-            { id: 'revision', txt: 'Revisión', titulo: 'Revisión', abrir: () => irInicio(),
+            { id: 'revision', icono: 'inicio', txt: 'Inicio', titulo: 'JAT Personal', abrir: () => irInicio(),
               buscar: () => { irInicio(); setTimeout(() => JATShell.enfocarBuscador(), 60); },
-              escanear: escanearEgreso, masTitulo: 'Revisión de mercadería',
+              escanear: escanearEgreso, masTitulo: 'Egresos',
               mas: () => [
-                  hayEgreso() ? { ico: '▶️', txt: 'Continuar: ' + nomEgreso(), sub: 'Seguir escaneando este egreso', dest: true, run: () => irIngresarMercaderia() } : null,
+                  hayEgreso() ? { ico: '📤', txt: 'Sacar: ' + nomEgreso(), sub: 'La mercadería ordenada por ubicación', dest: true, run: () => irSacar() } : null,
+                  hayEgreso() ? { ico: '🎯', txt: 'Revisar: ' + nomEgreso(), sub: 'Escanear y verificar este egreso', run: () => irIngresarMercaderia() } : null,
                   { ico: '📄', txt: 'Egreso nuevo desde PDF', sub: 'El documento de egreso del sistema', run: () => irCargarEgreso() },
                   { ico: '📂', txt: 'Importar / abrir archivo', sub: '.hat, CSV, respaldo o PDF — varios a la vez', run: () => irAbrirArchivo() },
                   { ico: '✍️', txt: 'Pegar la tabla a mano', run: () => cargarVistaNuevoEgreso(false) },
                   { ico: '📁', txt: 'Egresos guardados', sub: 'Buscar en este teléfono', run: () => accion('buscarEgresos') },
                   { ico: '📋', txt: 'Historial / avances', run: () => accion('historial') }
               ] },
+            { id: 'bodega', icono: 'sacar', txt: 'Sacar', titulo: 'Sacar mercadería', capa: true, abrir: bodega,
+              buscar: () => { const f = $('jsBodegaFrame'); f?.contentDocument?.getElementById('q')?.focus(); },
+              escanear: () => conBodega(f => { const S = f.contentWindow.JATSalida; f.contentDocument.getElementById(S.actual() ? 'bEscanear' : 'bRegistrar')?.click(); }),
+              masTitulo: 'Sacar mercadería',
+              mas: () => [
+                  { ico: '📤', txt: 'Elegir egreso para sacar', sub: 'La lista sale ordenada por pasillo', dest: true, run: enBodega('bEgreso') },
+                  { ico: '🎯', txt: 'Revisar este egreso', sub: 'Pasa el mismo egreso al verificador', run: irRevisar },
+                  { ico: '📍', txt: 'Registrar ubicaciones', sub: 'Eliges el pasillo y escaneas lo que hay ahí', run: enBodega('bRegistrar') },
+                  { ico: '📋', txt: 'Kardex y ubicaciones', run: enBodega('bKardex') },
+                  { ico: '🏬', txt: 'Pasillos y cuartos', run: enBodega('bZonas') },
+                  { ico: '💾', txt: 'Guardar ubicaciones', sub: 'Archivo para OneDrive', run: enBodega('bGuardar') },
+                  { ico: '📥', txt: 'Cargar ubicaciones', sub: 'Desde un archivo guardado', run: enBodega('bCargar') }
+              ] },
+            { id: 'revisar', icono: 'revision', txt: 'Revisar', titulo: 'Revisar', abrir: irRevisar },
             { id: 'kardex', txt: 'Kardex', titulo: 'Kardex', abrir: vistaKardex, buscar: () => { if (!$('kmBuscar')) vistaKardex(); $('kmBuscar').focus(); },
               escanear: () => { JATShell.ir('bodega'); enBodega('bRegistrar')(); },
               mas: () => [
                   { ico: '📊', txt: 'Actualizar desde Excel', sub: 'Reporte de inventario (stock en la columna G)', dest: true, run: () => jatElegirKardexExcel() },
                   { ico: '📍', txt: 'Poner ubicaciones', sub: 'Escaneas productos en la bodega', run: () => { JATShell.ir('bodega'); enBodega('bRegistrar')(); } }
               ] },
-            { id: 'bodega', txt: 'Bodega', titulo: 'Bodega', capa: true, abrir: bodega,
-              buscar: () => { const f = $('jsBodegaFrame'); f?.contentDocument?.getElementById('q')?.focus(); },
-              escanear: () => enBodega('bRegistrar')(),
-              mas: () => [
-                  { ico: '📍', txt: 'Registrar ubicaciones', sub: 'Eliges el pasillo y escaneas lo que hay ahí', dest: true, run: enBodega('bRegistrar') },
-                  { ico: '📤', txt: 'Sacar mercadería de un egreso', sub: 'Ordenada por ubicación', run: enBodega('bEgreso') },
-                  { ico: '📋', txt: 'Kardex y ubicaciones', run: enBodega('bKardex') },
-                  { ico: '🏬', txt: 'Pasillos y cuartos', run: enBodega('bZonas') },
-                  { ico: '💾', txt: 'Guardar ubicaciones', sub: 'Archivo para OneDrive', run: enBodega('bGuardar') },
-                  { ico: '📥', txt: 'Cargar ubicaciones', sub: 'Desde un archivo guardado', run: enBodega('bCargar') }
-              ] },
-            { id: 'menu', txt: 'Menú', titulo: 'Menú', abrir: vistaMenu }
+            { id: 'menu', txt: 'Menú', titulo: 'Documentos y ajustes', abrir: vistaMenu }
         ],
         puntos: () => [
             { ico: '⛶', txt: 'Pantalla completa: ' + (JAT_FS.quiere() ? 'SÍ' : 'NO'), run: () => JAT_FS.set(!JAT_FS.quiere()) },

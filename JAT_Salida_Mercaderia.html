@@ -7,7 +7,8 @@
 <meta name="theme-color" content="#061b34">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-personal-192.png">
+<link rel="icon" href="icon-personal-192.png">
 
 <title>JAT Salida de Mercadería</title>
 <style>
@@ -1061,11 +1062,20 @@ document.querySelectorAll('.chip[data-f]').forEach(c => c.onclick = () => { filt
 })();
 </script>
 <script>
-// Dentro de la app (pestaña Bodega) se esconde el encabezado propio: los botones están en el ＋ de la app.
+// Puente con JAT Control Suite Personal: el egreso que se saca aquí es el mismo que se revisa allá.
+window.JATSalida = { actual: () => egreso, abrir: e => abrirEgreso({ ...e, _ya: true }) };
+(() => {
+  const original = abrirEgreso;
+  abrirEgreso = function (e) {
+    original(e);
+    try { if (parent !== window && parent.JATPersonal) parent.JATPersonal.desdeSacar(egreso); } catch (_) {}
+  };
+})();
+// Dentro de la app (pestaña Sacar) se esconde el encabezado propio: los botones están en el ＋ de la app.
 if (new URLSearchParams(location.search).has('embed')) {
   const st = document.createElement('style'); st.textContent = 'header { display: none !important; } .sheet { padding-bottom: 96px !important; } #lista { padding-bottom: 96px; }'; document.head.appendChild(st);
   const info = document.getElementById('info');
-  if (info) info.innerHTML = 'Toca <b>＋</b> → <b>Registrar ubicaciones</b> para guardar dónde está cada producto, o <b>Sacar mercadería de un egreso</b> para sacarla ordenada por pasillo.';
+  if (info) info.innerHTML = 'Abre un egreso en <b>Inicio</b> y aparecerá aquí ordenado por pasillo. También puedes tocar <b>＋</b> → <b>Elegir egreso para sacar</b> o <b>Registrar ubicaciones</b>.';
 }
 </script>
 </body>

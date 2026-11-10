@@ -1,7 +1,7 @@
 {
-  "name": "JAT Control Suite",
-  "short_name": "JAT",
-  "description": "Verificación de egresos, ingreso de mercadería y ubicaciones de bodega",
+  "name": "JAT Control Suite Personal",
+  "short_name": "JAT Personal",
+  "description": "Sacar mercadería por ubicación, revisar egresos, kardex y cartas de constancia",
   "start_url": "JAT_Control_Suite_Movil.html",
   "scope": "./",
   "display": "fullscreen",
@@ -14,13 +14,13 @@
   "theme_color": "#061b34",
   "icons": [
     {
-      "src": "icon-192.png",
+      "src": "icon-personal-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "icon-512.png",
+      "src": "icon-personal-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
