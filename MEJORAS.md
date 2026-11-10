@@ -20,6 +20,11 @@ arreglos ya hechos.
 - [ ] **Botón ＋ con las acciones de cada ventana**, en vez de barras de botones.
 - [ ] **El ＋ y el gatillo no tapan ningún botón**: se esconden cuando hay otra ventana encima.
 - [ ] **Ningún menú se corta**: los desplegables salen completos aunque el panel sea chico.
+- [ ] **Buscar escribiendo**: al escribir con el teclado sale la lista de coincidencias para
+      elegir con el dedo; mientras tanto se esconde la cámara para que el teclado no tape los
+      resultados, y no se selecciona ni se guarda nada hasta elegir.
+- [ ] **Que no se trabe**: la cámara no lee códigos ni texto mientras se escribe; nada de
+      animaciones que repinten la cámara (el marco verde anima solo la opacidad).
 - [ ] Lectura de texto (OCR) para productos sin código de barras.
 - [ ] Voz, sonido y vibración distintos por caso (correcto, repetido, no encontrado, completo).
 - [ ] Aviso de producto repetido y de "ya está completo".
@@ -70,3 +75,4 @@ arreglos ya hechos.
   debajo de la cámara en Revisar, y el arreglo del menú "Más" de la cámara que se cortaba.
   Después se agregó la hora de marcado en las tarjetas de Revisar y de Sacar (faltaba).
   Rediseño industrial con tema claro y oscuro, también dentro de Sacar.
+  Búsqueda escrita con lista para elegir, sin trabarse y sin que el teclado tape los resultados.

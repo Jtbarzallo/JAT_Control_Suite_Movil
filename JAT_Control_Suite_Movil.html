@@ -4475,7 +4475,7 @@
 
         // Ciclo automático: si no hay código de barras a la vista y la imagen está enfocada, lee el texto.
         async function cicloAutoOCR() {
-            if (!camAutoOcrActivo || !camActiva || camOcrOcupado || document.hidden) return;
+            if (window.JAT_ESCRIBIENDO || !camAutoOcrActivo || !camActiva || camOcrOcupado || document.hidden) return;
             if (Date.now() - camUltimaLecturaBarcode < 2500) return; // el código de barras tiene prioridad
             const c = capturarRecorteParaOCR($('camVideo'));
             if (!c) return;
@@ -4525,7 +4525,7 @@
             return camLienzo;
         }
         async function detectarConNativo(video) {
-            if (!camDetector || video.readyState < 2 || camDetectando) return;
+            if (window.JAT_ESCRIBIENDO || !camDetector || video.readyState < 2 || camDetectando) return;
             if (camModoGatillo && !gatilloActivo()) return;
             camDetectando = true;
             try {
@@ -4551,7 +4551,7 @@
                 camZXingReader = new window.ZXing.BrowserMultiFormatReader();
                 camZXingReader.decodeFromVideoElementContinuously(video, (result) => {
                     pintarGatillo();
-                    if (result && (!camModoGatillo || gatilloActivo())) manejarLecturaCamara([result.getText()]);
+                    if (result && !window.JAT_ESCRIBIENDO && (!camModoGatillo || gatilloActivo())) manejarLecturaCamara([result.getText()]);
                 });
             }).catch(err => {
                 console.warn(err);
@@ -5409,9 +5409,11 @@ body.d-ind #verificadorNombreEgreso { color: #e2e8f0 !important; font-family: va
 body.d-ind #verificadorModal .badge-status { background: rgba(16,185,129,.16); color: #6ee7b7; border: 1px solid rgba(16,185,129,.35); border-radius: 6px; }
 body.d-ind .vf-home-btn { background: rgba(148,163,184,.16); border: 1px solid rgba(148,163,184,.28); border-radius: 8px; }
 body.d-ind #verificadorModal .cam-panel { background: #020617; border-bottom: 2px solid #1e293b; }
-body.d-ind #verificadorModal .cam-reticle .box { border: 2px solid #10b981; border-radius: 10px; animation: indFoco 1.4s ease-in-out infinite; }
-@keyframes indFoco { 50% { border-color: rgba(16,185,129,.22); } }
-body.d-ind #verificadorModal .cam-panel.disparando .cam-reticle .box { animation: none; border-color: #ef4444; }
+body.d-ind #verificadorModal .cam-reticle .box { border: 2px solid rgba(16,185,129,.28); border-radius: 10px; position: relative; transition: none; }
+body.d-ind #verificadorModal .cam-reticle .box::after { content: ''; position: absolute; inset: -2px; border: 2px solid #10b981; border-radius: 10px; will-change: opacity; animation: indFoco 1.4s ease-in-out infinite; }
+@keyframes indFoco { 50% { opacity: .15; } }
+body.d-ind #verificadorModal .cam-panel.disparando .cam-reticle .box::after { animation: none; border-color: #ef4444; }
+@media (prefers-reduced-motion: reduce) { body.d-ind #verificadorModal .cam-reticle .box::after { animation: none; } }
 body.d-ind .cam-insecure-warning { background: #fffbeb; color: #92400e; border-bottom: 1px solid #fde68a; font-weight: 500 !important; font-size: .66rem; line-height: 1.35; padding: 5px 12px; text-align: left; max-height: 2.9em; overflow: hidden; }
 body.d-ind.d-osc .cam-insecure-warning { background: #2b2108; color: #fcd34d; border-bottom-color: #4a3a10; }
 body.d-ind #verificadorModal .verif-bottom-pane { background: var(--bg-main); }
@@ -5572,6 +5574,94 @@ body.d-ind .status-badge.status-pendiente { background: #fef3c7; color: #b45309;
   }
   aplicarTema(); pintar();
   try { if (document.querySelector('#mainContent .ini-wrap')) irInicio(); } catch (_) {}
+})();
+</script>
+
+<style id="jat-busqueda-escrita">
+#vlSug { display: none; margin-top: 8px; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; border: 1px solid var(--border-color, #e2e8f0); border-radius: 10px; background: var(--bg-surface, #fff); }
+#vlSug .cab { position: sticky; top: 0; z-index: 1; padding: 6px 10px; font-size: .68rem; font-weight: 700; letter-spacing: .03em; color: var(--text-muted, #64748b); background: var(--bg-soft, #f1f5f9); border-bottom: 1px solid var(--border-color, #e2e8f0); }
+#vlSug button { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; width: 100%; min-height: 54px; text-align: left; border: none; border-bottom: 1px solid var(--border-color, #e2e8f0); background: var(--bg-surface, #fff); color: var(--text-main, #0f172a); padding: 8px 10px; font-family: inherit; cursor: pointer; }
+#vlSug button:last-child { border-bottom: none; }
+#vlSug button:active { background: var(--sel-bg, #eff6ff); }
+#vlSug .nm { display: block; font-weight: 700; font-size: .84rem; line-height: 1.25; }
+#vlSug .cd { display: block; font-family: var(--font-mono, 'Fira Code', monospace); font-size: .68rem; color: var(--text-muted, #64748b); margin-top: 2px; }
+#vlSug .qt { font-family: var(--font-mono, 'Fira Code', monospace); font-variant-numeric: tabular-nums; font-weight: 700; font-size: .9rem; white-space: nowrap; }
+#vlSug button.hecho .qt { color: #16a34a; }
+#vlSug .nada { padding: 14px 10px; font-size: .84rem; color: var(--text-muted, #64748b); }
+/* Mientras escribes: solo el buscador y sus resultados, para que el teclado no tape nada */
+#verificadorModal.vf-escribiendo .cam-panel, #verificadorModal.vf-escribiendo .cam-insecure-warning, #verificadorModal.vf-escribiendo .toolbar-topbar,
+#verificadorModal.vf-escribiendo .ind-kpi, #verificadorModal.vf-escribiendo .stats-row, #verificadorModal.vf-escribiendo .work-panels,
+#verificadorModal.vf-escribiendo .quick-count-row, #verificadorModal.vf-escribiendo .vl-filtros, #verificadorModal.vf-escribiendo #vlCab,
+#verificadorModal.vf-escribiendo .vl-lista, #verificadorModal.vf-escribiendo .jat-fab, #verificadorModal.vf-escribiendo #searchStatusVerif,
+#verificadorModal.vf-escribiendo .completado-banner, #verificadorModal.vf-escribiendo .progress-bar-wrap, #verificadorModal.vf-escribiendo .historial-acciones { display: none !important; }
+</style>
+<script>
+/* Búsqueda escrita en el verificador: al escribir con el teclado del celular se muestra la lista de
+   coincidencias para elegir una con el dedo. No se selecciona ni se guarda nada hasta que eliges.
+   El lector USB/Bluetooth y el gatillo siguen funcionando igual que antes. */
+(function () {
+  const inp = document.getElementById('scannerInput'), modal = document.getElementById('verificadorModal');
+  if (!inp || !modal || !matchMedia('(pointer: coarse)').matches) return;
+  const sug = document.createElement('div'); sug.id = 'vlSug';
+  (inp.closest('.scanner-section') || inp.parentElement).appendChild(sug);
+  const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const escribiendo = () => document.activeElement === inp && inp.getAttribute('inputmode') !== 'none' && modal.style.display === 'flex';
+  let t = 0, tecladoVisto = false;
+  const ocultar = () => { sug.style.display = 'none'; sug.innerHTML = ''; };
+  function ajustar() {
+    const vv = window.visualViewport, alto = vv ? vv.height + vv.offsetTop : window.innerHeight;
+    sug.style.maxHeight = Math.max(110, alto - inp.getBoundingClientRect().bottom - 16) + 'px';
+  }
+  function pintar() {
+    if (!escribiendo()) { ocultar(); return; }
+    const q = inp.value.trim();
+    let html;
+    if (!q) html = '<div class="nada">Escribe parte del nombre, el código o sus últimos dígitos.</div>';
+    else {
+      const res = findAllProductsBySearchTerm(q);
+      if (!res.length) html = '<div class="nada">❌ Nada coincide con «' + esc(q) + '» en este egreso.</div>';
+      else html = '<div class="cab">' + (res.length === 1 ? '1 resultado' : res.length + ' resultados') + ' — toca el que buscas</div>'
+        + res.slice(0, 60).map(r => { const p = currentProductos[r.index], v = getVerifiedQty(p), e = getExpectedQty(p);
+            return `<button type="button" data-i="${r.index}" class="${isProductoVerificado(p) ? 'hecho' : ''}"><span><span class="nm">${esc(p.productName)}</span><span class="cd">${esc(p.barcode)}</span></span><span class="qt">${formatearQty(v)}/${formatearQty(e)}</span></button>`; }).join('');
+    }
+    sug.innerHTML = html; sug.style.display = 'block'; sug.scrollTop = 0; ajustar();
+  }
+  function modo() {
+    const on = escribiendo();
+    window.JAT_ESCRIBIENDO = on;
+    modal.classList.toggle('vf-escribiendo', on);
+    if (on) { const pane = document.getElementById('verifBottomPane'); if (pane) pane.scrollTop = 0; pintar(); } else { ocultar(); tecladoVisto = false; }
+  }
+  // Al escribir no se dispara la búsqueda automática de siempre (seleccionaba y guardaba en cada letra)
+  document.addEventListener('input', e => {
+    if (e.target !== inp || !escribiendo()) return;
+    const q = inp.value.trim();
+    if (/^\d{8,}$/.test(q) && currentProductos.some(p => p.barcode === q)) { ocultar(); return; }   // código completo: flujo normal
+    e.stopPropagation();
+    clearTimeout(t); t = setTimeout(pintar, 130);
+  }, true);
+  document.addEventListener('pointerdown', e => { if (e.target === inp) setTimeout(modo, 90); }, true);
+  inp.addEventListener('focus', () => setTimeout(modo, 90));
+  inp.addEventListener('blur', () => setTimeout(modo, 60));
+  if (window.visualViewport) visualViewport.addEventListener('resize', () => {
+    if (!window.JAT_ESCRIBIENDO) return;
+    const abierto = visualViewport.height < window.innerHeight - 120;
+    if (abierto) { tecladoVisto = true; ajustar(); }
+    else if (tecladoVisto) inp.blur();          // cerraste el teclado: vuelve la cámara
+  });
+  sug.addEventListener('pointerdown', e => { if (e.target.closest('button')) e.preventDefault(); });   // el toque no cierra el teclado antes de tiempo
+  sug.addEventListener('click', e => {
+    const b = e.target.closest('button[data-i]'); if (!b) return;
+    const idx = +b.dataset.i, p = currentProductos[idx]; if (!p) return;
+    currentMultipleResults = [idx]; currentMultiplePosition = 0;
+    inp.value = p.barcode;
+    ocultar(); inp.blur(); window.JAT_ESCRIBIENDO = false; modal.classList.remove('vf-escribiendo');
+    resaltarFilaVerificador(idx);
+    mostrarUltimoEscaneo(idx, isProductoVerificado(p) ? 'ok' : 'partial', '👆 Elegido de la búsqueda');
+    document.getElementById('verifBottomPane')?.scrollTo({ top: 0 });
+  });
+  const _cerrar = cerrarVerificador;
+  cerrarVerificador = function () { window.JAT_ESCRIBIENDO = false; modal.classList.remove('vf-escribiendo'); ocultar(); return _cerrar.apply(this, arguments); };
 })();
 </script>
 </body>
