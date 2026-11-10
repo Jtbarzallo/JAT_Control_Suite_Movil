@@ -524,6 +524,22 @@
         .jat-gatillo.activo { transform: scale(.92); box-shadow: 0 0 0 10px rgba(231,76,60,.28), 0 4px 10px rgba(120,20,10,.4); background: radial-gradient(circle at 35% 30%, #ff8a7d, #e02b1a 70%); }
         .jat-gatillo.oculto { display: none; }
         #verificadorModal .verif-bottom-pane { padding-bottom: 112px; }
+        /* Lista del egreso dentro del verificador */
+        #verificadorModal .stats-row { position: static; }   /* solo quedan fijos el buscador y los filtros: más espacio para la lista */
+        .vl-filtros { display: flex; gap: 6px; padding: 10px 10px 8px; position: sticky; top: 64px; z-index: 50; background: #fff; border-top: 1px solid #e6ebf1; border-bottom: 1px solid #e6ebf1; }
+        .vl-chip { flex: 1 1 0; border: 1px solid #cbd5e1; background: #f1f5f9; color: #1a3a5c; border-radius: 20px; padding: 10px 4px; font-weight: 700; font-size: .8rem; white-space: nowrap; font-family: inherit; cursor: pointer; }
+        .vl-chip.on { background: #1a3a5c; color: #fff; border-color: #1a3a5c; }
+        .vl-lista { padding: 8px 10px 4px; display: flex; flex-direction: column; gap: 8px; flex: none; }
+        .vl-card { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid #e2e8f0; border-left: 6px solid #f59e0b; border-radius: 12px; padding: 10px 12px; text-align: left; font-family: inherit; cursor: pointer; width: 100%; }
+        .vl-card.parcial { border-left-color: #3b82f6; }
+        .vl-card.hecho { border-left-color: #16a34a; background: #f0fdf4; }
+        .vl-card.sel { box-shadow: 0 0 0 3px #c99a4a; }
+        .vl-card .tx { flex: 1; min-width: 0; }
+        .vl-card .nm { font-weight: 700; font-size: .88rem; color: #1e293b; line-height: 1.25; }
+        .vl-card .cd { font-size: .74rem; color: #64748b; margin-top: 2px; font-family: 'Fira Code', monospace; }
+        .vl-card .qt { flex: none; font-weight: 800; font-size: 1.05rem; color: #1a3a5c; }
+        .vl-card.hecho .qt { color: #15803d; }
+        .vl-vacio { text-align: center; color: #64748b; padding: 22px 10px; font-size: .9rem; }
     </style>
 </head>
 <body>
@@ -826,6 +842,13 @@
             </div>
 
             <div id="historialAcciones" class="historial-acciones" style="display:none;"><span style="color:#bdc3c7;">Sin acciones</span></div>
+            <!-- Lista del egreso: la cámara queda fija arriba y esta lista se desliza -->
+            <div class="vl-filtros" id="vlFiltros">
+                <button type="button" class="vl-chip on" data-vl="pend">⏳ Pendientes <b id="vlNPend">0</b></button>
+                <button type="button" class="vl-chip" data-vl="hecho">✅ Revisados <b id="vlNHecho">0</b></button>
+                <button type="button" class="vl-chip" data-vl="todos">Todos <b id="vlNTodos">0</b></button>
+            </div>
+            <div class="vl-lista" id="vlLista"></div>
             </div><!-- /.verif-bottom-pane -->
             <button type="button" class="jat-fab jat-fab-mas" id="jatMasAcciones" aria-label="Más acciones">＋</button>
             <button type="button" class="jat-fab jat-gatillo" id="jatGatillo" aria-label="Gatillo: mantén presionado para escanear"><span class="ico">⦿</span>ESCANEAR</button>
@@ -3005,6 +3028,54 @@
         renderVerificadorTabla();
     }
 
+    // ---- LISTA DEL EGRESO DEBAJO DE LA CÁMARA (Pendientes / Revisados / Todos) ----
+    let vlFiltro = 'pend', vlPendiente = false;
+    function renderListaVerif() {
+        const cont = document.getElementById('vlLista');
+        if (!cont) return;
+        const bus = document.querySelector('#verificadorModal .scanner-section'); if (bus && bus.offsetHeight) document.getElementById('vlFiltros').style.top = (bus.offsetHeight - 1) + 'px';
+        const todos = (currentProductos || []).map((p, i) => ({ p, i, v: getVerifiedQty(p), e: getExpectedQty(p), ok: isProductoVerificado(p) }));
+        const nH = todos.filter(x => x.ok).length;
+        document.getElementById('vlNPend').textContent = todos.length - nH;
+        document.getElementById('vlNHecho').textContent = nH;
+        document.getElementById('vlNTodos').textContent = todos.length;
+        const lista = vlFiltro === 'pend' ? todos.filter(x => !x.ok) : vlFiltro === 'hecho' ? todos.filter(x => x.ok) : todos;
+        if (!lista.length) {
+            cont.innerHTML = '<div class="vl-vacio">' + (vlFiltro === 'pend' ? (todos.length ? '🎉 No queda nada pendiente' : 'Abre un egreso para ver sus productos') : vlFiltro === 'hecho' ? 'Todavía no has revisado ningún producto completo' : 'Sin productos') + '</div>';
+            return;
+        }
+        cont.innerHTML = lista.map(x => `<button type="button" class="vl-card ${x.ok ? 'hecho' : x.v > 0 ? 'parcial' : ''} ${x.i === currentSelectedIndex ? 'sel' : ''}" data-i="${x.i}"><span class="tx"><span class="nm">${htmlSeguro(x.p.productName || '')}</span><div class="cd">${htmlSeguro(x.p.barcode || '')}</div></span><span class="qt">${formatearQty(x.v)}/${formatearQty(x.e)}</span></button>`).join('');
+    }
+    function renderListaVerifProgramado() {
+        if (vlPendiente) return;
+        vlPendiente = true;
+        requestAnimationFrame(() => { vlPendiente = false; try { renderListaVerif(); } catch (e) { console.warn(e); } });
+    }
+    document.getElementById('vlFiltros')?.addEventListener('click', e => {
+        const c = e.target.closest('.vl-chip'); if (!c) return;
+        vlFiltro = c.dataset.vl;
+        document.querySelectorAll('#vlFiltros .vl-chip').forEach(x => x.classList.toggle('on', x === c));
+        renderListaVerif();
+    });
+    // Tocar un producto lo deja seleccionado para contarlo con −1 / +1 / +5 / +10 / Cantidad
+    document.getElementById('vlLista')?.addEventListener('click', e => {
+        const c = e.target.closest('.vl-card'); if (!c) return;
+        const idx = parseInt(c.dataset.i, 10), p = currentProductos[idx];
+        if (isNaN(idx) || !p) return;
+        currentMultipleResults = [idx]; currentMultiplePosition = 0;
+        const si = document.getElementById('scannerInput'); if (si) si.value = p.barcode;
+        resaltarFilaVerificador(idx);
+        mostrarUltimoEscaneo(idx, isProductoVerificado(p) ? 'ok' : 'partial', '👆 Seleccionado de la lista');
+        document.getElementById('verifBottomPane')?.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+    // La lista se vuelve a dibujar cada vez que cambian las cantidades o el producto seleccionado
+    (() => {
+        const stats = actualizarStatsVerificador; actualizarStatsVerificador = function () { const r = stats.apply(this, arguments); renderListaVerifProgramado(); return r; };
+        const res = resaltarFilaVerificador; resaltarFilaVerificador = function () { const r = res.apply(this, arguments); renderListaVerifProgramado(); return r; };
+        const lim = limpiarBusquedaMultiple; limpiarBusquedaMultiple = function () { const r = lim.apply(this, arguments); renderListaVerifProgramado(); return r; };
+        const abr = abrirVerificador; abrirVerificador = function () { const r = abr.apply(this, arguments); renderListaVerifProgramado(); return r; };
+    })();
+
     // ---- EXPORTAR ----
     function exportarAExcel() {
         let csv = "Código de barras\tCantidad\tEstado\tProducto\tSeries / Observaciones\n";
@@ -4670,14 +4741,21 @@
             camMasBtn?.addEventListener('click', (ev) => {
                 ev.stopPropagation();
                 const abierto = camDropdown && camDropdown.style.display !== 'none';
-                if (camDropdown) camDropdown.style.display = abierto ? 'none' : 'flex';
+                if (camDropdown) {
+                    camDropdown.style.display = abierto ? 'none' : 'flex';
+                    if (!abierto) {   // se saca del panel de la cámara (que recorta lo que sobresale) y se le da toda la pantalla
+                        const modal = document.getElementById('verificadorModal'); if (modal && camDropdown.parentElement !== modal) modal.appendChild(camDropdown);
+                        const r = camMasBtn.getBoundingClientRect(), top = Math.round(r.bottom + 6);
+                        Object.assign(camDropdown.style, { position: 'fixed', top: top + 'px', right: '8px', left: 'auto', zIndex: '100000', maxHeight: (window.innerHeight - top - 12) + 'px', overflowY: 'auto' });
+                    }
+                }
                 camMasBtn.setAttribute('aria-expanded', abierto ? 'false' : 'true');
             });
             camDropdown?.addEventListener('click', (ev) => {
                 if (ev.target.closest('.cam-dropdown-item')) cerrarCamDropdown();
             });
             document.addEventListener('click', (ev) => {
-                if (camDropdown && camDropdown.style.display !== 'none' && !ev.target.closest('.cam-menu-wrap')) cerrarCamDropdown();
+                if (camDropdown && camDropdown.style.display !== 'none' && !ev.target.closest('.cam-menu-wrap, .cam-dropdown')) cerrarCamDropdown();
             });
             $('camCaptureInput')?.addEventListener('change', (e) => {
                 const file = e.target.files && e.target.files[0];
