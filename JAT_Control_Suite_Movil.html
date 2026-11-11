@@ -5607,13 +5607,14 @@ body.d-ind .status-badge.status-pendiente { background: #fef3c7; color: #b45309;
   const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const escribiendo = () => document.activeElement === inp && inp.getAttribute('inputmode') !== 'none' && modal.style.display === 'flex';
   let t = 0, tecladoVisto = false;
-  const ocultar = () => { sug.style.display = 'none'; sug.innerHTML = ''; };
+  let porVoz = false;   // lista abierta por dictado: sin teclado y sin esconder la cámara
+  const ocultar = () => { sug.style.display = 'none'; sug.innerHTML = ''; porVoz = false; };
   function ajustar() {
     const vv = window.visualViewport, alto = vv ? vv.height + vv.offsetTop : window.innerHeight;
     sug.style.maxHeight = Math.max(110, alto - inp.getBoundingClientRect().bottom - 16) + 'px';
   }
   function pintar() {
-    if (!escribiendo()) { ocultar(); return; }
+    if (!escribiendo() && !porVoz) { ocultar(); return; }
     const q = inp.value.trim();
     let html;
     if (!q) html = '<div class="nada">Escribe parte del nombre, el código o sus últimos dígitos.</div>';
@@ -5660,11 +5661,167 @@ body.d-ind .status-badge.status-pendiente { background: #fef3c7; color: #b45309;
     mostrarUltimoEscaneo(idx, isProductoVerificado(p) ? 'ok' : 'partial', '👆 Elegido de la búsqueda');
     document.getElementById('verifBottomPane')?.scrollTo({ top: 0 });
   });
+  // Dictado por voz: muestra la misma lista para elegir con el dedo
+  window.JATBusquedaVoz = function (q) {
+    if (modal.style.display !== 'flex') return false;
+    inp.value = q; porVoz = true; pintar(); sug.style.maxHeight = '45vh'; return true;
+  };
+  document.addEventListener('pointerdown', e => { if (porVoz && !sug.contains(e.target) && !e.target.closest('.vz-mic-fila')) ocultar(); }, true);
   const _cerrar = cerrarVerificador;
   cerrarVerificador = function () { window.JAT_ESCRIBIENDO = false; modal.classList.remove('vf-escribiendo'); ocultar(); return _cerrar.apply(this, arguments); };
 })();
 </script>
 
+<script>
+window.JAT_VOZ_CFG = {
+  selector: '#scannerInput, #iniBuscar, #kmBuscar, .js-buscar, #q, input[type=search]',
+  // En Revisar: un código dictado se busca como siempre; palabras muestran la lista para elegir
+  alDictar: (inp, t) => inp.id === 'scannerInput' && !/^\d+$/.test(t) && window.JATBusquedaVoz ? window.JATBusquedaVoz(t) : false
+};
+</script>
+<style id="jat-voz-teclado">
+/* Dictado por voz en los buscadores y teclado que no tapa la pantalla. Solo agrega; no cambia lo que ya funciona. */
+.vz-wrap { position: relative; display: block; min-width: 0; }
+.vz-wrap > input { width: 100% !important; padding-right: 50px !important; box-sizing: border-box; }
+.vz-mic { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 38px; height: 38px; border-radius: 12px; border: none; background: #13233b; color: #d9ad5b; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; z-index: 2; }
+.vz-mic svg { width: 20px; height: 20px; }
+.vz-mic.escuchando, .vz-mic-fila.escuchando { background: #e0503f; color: #fff; animation: vzLatido 1s ease-in-out infinite; }
+@keyframes vzLatido { 50% { opacity: .55; } }
+body:not(.d-mar):not(.d-ind) .vz-mic { background: #eef2f7; color: #1a3a5c; }
+.vz-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.vz-fila > .scanner-input-wrapper { flex: 1 1 0; min-width: 0; }
+.vz-fila > #vlSug { flex-basis: 100%; }
+.vz-mic-fila { flex: none; width: 48px; height: 48px; border-radius: 14px; border: 1px solid var(--m-bd, var(--border-color, #dce3ea)); background: var(--m-sf, var(--bg-surface, #fff)); color: var(--mar-oro-tx, #1a3a5c); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
+.vz-mic-fila svg { width: 22px; height: 22px; }
+.vz-aviso { position: fixed; left: 50%; top: calc(70px + env(safe-area-inset-top)); transform: translateX(-50%); z-index: 99999; background: #0a1322; color: #fff; border: 1px solid #d9ad5b; border-radius: 14px; padding: 10px 16px; font: 600 .9rem Inter, system-ui, sans-serif; max-width: 88vw; text-align: center; display: none; pointer-events: none; }
+/* Con el teclado abierto se esconden las barras fijas de abajo para que no tapen lo que escribes */
+body.kb-abierto .js-tabs, body.kb-abierto .js-fab, body.kb-abierto .jat-gatillo, body.kb-abierto .jat-fab-mas, body.kb-abierto #jatNav, body.kb-abierto .jat-fab-ini { display: none !important; }
+body.kb-abierto.js-shell { padding-bottom: 0 !important; }
+body.kb-abierto.js-shell .js-capa.on { bottom: 0 !important; }
+body.kb-abierto #mainContent.content-area { overflow-y: auto !important; -webkit-overflow-scrolling: touch; }
+</style>
+<script>
+(function () {
+  const MIC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const NUM = { cero: '0', uno: '1', una: '1', dos: '2', tres: '3', cuatro: '4', cinco: '5', seis: '6', siete: '7', ocho: '8', nueve: '9' };
+  const cfg = window.JAT_VOZ_CFG || {};
+  let aviso = null, tAviso = 0;
+  function avisar(t, ms) {
+    if (!aviso) { aviso = document.createElement('div'); aviso.className = 'vz-aviso'; document.body.appendChild(aviso); }
+    aviso.textContent = t; aviso.style.display = 'block'; clearTimeout(tAviso); tAviso = setTimeout(() => aviso.style.display = 'none', ms || 2600);
+  }
+  function limpiar(t) {
+    t = (t || '').trim();
+    const pal = t.toLowerCase().split(/\s+/);
+    if (pal.length && pal.every(w => NUM[w] !== undefined || /^\d+$/.test(w))) t = pal.map(w => NUM[w] ?? w).join('');
+    const c = t.replace(/[\s\-.]/g, '');
+    return /^\d+$/.test(c) ? c : t;
+  }
+  // Dictar: escucha, escribe lo que dijiste en el campo y lo busca. El teclado no se abre.
+  function dictar(inp, btn) {
+    if (!SR) { avisar('Este navegador no permite dictar. Ábrelo en Google Chrome.', 3500); return; }
+    const r = new SR(); r.lang = 'es-EC'; r.interimResults = true; r.maxAlternatives = 1;
+    let final = '';
+    btn.classList.add('escuchando'); avisar('🎤 Habla ahora: el código o el nombre', 8000);
+    r.onresult = ev => {
+      let txt = ''; for (let i = 0; i < ev.results.length; i++) { txt += ev.results[i][0].transcript; if (ev.results[i].isFinal) final = txt; }
+      avisar('🎤 ' + txt, 8000);
+    };
+    r.onerror = ev => avisar(ev.error === 'not-allowed' ? 'Permite el micrófono para poder dictar' : ev.error === 'network' ? 'El dictado necesita internet' : 'No se entendió. Intenta de nuevo.', 3000);
+    r.onend = () => {
+      btn.classList.remove('escuchando');
+      const t = limpiar(final); if (!t) { if (aviso && /Habla ahora/.test(aviso.textContent)) aviso.style.display = 'none'; return; }
+      avisar('🎤 Dijiste: ' + t, 2500);
+      if (cfg.alDictar && cfg.alDictar(inp, t)) return;
+      inp.value = t;
+      inp.dispatchEvent(new Event('input', { bubbles: true }));
+      inp.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+    try { r.start(); } catch (_) { btn.classList.remove('escuchando'); }
+  }
+  function boton(clase) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = clase; b.setAttribute('aria-label', 'Dictar por voz'); b.innerHTML = MIC;
+    b.addEventListener('pointerdown', e => e.preventDefault());   // que no abra el teclado
+    return b;
+  }
+  function ponerMic(inp) {
+    if (!inp || inp.dataset.vz || inp.type === 'hidden' || inp.disabled || inp.readOnly) return;
+    inp.dataset.vz = '1';
+    const fila = inp.parentElement && inp.parentElement.classList.contains('scanner-input-wrapper') ? inp.parentElement.parentElement : null;
+    if (fila && fila.classList.contains('scanner-section')) {          // buscador del verificador: botón al lado
+      fila.classList.add('vz-fila');
+      const b = boton('vz-mic-fila'); fila.insertBefore(b, inp.parentElement.nextSibling);
+      b.addEventListener('click', () => dictar(inp, b)); return;
+    }
+    const doc = inp.ownerDocument, w = doc.createElement('span'); w.className = 'vz-wrap';
+    const cs = doc.defaultView.getComputedStyle(inp), padre = doc.defaultView.getComputedStyle(inp.parentElement);
+    if (/flex/.test(padre.display) && !/column/.test(padre.flexDirection)) w.style.flex = cs.flex && cs.flex !== '0 1 auto' ? cs.flex : '1 1 auto'; else { w.style.width = '100%'; w.style.flex = 'none'; }
+    if (cs.marginTop !== '0px' || cs.marginBottom !== '0px') { w.style.marginTop = cs.marginTop; w.style.marginBottom = cs.marginBottom; inp.style.margin = '0'; }
+    inp.parentNode.insertBefore(w, inp); w.appendChild(inp);
+    const b = boton('vz-mic'); w.appendChild(b);
+    b.addEventListener('click', () => dictar(inp, b));
+  }
+  function buscar(doc) {
+    try { (cfg.selector ? doc.querySelectorAll(cfg.selector) : []).forEach(i => { if (!cfg.excluir || !i.matches(cfg.excluir)) ponerMic(i); }); } catch (_) {}
+  }
+
+  // ---------- Teclado que no tapa ----------
+  let alto = window.innerHeight;
+  const esCampo = el => el && (el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && !/^(checkbox|radio|range|button|submit|file|color)$/.test(el.type))) && el.getAttribute('inputmode') !== 'none';
+  function activo() { let a = document.activeElement; try { while (a && a.tagName === 'IFRAME') a = a.contentDocument.activeElement; } catch (_) {} return a; }
+  function revisarTeclado() {
+    const vv = window.visualViewport, h = vv ? vv.height : window.innerHeight;
+    if (!esCampo(activo())) alto = Math.max(alto, window.innerHeight, h);
+    const abierto = esCampo(activo()) && h < alto - 120;
+    document.body.classList.toggle('kb-abierto', abierto);
+    if (abierto) mostrarCampo(); else quitarRellenos();
+  }
+  let tCampo = 0; const rellenos = new Map();
+  function scroller(el) {
+    const doc = el.ownerDocument, win = doc.defaultView;
+    for (let p = el.parentElement; p && p !== doc.body; p = p.parentElement) {
+      const c = win.getComputedStyle(p);
+      if (/(auto|scroll)/.test(c.overflowY) && p.scrollHeight > p.clientHeight + 4) return p;
+      if (/(auto|scroll)/.test(c.overflowY) && c.position !== 'static' && p.clientHeight > 100) return p;
+    }
+    return doc.scrollingElement || doc.documentElement;
+  }
+  // Sube el campo donde tocaste hasta el tercio de arriba de lo que queda visible sobre el teclado
+  function mostrarCampo() {
+    clearTimeout(tCampo);
+    tCampo = setTimeout(() => {
+      const a = activo(); if (!esCampo(a)) return;
+      if (a.id === 'scannerInput' && window.JAT_ESCRIBIENDO) return;   // el verificador ya acomoda su pantalla
+      const vv = window.visualViewport, vTop = vv ? vv.offsetTop : 0, vH = vv ? vv.height : window.innerHeight;
+      let top = a.getBoundingClientRect().top;
+      const doc = a.ownerDocument;
+      if (doc !== document) { const f = [...document.querySelectorAll('iframe')].find(x => { try { return x.contentDocument === doc; } catch (_) { return false; } }); if (f) top += f.getBoundingClientRect().top; }
+      const meta = vTop + vH * 0.28, delta = top - meta;
+      if (Math.abs(delta) < 24) return;
+      const sc = scroller(a), kb = Math.max(0, window.innerHeight - vH);
+      if (!rellenos.has(sc)) { rellenos.set(sc, sc.style.paddingBottom); sc.style.paddingBottom = (kb + 60) + 'px'; }
+      try { sc.scrollBy({ top: delta, behavior: 'smooth' }); } catch (_) { sc.scrollTop += delta; }
+    }, 150);
+  }
+  function quitarRellenos() { rellenos.forEach((v, el) => { el.style.paddingBottom = v; }); rellenos.clear(); }
+  function vigilarDoc(doc) {
+    if (doc !== document && !doc.getElementById('jat-voz-teclado')) { const st = document.getElementById('jat-voz-teclado'); if (st) doc.head.appendChild(st.cloneNode(true)); }
+    doc.addEventListener('focusin', e => { if (esCampo(e.target)) { setTimeout(revisarTeclado, 350); setTimeout(mostrarCampo, 400); } }, true);
+    doc.addEventListener('focusout', () => setTimeout(revisarTeclado, 120), true);
+    buscar(doc);
+    new MutationObserver(() => buscar(doc)).observe(doc.body, { childList: true, subtree: true });
+  }
+  if (window.visualViewport) visualViewport.addEventListener('resize', revisarTeclado);
+  window.addEventListener('resize', revisarTeclado);
+  vigilarDoc(document);
+  // Ventanas dentro de la app (Sacar)
+  const marcos = new WeakSet();
+  function vigilarMarcos() { document.querySelectorAll('iframe').forEach(f => { if (marcos.has(f)) return; marcos.add(f); const ok = () => { try { if (f.contentDocument && f.contentDocument.body) vigilarDoc(f.contentDocument); } catch (_) {} }; f.addEventListener('load', ok); ok(); }); }
+  new MutationObserver(vigilarMarcos).observe(document.body, { childList: true, subtree: true }); vigilarMarcos();
+  window.JATVoz = { dictar, avisar };
+})();
+</script>
 <style id="jat-respaldo">
 .resp-fila { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid var(--m-bd, var(--border-color, #e3e9ef)); border-radius: 14px; background: var(--m-sf, var(--bg-surface, #fff)); color: var(--m-tx, var(--text-main, #1a3a5c)); font-size: .8rem; }
 .resp-fila .resp-ico { display: flex; color: #2fbf86; }

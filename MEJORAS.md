@@ -35,6 +35,13 @@ Esta regla también está en la "Bitácora JAT Control Suite".
       resultados, y no se selecciona ni se guarda nada hasta elegir.
 - [ ] **Que no se trabe**: la cámara no lee códigos ni texto mientras se escribe; nada de
       animaciones que repinten la cámara (el marco verde anima solo la opacidad).
+- [ ] **Dictado por voz (🎤) en los buscadores**: Revisar (botón al lado del campo; un código dictado se
+      busca como siempre, palabras muestran la lista para elegir con el dedo), Inicio, Kardex y Sacar
+      (micrófono dentro del campo). En Venta: Revisión, Kardex, Bodega y demás buscadores; el verificador
+      de Venta ya tenía 🎤, 🔢 y ⌨️. Dictar no abre el teclado. Necesita internet (Chrome).
+- [ ] **El teclado no tapa la pantalla**: al tocar un campo, con el teclado abierto se esconden las
+      pestañas, el ＋ y el gatillo, y el campo sube al tercio de arriba de lo visible (también dentro de
+      Sacar). Al cerrar el teclado todo vuelve como estaba.
 - [ ] Lectura de texto (OCR) para productos sin código de barras.
 - [ ] Voz, sonido y vibración distintos por caso (correcto, repetido, no encontrado, completo).
 - [ ] Aviso de producto repetido y de "ya está completo".
@@ -135,3 +142,5 @@ Ya pasadas: categorías grandes de bodega en Salida (11 nov 2026).
 - 2026-11-11: regla fija 3: todo tiene que tener respaldo (también en proyectos futuros). Respaldo
   automático a Descargas en Personal y Venta, con botón "Respaldar ahora". Diseño Marino (azul marino y
   dorado) en todas las ventanas de Personal y en Venta, con pantalla clara y oscura.
+- 2026-11-11: dictado por voz en todos los buscadores y teclado que no tapa la pantalla, en Personal
+  (incluido Sacar) y en Venta.
