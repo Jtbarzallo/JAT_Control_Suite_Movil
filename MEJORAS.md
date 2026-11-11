@@ -17,7 +17,7 @@ Jorge se agrega aquí el mismo día.
 
 Esta regla también está en la "Bitácora JAT Control Suite".
 
-## En todas las pantallas con escáner (Revisar, Sacar, Revisión de Mercadería, Venta)
+## En todas las pantallas con escáner (Revisar, Sacar, Revisión de Mercadería, Venta; en PC lo que aplique, ver "Versión de PC")
 
 - [ ] **Gatillo disparador**: botón rojo ESCANEAR; la cámara lee solo mientras se aprieta,
       un producto por apretón; toque corto = 2,5 s. Opción de cambiar a lectura continua.
@@ -115,6 +115,34 @@ Esta regla también está en la "Bitácora JAT Control Suite".
 - [ ] Se pide a Chrome que no borre los datos de la app (`navigator.storage.persist`).
 - [ ] El kardex no va en el respaldo: se recarga desde el Excel de inventario, que es su respaldo.
 
+## Versión de PC (`JAT_Control_Suite_PC.html`, antes VERIFICADOR_DE_EGRESOS_VOZ_3_3)
+
+Programa de escritorio (menú lateral, escáner de pistola USB, atajos de teclado). Las mejoras del
+celular que sirven en PC están en dos bloques al final del archivo: `<style id="jat-verif-extras">`
+(compartido con Venta) y `<style id="jat-pc-extras">`. No cambian IDs ni funciones: solo envuelven.
+
+- [ ] **Filtros Pendientes / Revisados / Todos con contador** (en "Ver tabla").
+- [ ] **Buscar escribiendo**: al escribir un nombre o parte del código sale la lista de coincidencias;
+      con clic se elige, ENTER suma. Las flechas ← → siguen navegando y marcan la fila de la lista.
+      Un código completo de pistola no abre lista.
+- [ ] **Dictado por voz** 🎤 en el buscador del verificador (también con **F8**), en "Filtrar tabla" y
+      en "Buscar egresos". Necesita internet (Chrome o Edge).
+- [ ] **Pantalla clara / oscura**: botón en la barra de abajo y en Ajustes; se recuerda (`jat_pc_tema`).
+      Las cartas y actas siguen en blanco para imprimir.
+- [ ] **Egreso en curso**: en la barra lateral, anillo de avance, unidades, siguiente pendiente y botón
+      "Continuar revisión". En Nuevo egreso, tarjeta "En curso" con el último egreso sin terminar.
+- [ ] **Respaldo (regla 3)**: archivo `JAT_PC_respaldo_auto_FECHA.hat` con todos los egresos, cartas
+      de constancia y actas UCACUE. Va a la carpeta de trabajo › Backups si está conectada; si no, a
+      Descargas. Cuándo: egreso nuevo, egreso completo, cada 4 h con cambios, primera vez con datos.
+      "Respaldar ahora" en Archivo, en Ajustes y en la barra de abajo ("Último respaldo: …", en rojo si
+      tiene más de 24 h). Archivo → **Recuperar respaldo** trae todos los egresos que falten sin pisar
+      los que ya están. `navigator.storage.persist`.
+- [ ] Ya tenía y se conserva: hora de marcado, aviso de repetido, voz por caso, conteo rápido
+      (F4/F9/Insert, CÓDIGO*cantidad), deshacer, cierre seguro, guardado en carpeta OneDrive, OneView,
+      cartas de constancia y actas UCACUE.
+- No aplica en PC: gatillo, cámara, OCR, teclado del celular, botón ＋. Kardex, ubicaciones y
+  categorías de bodega quedan en el celular (Sacar).
+
 ## Versiones
 
 - [ ] La versión de venta no lleva datos de Tecnodigi, UCACUE, OneView ni cartas de constancia.
@@ -125,12 +153,13 @@ Esta regla también está en la "Bitácora JAT Control Suite".
 
 Mejoras de la versión personal que todavía no están en `JAT_Control_Suite_Venta.html`:
 
-- [ ] Filtros Pendientes / **Sacados** / Todos en Salida (Venta solo tiene Pendientes y Todos)
-      y Pendientes / **Revisados** / Todos en Revisar.
-- [ ] Hora de marcado (🕒 HH:MM) en cada producto contado o sacado.
-- [ ] Buscar escribiendo con lista de coincidencias para elegir con el dedo.
+- [ ] Filtros Pendientes / **Sacados** / Todos en Salida (Venta solo tiene Pendientes y Todos).
+- [ ] Hora de marcado (🕒 HH:MM) en cada producto **sacado** (Salida).
 
-Ya pasadas: categorías grandes de bodega en Salida (11 nov 2026).
+Ya pasadas: categorías grandes de bodega en Salida (11 nov 2026). En el verificador de Venta
+(11 nov 2026, junto con la versión de PC): Pendientes / Revisados / Todos con contador, hora de
+marcado en cada producto contado y buscar escribiendo con lista para elegir con el dedo
+(bloque `jat-verif-extras`, el mismo de PC).
 
 ## Historial de esta lista
 
@@ -152,3 +181,7 @@ Ya pasadas: categorías grandes de bodega en Salida (11 nov 2026).
 - 2026-11-11: dictado por voz en todos los buscadores y teclado que no tapa la pantalla, en Personal
   (incluido Sacar) y en Venta.
 - 2026-11-11: Kardex agrupado por categorías grandes de bodega, con chips, en Personal y Venta.
+- 2026-11-11: versión de PC subida al repositorio (`JAT_Control_Suite_PC.html`, PC 3.4) con las mejoras
+  del celular que sirven en PC: filtros con contador, buscar escribiendo, dictado (F8), pantalla
+  oscura, egreso en curso y respaldo automático. Por la regla 1, el verificador de Venta recibió
+  filtros con contador, hora de marcado y buscar escribiendo.

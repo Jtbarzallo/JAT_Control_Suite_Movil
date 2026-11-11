@@ -8579,5 +8579,162 @@ body.d-mar.d-osc .modal-content { background: var(--m-sf); color: var(--m-tx); }
 })();
 </script>
 
+<!-- ===== Verificador (11 nov 2026, desde la versión de PC): Pendientes / Revisados / Todos con contador, hora de marcado y buscar escribiendo ===== -->
+<script>window.JAT_VERIF_CFG = { enfocar: false, textoElegido: 'Elegido. Toca +1 (o ENTER) para sumar.' };</script>
+<style id="jat-verif-extras">
+/* Verificador: filtros con contador, hora de marcado y lista de coincidencias. Solo agrega; no cambia lo que ya funciona. */
+.filter-chips .chip .chip-n { display: inline-block; min-width: 18px; margin-left: 4px; padding: 0 6px; border-radius: 999px; background: rgba(10,46,85,.10); font-size: .68rem; text-align: center; }
+.filter-chips .chip.active .chip-n { background: rgba(255,255,255,.25); }
+.jat-hora { font-size: .66rem; color: #475569; margin-top: 3px; white-space: nowrap; }
+.scanner-input-wrapper { position: relative; }
+.jat-sug { position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 60; background: #fff; border: 1px solid #c99a4a; border-radius: 14px; box-shadow: 0 16px 40px rgba(6,27,52,.22); max-height: min(360px, 55vh); overflow-y: auto; padding: 4px; }
+.jat-sug[hidden] { display: none; }
+.jat-sug .jat-sug-t { font-size: .68rem; color: #64748b; padding: 6px 10px; }
+.jat-sug button { display: flex; gap: 10px; align-items: center; width: 100%; text-align: left; border: 0; background: transparent; padding: 8px 10px; border-radius: 10px; cursor: pointer; font: inherit; font-size: .84rem; color: #172033; }
+.jat-sug button .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+@media (max-width: 700px) { .jat-sug { right: auto; width: min(94vw, 560px); } .jat-sug button .n { white-space: normal; } }
+.jat-sug button:hover, .jat-sug button.on { background: #fff3d6; }
+.jat-sug button .c { font-family: 'Fira Code', 'JetBrains Mono', Consolas, monospace; font-size: .76rem; color: #0a2e55; font-weight: 700; }
+.jat-sug button .n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jat-sug button .q { flex: none; font-weight: 800; color: #b45309; font-size: .8rem; }
+.jat-sug button.ok { opacity: .6; }
+.jat-sug button.ok .q { color: #16a34a; }
+</style>
+<script>
+/* ===== Verificador: Pendientes / Revisados / Todos con contador, hora de marcado y buscar escribiendo =====
+   - Los filtros salen en orden Pendientes, Revisados, Todos y cada uno con su contador.
+   - Cada producto contado muestra la hora (🕒 HH:MM) en que se marcó (si la pantalla no la mostraba ya).
+   - Al escribir un nombre o parte de un código sale la lista de coincidencias para elegir con el clic o el dedo.
+     Elegir solo selecciona el producto; no se suma nada hasta presionar ENTER (o +1).
+   Configuración: window.JAT_VERIF_CFG = { enfocar: true, textoElegido: '...' }  (enfocar true en PC: el buscador conserva el foco) */
+(function () {
+  if (typeof renderVerificadorTabla !== 'function' || typeof findAllProductsBySearchTerm !== 'function') return;
+  const cfg = window.JAT_VERIF_CFG || {};
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const fq = n => (typeof formatearQty === 'function' ? formatearQty(n) : String(n));
+  const hhmm = iso => { try { return new Date(iso).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', hour12: false }); } catch (_) { return ''; } };
+
+  // ---------- Filtros con contador ----------
+  const NOMBRE = { pendientes: 'Pendientes', verificados: 'Revisados', todos: 'Todos' };
+  function chips() {
+    const todos = document.querySelector('.filter-chips .chip[data-filter="todos"]');
+    const cont = todos && todos.parentElement;
+    if (!cont) return;
+    const ch = {};
+    cont.querySelectorAll('.chip[data-filter]').forEach(c => { ch[c.dataset.filter] = c; });
+    if (!ch.todos) return;
+    if (!cont.dataset.jatOrden) {
+      cont.dataset.jatOrden = '1';
+      ['todos', 'verificados', 'pendientes'].forEach(f => { if (ch[f]) cont.insertBefore(ch[f], cont.firstChild); });
+    }
+    const n = { pendientes: 0, verificados: 0, todos: (currentProductos || []).length };
+    (currentProductos || []).forEach(p => { if (isProductoVerificado(p)) n.verificados++; else n.pendientes++; });
+    Object.keys(NOMBRE).forEach(f => {
+      if (!ch[f]) return;
+      const html = `${NOMBRE[f]} <b class="chip-n">${n[f]}</b>`;
+      if (ch[f].innerHTML !== html) ch[f].innerHTML = html;
+    });
+  }
+
+  // ---------- Hora de marcado en cada fila ----------
+  function horaFila(tr) {
+    const p = (currentProductos || [])[parseInt(tr.dataset.index, 10)];
+    if (!p) return;
+    const badge = tr.querySelector('.status-badge');
+    const td = badge && badge.closest('td');
+    if (!td || td.textContent.indexOf('🕒') !== -1) return;   // la pantalla ya la muestra
+    const m = (p.historialMovimientos || []).filter(x => (x.cantidadSumada || 0) > 0);
+    if (!m.length) return;
+    td.insertAdjacentHTML('beforeend', `<div class="jat-hora">🕒 ${hhmm(m[m.length - 1].fecha)}${m.length > 1 ? ' · ' + m.length + ' marcas' : ''}</div>`);
+  }
+  function horas() { document.querySelectorAll('#verificadorTableBody tr[data-index]').forEach(horaFila); }
+
+  const _render = renderVerificadorTabla;
+  renderVerificadorTabla = function () {
+    const r = _render.apply(this, arguments);
+    try { chips(); horas(); } catch (e) { console.warn('verif-extras', e); }
+    return r;
+  };
+  if (typeof actualizarFilaVerificador === 'function') {
+    const _fila = actualizarFilaVerificador;
+    actualizarFilaVerificador = function (idx) {
+      const r = _fila.apply(this, arguments);
+      try { chips(); const tr = document.querySelector(`#verificadorTableBody tr[data-index="${idx}"]`); if (tr) horaFila(tr); } catch (_) {}
+      return r;
+    };
+  }
+
+  // ---------- Buscar escribiendo: lista para elegir ----------
+  const inp = document.getElementById('scannerInput');
+  if (!inp) return;
+  const caja = inp.closest('.scanner-input-wrapper') || inp.parentElement;
+  const box = document.createElement('div');
+  box.id = 'jatSug'; box.className = 'jat-sug'; box.hidden = true;
+  box.setAttribute('role', 'listbox');
+  caja.appendChild(box);
+  let t = 0;
+
+  function ocultar() { clearTimeout(t); box.hidden = true; box.innerHTML = ''; }
+  function mostrar() {
+    const v = inp.value.trim();
+    // Un código completo de escáner no necesita lista: se busca como siempre
+    if (!v || /^\d{8,}$/.test(v) || !(currentProductos || []).length) return ocultar();
+    let res = findAllProductsBySearchTerm(v);
+    if (res.length < 2) return ocultar();
+    res = res.slice().sort((a, b) => (isProductoVerificado(currentProductos[a.index]) ? 1 : 0) - (isProductoVerificado(currentProductos[b.index]) ? 1 : 0));
+    const MAX = 12, lista = res.slice(0, MAX);
+    box.innerHTML = `<div class="jat-sug-t">${res.length} coincidencias — elige una</div>` + lista.map(r => {
+      const p = currentProductos[r.index], ok = isProductoVerificado(p);
+      return `<button type="button" role="option" data-i="${r.index}" class="${ok ? 'ok' : ''}${r.index === currentSelectedIndex ? ' on' : ''}"><span class="tx"><span class="c">${esc(p.barcode)}</span><span class="n">${esc(p.productName)}</span></span><span class="q">${ok ? '✓ ' : ''}${fq(getVerifiedQty(p))}/${fq(getExpectedQty(p))}</span></button>`;
+    }).join('') + (res.length > MAX ? `<div class="jat-sug-t">… y ${res.length - MAX} más. Escribe más letras para acortar la lista.</div>` : '');
+    box.hidden = false;
+  }
+  function marcarOn() {
+    if (box.hidden) return;
+    box.querySelectorAll('button[data-i]').forEach(b => {
+      const on = parseInt(b.dataset.i, 10) === currentSelectedIndex;
+      b.classList.toggle('on', on);
+      if (on) b.scrollIntoView({ block: 'nearest' });
+    });
+  }
+  function elegir(i) {
+    ocultar();
+    if (!currentProductos[i]) return;
+    const p = currentProductos[i];
+    currentMultipleResults = [i];
+    currentMultiplePosition = 0;
+    currentSelectedIndex = i;
+    inp.value = p.barcode;
+    resaltarFilaVerificador(i);
+    const div = document.getElementById('searchStatusVerif');
+    if (div) {
+      div.style.display = 'flex';
+      div.innerHTML = isProductoVerificado(p)
+        ? `<span>✅ <strong>${esc(p.barcode)}</strong> — ${esc(String(p.productName).substring(0, 70))}<br><small>Este producto ya está completo.</small></span>`
+        : `<span>👉 <strong>${esc(p.barcode)}</strong> — ${esc(String(p.productName).substring(0, 70))}<br><small>${esc(cfg.textoElegido || 'Elegido. Presiona ENTER para sumar 1 (F4 para conteo rápido).')}</small></span>`;
+    }
+    if (cfg.enfocar) { try { inp.focus({ preventScroll: true }); } catch (_) {} }
+  }
+
+  inp.addEventListener('input', () => { clearTimeout(t); t = setTimeout(mostrar, 150); });
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === 'Escape') ocultar();
+    else if (/^Arrow|^F3$/.test(e.key)) setTimeout(marcarOn, 0);
+  });
+  inp.addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== inp) ocultar(); }, 250));
+  box.addEventListener('pointerdown', e => e.preventDefault());   // no quita el foco ni abre el teclado
+  box.addEventListener('mousedown', e => e.preventDefault());
+  box.addEventListener('click', e => {
+    const b = e.target.closest('button[data-i]');
+    if (b) elegir(parseInt(b.dataset.i, 10));
+  });
+  if (typeof cerrarVerificador === 'function') {
+    const _cerrar = cerrarVerificador;
+    cerrarVerificador = function () { ocultar(); return _cerrar.apply(this, arguments); };
+  }
+  window.JATVerifExtras = { chips, horas, mostrar, ocultar, elegir };
+})();
+</script>
+
 </body>
 </html>
