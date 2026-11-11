@@ -8092,5 +8092,257 @@ window.JATShell = (function () {
     [['cargarVistaMisEgresos', 'revision'], ['cargarVistaIngreso', 'ingreso'], ['cargarVistaFacturas', 'ingreso'], ['cargarVistaProveedores', 'ingreso'], ['cargarVistaKardex', 'kardex'], ['cargarVistaEtiquetas', 'kardex'], ['cargarVistaUbicaciones', 'bodega'], ['cargarVistaMas', 'menu']].forEach(([n, t]) => marcarCon(n, t));
 })();
 </script>
+<style id="jat-respaldo">
+.resp-fila { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid var(--m-bd, var(--border-color, #e3e9ef)); border-radius: 14px; background: var(--m-sf, var(--bg-surface, #fff)); color: var(--m-tx, var(--text-main, #1a3a5c)); font-size: .8rem; }
+.resp-fila .resp-ico { display: flex; color: #2fbf86; }
+.resp-fila .resp-txt { flex: 1; min-width: 0; color: var(--m-mu, var(--text-muted, #6b7c8f)); }
+.resp-fila .resp-btn { border: 1px solid var(--border-color, #cfd9e3); background: transparent; color: var(--text-main, #1a3a5c); border-radius: 10px; padding: 8px 10px; font: inherit; font-weight: 700; font-size: .78rem; cursor: pointer; white-space: nowrap; }
+body.d-mar .resp-fila .resp-btn { border-color: var(--mar-oro); color: var(--mar-oro-tx); }
+</style>
+<script>
+/* ===== JAT Respaldo: regla fija "todo tiene que tener respaldo" =====
+   Los datos viven en la memoria de Chrome, que se borra si desinstalas la app o borras los datos.
+   Este módulo baja solo un archivo de respaldo a Descargas cuando:
+   - entra un egreso nuevo (por ejemplo, el PDF que descargaste por primera vez),
+   - un egreso queda completo,
+   - hay cambios y el último respaldo tiene más de 4 horas.
+   No cambia nada de lo que ya funciona: solo lee los datos guardados y los copia a un archivo. */
+window.JATRespaldo = function (cfg) {
+  const K_ULT = cfg.clave + '_ultimo', K_EST = cfg.clave + '_estado';
+  const leer = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (_) { return d; } };
+  const poner = (k, v) => { try { _set.call(localStorage, k, v); } catch (_) {} };
+  const HORAS = 4, ESPERA = 4000;
+  let cambios = false, t = 0;
+
+  // Que Chrome no borre los datos de la app cuando falte espacio
+  try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (_) {}
+
+  // Avisa de cambios sin tocar el código que guarda: se mira cada escritura en la memoria
+  const _set = Storage.prototype.setItem;
+  Storage.prototype.setItem = function (k, v) {
+    const r = _set.apply(this, arguments);
+    try { if (this === localStorage && cfg.incluir(k) && !String(k).startsWith(cfg.clave)) { cambios = true; clearTimeout(t); t = setTimeout(revisar, ESPERA); } } catch (_) {}
+    return r;
+  };
+
+  function estado() {
+    const lista = (cfg.egresos() || []);
+    return { n: lista.length, completos: lista.filter(cfg.completo).length, ids: lista.map(cfg.id).filter(Boolean) };
+  }
+  function datos() {
+    const d = {};
+    for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && cfg.incluir(k) && !k.startsWith(cfg.clave)) d[k] = localStorage.getItem(k); }
+    return d;
+  }
+  function nombre(auto) {
+    const f = new Date(), p = n => String(n).padStart(2, '0');
+    return cfg.archivo + (auto ? '_auto_' : '_') + f.getFullYear() + '-' + p(f.getMonth() + 1) + '-' + p(f.getDate()) + '_' + p(f.getHours()) + '-' + p(f.getMinutes()) + cfg.extension;
+  }
+  function contenido() { return JSON.stringify(cfg.armar(datos())); }
+  function bajar(nom, texto) {
+    const url = URL.createObjectURL(new Blob([texto], { type: 'application/json' }));
+    const a = document.createElement('a'); a.href = url; a.download = nom; a.style.display = 'none';
+    document.body.appendChild(a); a.click(); setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 4000);
+  }
+  function marcar(motivo) {
+    const e = estado();
+    poner(K_ULT, JSON.stringify({ t: Date.now(), motivo }));
+    poner(K_EST, JSON.stringify(e));
+    cambios = false;
+    try { cfg.alGuardar && cfg.alGuardar(); } catch (_) {}
+  }
+  function respaldarAuto(motivo) {
+    try { bajar(nombre(true), contenido()); marcar(motivo); if (cfg.aviso) cfg.aviso('💾 Respaldo guardado en Descargas (' + motivo + ')'); } catch (e) { console.warn('respaldo', e); }
+  }
+  function revisar() {
+    if (cfg.listo && !cfg.listo()) return;
+    const ahora = estado();
+    let antes = null; try { antes = JSON.parse(leer(K_EST, 'null')); } catch (_) {}
+    const ult = ultimo();
+    if (!antes) { if (ahora.n) respaldarAuto('primer respaldo'); else poner(K_EST, JSON.stringify(ahora)); return; }
+    const nuevos = ahora.ids.filter(id => !(antes.ids || []).includes(id));
+    if (nuevos.length) return respaldarAuto(nuevos.length === 1 ? 'egreso nuevo' : nuevos.length + ' egresos nuevos');
+    if (ahora.completos > (antes.completos || 0)) return respaldarAuto('egreso completo');
+    if (cambios && (!ult || Date.now() - ult.t > HORAS * 3600e3)) return respaldarAuto('cambios del día');
+  }
+  function ultimo() { try { return JSON.parse(leer(K_ULT, 'null')); } catch (_) { return null; } }
+  function texto() {
+    const u = ultimo(); if (!u) return 'Sin respaldo todavía';
+    const d = new Date(u.t), hoy = new Date(), ayer = new Date(Date.now() - 864e5);
+    const h = d.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
+    const dia = d.toDateString() === hoy.toDateString() ? 'hoy' : d.toDateString() === ayer.toDateString() ? 'ayer' : d.toLocaleDateString('es-EC', { day: 'numeric', month: 'short' });
+    return 'Último respaldo: ' + dia + ' ' + h;
+  }
+  // Botón "Respaldar ahora": se puede mandar a OneDrive, Drive, WhatsApp o correo
+  async function ahora() {
+    const nom = nombre(false), txt = contenido();
+    try {
+      const f = new File([txt], nom, { type: 'application/json' });
+      if (navigator.canShare && navigator.canShare({ files: [f] })) {
+        await navigator.share({ files: [f], title: nom, text: 'Respaldo de ' + cfg.app });
+        marcar('respaldo manual'); return true;
+      }
+    } catch (e) { if (e && e.name === 'AbortError') return false; }
+    bajar(nom, txt); marcar('respaldo manual');
+    if (cfg.aviso) cfg.aviso('💾 Respaldo guardado en Descargas. Súbelo a OneDrive o envíatelo por correo.');
+    return true;
+  }
+  setTimeout(revisar, 6000);
+  return { ahora, texto, ultimo, revisar };
+};
+
+(function () {
+  const UI = /^jatv_(sesion|login_intentos|keypad_on|menu_abiertas|disparador|hat_voice_enabled|jat_auto_ocr|hat_last_change_text|hat_last_saved_file|hat_last_local_snapshot)$/;
+  const completo = e => { const ev = e.estadoVerificacion || {}; if (ev.total) return (ev.verificados || 0) >= ev.total;
+    return Array.isArray(e.productos) && e.productos.length > 0 && e.productos.every(p => p.verified); };
+  const R = JATRespaldo({
+    app: 'JAT Control Suite', clave: 'jatv_respaldo', archivo: 'JAT_copia', extension: '.json',
+    incluir: k => k.startsWith('jatv_') && !UI.test(k),
+    listo: () => typeof egresosGuardados !== 'undefined' && document.documentElement.classList.contains('jat-sesion-ok'),
+    egresos: () => egresosGuardados,
+    completo,
+    id: e => String(e.secuencial || e.id || e.nombre || ''),
+    // Mismo formato que "Restaurar una copia" del menú Más
+    armar: d => ({ app: 'JAT Control Suite', fecha: new Date().toISOString(), datos: d }),
+    aviso: m => { try { showAlert(m, 'success'); } catch (_) {} },
+    alGuardar: () => document.querySelectorAll('.resp-txt').forEach(s => s.textContent = R.texto())
+  });
+  window.JATRespaldoVenta = R;
+  const ICO = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></svg>';
+  const fila = () => `<div class="resp-fila" id="respFila" style="flex:none"><span class="resp-ico">${ICO}</span><span class="resp-txt">${R.texto()}</span><button type="button" class="resp-btn">Respaldar ahora</button></div>`;
+  function poner(antesDe) {
+    if (!antesDe || document.getElementById('respFila')) return;
+    antesDe.insertAdjacentHTML('beforebegin', fila());
+    document.querySelector('#respFila .resp-btn').addEventListener('click', () => R.ahora());
+  }
+  const _mas = cargarVistaMas;
+  cargarVistaMas = function () { const r = _mas.apply(this, arguments); try { poner(document.querySelector('#mainContent > div > h3')?.nextElementSibling); } catch (_) {} return r; };
+  const _mis = cargarVistaMisEgresos;
+  cargarVistaMisEgresos = function () { const r = _mis.apply(this, arguments); try { poner(document.querySelector('#mainContent > div')); } catch (_) {} return r; };
+})();
+</script>
+
+<style id="jat-marino">
+/* ===== Diseño Marino (azul marino y dorado) en la versión de venta. Solo estilos: no cambia IDs ni funciones. ===== */
+body.d-mar {
+  --mar-oro: #d9ad5b; --mar-oro-tx: #8a6420; --mar-navy: #0a1322; --mar-rojo: #e0503f; --mar-verde: #2fbf86;
+  --m-bg: #f2f4f8; --m-sf: #ffffff; --m-soft: #eef1f6; --m-tx: #0f1b2d; --m-mu: #5b6b82; --m-bd: #dfe4ec; --m-sel: #fbf3e2;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+body.d-mar.d-osc #jatLogin { color-scheme: light; }
+body.d-mar.d-osc { --mar-oro-tx: #e8c27a; --m-bg: #0a1322; --m-sf: #111f34; --m-soft: #13233b; --m-tx: #e8edf5; --m-mu: #8391a7; --m-bd: #233651; --m-sel: #2a2412; color-scheme: dark; }
+body.d-mar, body.d-mar.js-shell, body.d-mar .content-area, body.d-mar .main-layout { background: var(--m-bg) !important; color: var(--m-tx); }
+body.d-mar button, body.d-mar input, body.d-mar select, body.d-mar textarea { font-family: inherit; }
+/* Cabecera, pestañas, ＋ */
+@media (max-width: 760px) {
+  body.d-mar.js-shell .js-top { background: var(--mar-navy); border-bottom: 1px solid #16243a; box-shadow: none; }
+  body.d-mar .js-top h1 { color: #fff; font-weight: 800; font-size: 1.25rem; }
+  body.d-mar .js-top .js-ib { color: #e2e8f0; }
+  body.d-mar.js-shell .js-tabs { background: var(--m-sf); border-top: 1px solid var(--m-bd); box-shadow: none; }
+  body.d-mar.d-osc.js-shell .js-tabs { background: #0d1828; border-top-color: #1b2a40; }
+  body.d-mar .js-tabs button { color: var(--m-mu); }
+  body.d-mar .js-tabs button.on { color: var(--mar-oro-tx); }
+  body.d-mar.js-shell .js-fab { background: var(--mar-oro); color: var(--mar-navy); border-radius: 20px; box-shadow: 0 8px 20px rgba(217,173,91,.35); }
+  body.d-mar.js-shell .js-fab.abierto { background: var(--mar-navy); color: var(--mar-oro); }
+}
+body.d-mar .js-hoja .panel { background: var(--m-sf); color: var(--m-tx); border-radius: 22px 22px 0 0; }
+body.d-mar .js-hoja .panel h4 { color: var(--mar-oro-tx); font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; }
+body.d-mar .js-op { background: transparent; border: none; border-bottom: 1px solid var(--m-bd); border-radius: 0; color: var(--m-tx); box-shadow: none; }
+body.d-mar .js-op .ic { background: var(--m-soft); border-radius: 10px; box-shadow: none; }
+body.d-mar .js-op.dest { background: var(--m-sel); border: 1px solid var(--mar-oro); border-radius: 14px; }
+body.d-mar .js-op small { color: var(--m-mu); }
+/* Tarjetas y textos dentro de las ventanas (muchos estilos vienen escritos en el HTML) */
+body.d-mar #mainContent > div { border-radius: 20px !important; box-shadow: none !important; }
+body.d-mar #mainContent [style*="background:white"], body.d-mar #mainContent [style*="background: white"], body.d-mar #mainContent [style*="background:#fff;"], body.d-mar #mainContent [style*="background:#fff\""], body.d-mar #mainContent [style*="background:#ffffff"] { background: var(--m-sf) !important; }
+body.d-mar #mainContent [style*="border:1px solid #e8ecf0"], body.d-mar #mainContent [style*="border: 1px solid #e8ecf0"], body.d-mar #mainContent [style*="border:1px solid #edf2f7"], body.d-mar #mainContent [style*="border-bottom:1px solid #edf2f7"], body.d-mar #mainContent [style*="border-bottom: 1px solid #edf2f7"] { border-color: var(--m-bd) !important; }
+body.d-mar #mainContent h3, body.d-mar #mainContent h4 { color: var(--m-tx) !important; }
+body.d-mar #mainContent [style*="color:#1a3a5c"], body.d-mar #mainContent [style*="color: #1a3a5c"], body.d-mar #mainContent [style*="color:#1a2b3c"], body.d-mar #mainContent [style*="color:#2c3e50"] { color: var(--m-tx) !important; }
+body.d-mar #mainContent [style*="color:#6b7c8f"], body.d-mar #mainContent [style*="color: #6b7c8f"], body.d-mar #mainContent [style*="color:#7f8c8d"], body.d-mar #mainContent [style*="color:#94a3b8"], body.d-mar #mainContent [style*="color:#64748b"] { color: var(--m-mu) !important; }
+body.d-mar #mainContent [style*="background:#eaf2fb"], body.d-mar #mainContent [style*="background:#f8fafc"], body.d-mar #mainContent [style*="background:#f7f8fa"], body.d-mar #mainContent [style*="background:#fafcfe"] { background: var(--m-soft) !important; color: var(--m-tx) !important; }
+body.d-mar.d-osc #mainContent small, body.d-mar.d-osc #mainContent .muted { color: var(--m-mu); }
+/* Campos, botones y chips */
+body.d-mar #mainContent input:not([type=checkbox]):not([type=radio]):not([type=range]), body.d-mar #mainContent select, body.d-mar #mainContent textarea { background: var(--m-sf) !important; color: var(--m-tx) !important; border: 1px solid var(--m-bd) !important; border-radius: 14px !important; }
+body.d-mar #mainContent input:focus, body.d-mar #mainContent select:focus, body.d-mar #mainContent textarea:focus { border-color: var(--mar-oro) !important; outline: none; }
+body.d-mar .btn { background: var(--m-sf); color: var(--m-tx); border: 1px solid var(--m-bd); border-radius: 14px; }
+body.d-mar .btn-success, body.d-mar .btn-primary { background: var(--mar-oro) !important; border-color: var(--mar-oro) !important; color: var(--mar-navy) !important; font-weight: 700; }
+body.d-mar .btn-danger { background: var(--mar-rojo); border-color: var(--mar-rojo); color: #fff; }
+body.d-mar .jat-volver { background: var(--m-sf); color: var(--m-tx); border: 1px solid var(--m-bd); }
+body.d-mar #mainContent [data-mf], body.d-mar #mainContent .chip, body.d-mar #mainContent [data-f] { background: var(--m-sf) !important; border: 1px solid var(--m-bd) !important; color: var(--m-mu) !important; border-radius: 999px !important; font-weight: 600; }
+body.d-mar #mainContent [data-mf].on, body.d-mar #mainContent [data-mf].activo, body.d-mar #mainContent [data-mf][aria-pressed="true"], body.d-mar #mainContent .chip.on, body.d-mar #mainContent .chip.active, body.d-mar #mainContent [data-f].on { background: var(--m-sel) !important; border-color: var(--mar-oro) !important; color: var(--mar-oro-tx) !important; }
+body.d-mar #mainContent [data-mas] { color: var(--m-tx) !important; border-color: var(--m-bd) !important; }
+/* Verificador */
+body.d-mar #verificadorModal .modal-content, body.d-mar #verificadorModal .verif-bottom-pane { background: var(--m-bg); color: var(--m-tx); }
+body.d-mar #verificadorModal .verificador-header { background: var(--mar-navy); }
+body.d-mar #verificadorModal .cam-off-layer { background: #070d18; }
+body.d-mar #verificadorModal .cam-reticle .box { border-color: var(--mar-oro); }
+body.d-mar #verificadorModal .cam-btn { background: var(--mar-oro); color: var(--mar-navy); border: none; border-radius: 14px; font-weight: 800; }
+body.d-mar #verificadorModal .cam-btn.secundario { background: rgba(10,19,34,.7); color: #e8edf5; border: 1px solid #2a3d5a; }
+body.d-mar #verificadorModal .scanner-section { background: var(--m-bg); }
+body.d-mar #verificadorModal .scanner-input { background: var(--m-sf); color: var(--m-tx); border: 1px solid var(--m-bd); border-radius: 14px; }
+body.d-mar .jat-gatillo { background: var(--mar-rojo); border-color: var(--m-bg); }
+body.d-mar .jat-fab-mas { background: var(--mar-oro); color: var(--mar-navy); border: none; }
+body.d-mar.d-osc #verificadorModal .data-table th { background: var(--m-soft); color: var(--mar-oro-tx); }
+body.d-mar.d-osc #verificadorModal .data-table td { color: var(--m-tx); border-color: var(--m-bd); }
+body.d-mar.d-osc .modal-content { background: var(--m-sf); color: var(--m-tx); }
+</style>
+<script>
+/* Diseño Marino en la versión de venta: tema claro/oscuro y opción de volver al diseño clásico (en Más). */
+(function () {
+  const leer = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (_) { return d; } };
+  const poner = (k, v) => { try { localStorage.setItem(k, v); } catch (_) {} };
+  const marino = leer('jatv_diseno', 'marino') === 'marino';
+  let oscuro = leer('jatv_tema', 'oscuro') === 'oscuro';
+  window.JATDisenoVenta = {
+    marino: () => marino, oscuro: () => oscuro,
+    cambiarDiseno() { poner('jatv_diseno', marino ? 'clasico' : 'marino'); location.reload(); },
+    cambiarTema() { oscuro = !oscuro; poner('jatv_tema', oscuro ? 'oscuro' : 'claro'); aplicar(); }
+  };
+  function aplicar() {
+    document.body.classList.toggle('d-osc', marino && oscuro);
+    const m = document.querySelector('meta[name="theme-color"]'); if (m && marino) m.setAttribute('content', '#0a1322');
+  }
+  if (marino) document.body.classList.add('d-mar');
+  // Pantalla oscura: muchas tarjetas traen su color escrito en el HTML; se buscan los fondos claros y textos oscuros y se marcan
+  const luz = c => { const m = /rgba?\((\d+), (\d+), (\d+)(?:, ([\d.]+))?/.exec(c || ''); if (!m || (m[4] !== undefined && +m[4] < .5)) return -1; return (+m[1] * 299 + +m[2] * 587 + +m[3] * 114) / 1000; };
+  function oscurecer(raiz) {
+    if (!marino || !oscuro || !raiz || !raiz.querySelectorAll) return;
+    [raiz, ...raiz.querySelectorAll('*')].forEach(el => {
+      if (el.closest('.cam-panel, svg, canvas, video, img')) return;
+      const c = getComputedStyle(el);
+      const fondo = luz(c.backgroundColor);
+      if (fondo > 225) el.classList.add('m-osc-sf'); else if (fondo > 195) el.classList.add('m-osc-soft');
+      if (luz(c.color) >= 0 && luz(c.color) < 110 && !el.classList.contains('m-osc-tx')) el.classList.add('m-osc-tx');
+      if (luz(c.borderTopColor) > 200 && parseFloat(c.borderTopWidth) > 0) el.classList.add('m-osc-bd');
+    });
+  }
+  const st = document.createElement('style');
+  st.textContent = 'body.d-mar.d-osc .m-osc-sf{background-color:var(--m-sf)!important}body.d-mar.d-osc .m-osc-soft{background-color:var(--m-soft)!important}body.d-mar.d-osc .m-osc-tx{color:var(--m-tx)!important}body.d-mar.d-osc .m-osc-bd{border-color:var(--m-bd)!important}';
+  document.head.appendChild(st);
+  let tOsc = 0;
+  const vigilar = id => { const el = document.getElementById(id); if (el) new MutationObserver(() => { clearTimeout(tOsc); tOsc = setTimeout(() => ['mainContent', 'verificadorModal'].forEach(i => oscurecer(document.getElementById(i))), 30); }).observe(el, { childList: true, subtree: true }); };
+  ['mainContent', 'verificadorModal'].forEach(vigilar);
+  window.JATDisenoVenta.repintar = () => ['mainContent', 'verificadorModal'].forEach(i => oscurecer(document.getElementById(i)));
+  aplicar();
+  setTimeout(window.JATDisenoVenta.repintar, 300);
+  // Más: "Pantalla clara/oscura" y "Diseño"
+  const _mas = cargarVistaMas;
+  cargarVistaMas = function () {
+    const r = _mas.apply(this, arguments);
+    try {
+      const h = document.querySelector('#mainContent > div > h3'); if (!h || document.getElementById('masDiseno')) return r;
+      const fila = (id, t, s) => `<button type="button" id="${id}" style="display:flex;align-items:center;gap:14px;width:100%;padding:14px 16px;background:none;border:none;border-bottom:1px solid var(--m-bd,#edf2f7);text-align:left;font:inherit;cursor:pointer;color:inherit"><span style="flex:1"><b style="display:block;font-size:.95rem">${t}</b><small style="color:var(--m-mu,#6b7c8f)">${s}</small></span><span style="color:var(--m-mu,#94a3b8)">›</span></button>`;
+      const caja = document.createElement('div'); caja.id = 'masDiseno';
+      caja.style.cssText = 'background:var(--m-sf,#fff);border:1px solid var(--m-bd,#e8ecf0);border-radius:16px;overflow:hidden;flex:none';
+      caja.innerHTML = (marino ? fila('masTema', 'Pantalla: ' + (oscuro ? 'Oscura' : 'Clara'), 'Toca para cambiar entre clara y oscura') : '')
+        + fila('masDis', 'Diseño: ' + (marino ? 'Marino' : 'Clásico'), 'Toca para cambiar (la app se recarga)');
+      h.parentElement.appendChild(caja);
+      caja.querySelector('#masTema')?.addEventListener('click', () => { JATDisenoVenta.cambiarTema(); cargarVistaMas(); });
+      caja.querySelector('#masDis').addEventListener('click', () => JATDisenoVenta.cambiarDiseno());
+    } catch (e) { console.warn(e); }
+    return r;
+  };
+})();
+</script>
+
 </body>
 </html>

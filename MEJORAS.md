@@ -11,6 +11,9 @@ Jorge se agrega aquí el mismo día.
 2. **Ninguna mejora puede dañar lo que ya funciona.** Antes de subir se prueba que lo anterior
    sigue igual en la versión personal y en la de venta. *Lo que funciona no se cambia*, y las
    versiones nuevas conservan los arreglos ya hechos.
+3. **Todo tiene que tener respaldo.** Lo que guarda un programa debe quedar también en un archivo
+   que sobreviva si se desinstala la app o se borran los datos del navegador (egresos, avance,
+   ubicaciones, kardex, categorías). Vale para JAT y para todos los proyectos futuros.
 
 Esta regla también está en la "Bitácora JAT Control Suite".
 
@@ -76,6 +79,27 @@ Esta regla también está en la "Bitácora JAT Control Suite".
       cámara; se recuerda (`jat_tema`). Todo color nuevo va por variables para que sirva en ambos.
 - [ ] En Menú se puede volver al diseño clásico (`jat_diseno`). El diseño nuevo no cambia IDs ni
       funciones: solo agrega estilos y elementos de lectura.
+- [ ] **Diseño Marino (azul marino y dorado)** es el diseño por defecto (bloque `<style id="jat-marino">`,
+      todo bajo `body.d-mar`, encima del industrial). Sin emojis en Inicio, Menú y hojas del ＋ (íconos de
+      línea). Inicio: saludo, tarjeta "En curso" con anillo de avance, siguiente producto y su ubicación,
+      botón "Continuar revisión" y "Sacar este egreso"; resumen Pendientes / Completos / Egresos; lista con
+      anillos. ＋ dorado, gatillo rojo, retícula con esquinas doradas. Sacar (iframe) también en Marino.
+      La primera vez abre en pantalla oscura. Menú → Diseño pasa por Marino → Industrial → Clásico.
+- [ ] Venta: Diseño Marino con pantalla clara / oscura (`jatv_diseno`, `jatv_tema`), opciones en Más.
+
+## Respaldo (regla fija 3)
+
+- [ ] Módulo `JATRespaldo` en Personal y Venta. Baja solo un archivo a Descargas cuando entra un egreso
+      nuevo, cuando un egreso queda completo y cuando hay cambios y el último respaldo tiene más de 4 h.
+      Al abrir la app por primera vez con datos también respalda.
+- [ ] Personal: archivo `JAT_Personal_respaldo_auto_FECHA.hat` con todos los egresos y además
+      ubicaciones, pasillos, categorías y demás datos. Se recupera con Inicio → Abrir archivo de egreso;
+      lo que ya está en el celular no se pisa.
+- [ ] Venta: archivo `JAT_copia_auto_FECHA.json` con el mismo formato de Más → Restaurar una copia.
+- [ ] Botón "Respaldar ahora" (permite mandar a OneDrive, Drive, WhatsApp o correo) y la línea
+      "Último respaldo: …" en Inicio y Menú (Personal) y en Revisión y Más (Venta).
+- [ ] Se pide a Chrome que no borre los datos de la app (`navigator.storage.persist`).
+- [ ] El kardex no va en el respaldo: se recarga desde el Excel de inventario, que es su respaldo.
 
 ## Versiones
 
@@ -90,7 +114,6 @@ Mejoras de la versión personal que todavía no están en `JAT_Control_Suite_Ven
 - [ ] Filtros Pendientes / **Sacados** / Todos en Salida (Venta solo tiene Pendientes y Todos)
       y Pendientes / **Revisados** / Todos en Revisar.
 - [ ] Hora de marcado (🕒 HH:MM) en cada producto contado o sacado.
-- [ ] Diseño industrial con pantalla clara / oscura.
 - [ ] Buscar escribiendo con lista de coincidencias para elegir con el dedo.
 
 Ya pasadas: categorías grandes de bodega en Salida (11 nov 2026).
@@ -109,3 +132,6 @@ Ya pasadas: categorías grandes de bodega en Salida (11 nov 2026).
   ya funciona. Las categorías de bodega de Sacar se pasaron a "Salida por ubicación" de Venta
   (chips por categoría, vista por categoría o por ubicación, categoría editable por producto;
   usa la categoría del kardex del cliente, no la de Tecnodigi).
+- 2026-11-11: regla fija 3: todo tiene que tener respaldo (también en proyectos futuros). Respaldo
+  automático a Descargas en Personal y Venta, con botón "Respaldar ahora". Diseño Marino (azul marino y
+  dorado) en todas las ventanas de Personal y en Venta, con pantalla clara y oscura.

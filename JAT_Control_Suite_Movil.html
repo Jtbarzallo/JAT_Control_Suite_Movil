@@ -5252,7 +5252,7 @@ window.JATShell = (function () {
         { ico: '📋', txt: 'Historial / avances', run: () => accion('historial') },
         { ico: '🗂️', txt: 'Carpeta de trabajo', sub: 'OneDrive / respaldo', run: () => accion('carpetaTrabajo') },
         (window.JATDiseno && JATDiseno.industrial()) ? { ico: '🌗', txt: 'Pantalla: ' + (JATDiseno.oscuro() ? 'Oscura' : 'Clara'), sub: 'Toca para cambiar entre clara y oscura', run: () => { JATDiseno.cambiarTema(); if (JATShell.actual() === 'menu') vistaMenu(); } } : null,
-        { ico: '🎨', txt: 'Diseño: ' + (window.JATDiseno && JATDiseno.industrial() ? 'Industrial' : 'Clásico'), sub: 'Toca para cambiar (la app se recarga)', run: () => JATDiseno.cambiarDiseno() },
+        { ico: '🎨', txt: 'Diseño: ' + (window.JATDiseno && JATDiseno.industrial() ? (JATDiseno.nombre ? JATDiseno.nombre() : 'Industrial') : 'Clásico'), sub: 'Toca para cambiar (la app se recarga)', run: () => JATDiseno.cambiarDiseno() },
         { ico: '⛶', txt: 'Pantalla completa: ' + (JAT_FS.quiere() ? 'SÍ' : 'NO'), sub: 'Toca para cambiar', run: () => { JAT_FS.set(!JAT_FS.quiere()); if (JATShell.actual() === 'menu') vistaMenu(); } },
         JAT_FS.enApp() ? null : { ico: '📲', txt: 'Instalar como app', sub: 'Se abre siempre en pantalla completa', run: instalar }
     ];
@@ -5664,5 +5664,452 @@ body.d-ind .status-badge.status-pendiente { background: #fef3c7; color: #b45309;
   cerrarVerificador = function () { window.JAT_ESCRIBIENDO = false; modal.classList.remove('vf-escribiendo'); ocultar(); return _cerrar.apply(this, arguments); };
 })();
 </script>
+
+<style id="jat-respaldo">
+.resp-fila { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid var(--m-bd, var(--border-color, #e3e9ef)); border-radius: 14px; background: var(--m-sf, var(--bg-surface, #fff)); color: var(--m-tx, var(--text-main, #1a3a5c)); font-size: .8rem; }
+.resp-fila .resp-ico { display: flex; color: #2fbf86; }
+.resp-fila .resp-txt { flex: 1; min-width: 0; color: var(--m-mu, var(--text-muted, #6b7c8f)); }
+.resp-fila .resp-btn { border: 1px solid var(--border-color, #cfd9e3); background: transparent; color: var(--text-main, #1a3a5c); border-radius: 10px; padding: 8px 10px; font: inherit; font-weight: 700; font-size: .78rem; cursor: pointer; white-space: nowrap; }
+body.d-mar .resp-fila .resp-btn { border-color: var(--mar-oro); color: var(--mar-oro-tx); }
+</style>
+<script>
+/* ===== JAT Respaldo: regla fija "todo tiene que tener respaldo" =====
+   Los datos viven en la memoria de Chrome, que se borra si desinstalas la app o borras los datos.
+   Este módulo baja solo un archivo de respaldo a Descargas cuando:
+   - entra un egreso nuevo (por ejemplo, el PDF que descargaste por primera vez),
+   - un egreso queda completo,
+   - hay cambios y el último respaldo tiene más de 4 horas.
+   No cambia nada de lo que ya funciona: solo lee los datos guardados y los copia a un archivo. */
+window.JATRespaldo = function (cfg) {
+  const K_ULT = cfg.clave + '_ultimo', K_EST = cfg.clave + '_estado';
+  const leer = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (_) { return d; } };
+  const poner = (k, v) => { try { _set.call(localStorage, k, v); } catch (_) {} };
+  const HORAS = 4, ESPERA = 4000;
+  let cambios = false, t = 0;
+
+  // Que Chrome no borre los datos de la app cuando falte espacio
+  try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (_) {}
+
+  // Avisa de cambios sin tocar el código que guarda: se mira cada escritura en la memoria
+  const _set = Storage.prototype.setItem;
+  Storage.prototype.setItem = function (k, v) {
+    const r = _set.apply(this, arguments);
+    try { if (this === localStorage && cfg.incluir(k) && !String(k).startsWith(cfg.clave)) { cambios = true; clearTimeout(t); t = setTimeout(revisar, ESPERA); } } catch (_) {}
+    return r;
+  };
+
+  function estado() {
+    const lista = (cfg.egresos() || []);
+    return { n: lista.length, completos: lista.filter(cfg.completo).length, ids: lista.map(cfg.id).filter(Boolean) };
+  }
+  function datos() {
+    const d = {};
+    for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && cfg.incluir(k) && !k.startsWith(cfg.clave)) d[k] = localStorage.getItem(k); }
+    return d;
+  }
+  function nombre(auto) {
+    const f = new Date(), p = n => String(n).padStart(2, '0');
+    return cfg.archivo + (auto ? '_auto_' : '_') + f.getFullYear() + '-' + p(f.getMonth() + 1) + '-' + p(f.getDate()) + '_' + p(f.getHours()) + '-' + p(f.getMinutes()) + cfg.extension;
+  }
+  function contenido() { return JSON.stringify(cfg.armar(datos())); }
+  function bajar(nom, texto) {
+    const url = URL.createObjectURL(new Blob([texto], { type: 'application/json' }));
+    const a = document.createElement('a'); a.href = url; a.download = nom; a.style.display = 'none';
+    document.body.appendChild(a); a.click(); setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 4000);
+  }
+  function marcar(motivo) {
+    const e = estado();
+    poner(K_ULT, JSON.stringify({ t: Date.now(), motivo }));
+    poner(K_EST, JSON.stringify(e));
+    cambios = false;
+    try { cfg.alGuardar && cfg.alGuardar(); } catch (_) {}
+  }
+  function respaldarAuto(motivo) {
+    try { bajar(nombre(true), contenido()); marcar(motivo); if (cfg.aviso) cfg.aviso('💾 Respaldo guardado en Descargas (' + motivo + ')'); } catch (e) { console.warn('respaldo', e); }
+  }
+  function revisar() {
+    if (cfg.listo && !cfg.listo()) return;
+    const ahora = estado();
+    let antes = null; try { antes = JSON.parse(leer(K_EST, 'null')); } catch (_) {}
+    const ult = ultimo();
+    if (!antes) { if (ahora.n) respaldarAuto('primer respaldo'); else poner(K_EST, JSON.stringify(ahora)); return; }
+    const nuevos = ahora.ids.filter(id => !(antes.ids || []).includes(id));
+    if (nuevos.length) return respaldarAuto(nuevos.length === 1 ? 'egreso nuevo' : nuevos.length + ' egresos nuevos');
+    if (ahora.completos > (antes.completos || 0)) return respaldarAuto('egreso completo');
+    if (cambios && (!ult || Date.now() - ult.t > HORAS * 3600e3)) return respaldarAuto('cambios del día');
+  }
+  function ultimo() { try { return JSON.parse(leer(K_ULT, 'null')); } catch (_) { return null; } }
+  function texto() {
+    const u = ultimo(); if (!u) return 'Sin respaldo todavía';
+    const d = new Date(u.t), hoy = new Date(), ayer = new Date(Date.now() - 864e5);
+    const h = d.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
+    const dia = d.toDateString() === hoy.toDateString() ? 'hoy' : d.toDateString() === ayer.toDateString() ? 'ayer' : d.toLocaleDateString('es-EC', { day: 'numeric', month: 'short' });
+    return 'Último respaldo: ' + dia + ' ' + h;
+  }
+  // Botón "Respaldar ahora": se puede mandar a OneDrive, Drive, WhatsApp o correo
+  async function ahora() {
+    const nom = nombre(false), txt = contenido();
+    try {
+      const f = new File([txt], nom, { type: 'application/json' });
+      if (navigator.canShare && navigator.canShare({ files: [f] })) {
+        await navigator.share({ files: [f], title: nom, text: 'Respaldo de ' + cfg.app });
+        marcar('respaldo manual'); return true;
+      }
+    } catch (e) { if (e && e.name === 'AbortError') return false; }
+    bajar(nom, txt); marcar('respaldo manual');
+    if (cfg.aviso) cfg.aviso('💾 Respaldo guardado en Descargas. Súbelo a OneDrive o envíatelo por correo.');
+    return true;
+  }
+  setTimeout(revisar, 6000);
+  return { ahora, texto, ultimo, revisar };
+};
+
+(function () {
+  const UI = /^(jat_tema|jat_diseno|jat_cam_modo|jat_pantalla_completa|jat_auto_ocr|jat_sacar_agrupar|hat_voice_enabled|hat_last_change_text|hat_last_saved_file|hat_last_local_snapshot)$/;
+  const est = e => { try { return iniEstado(e); } catch (_) { return { total: 0, pct: 0 }; } };
+  const R = JATRespaldo({
+    app: 'JAT Control Suite Personal', clave: 'jat_respaldo', archivo: 'JAT_Personal_respaldo', extension: '.hat',
+    incluir: k => /^(oneliv_|jat_|hat_)/.test(k) && !UI.test(k),
+    listo: () => typeof egresosGuardados !== 'undefined',
+    egresos: () => egresosGuardados,
+    completo: e => { const x = est(e); return x.total > 0 && x.pct >= 100; },
+    id: e => String(e.secuencial || e.id || e.nombre || ''),
+    // Mismo formato que ya abre "Abrir archivo de egreso" (lista de egresos) + el resto de datos
+    armar: d => { const datos = Object.assign({}, d); delete datos.oneliv_egresos;
+      return { app: 'JAT Control Suite', tipo: 'respaldo-completo', version: 1, fechaRespaldo: new Date().toISOString(), totalEgresos: egresosGuardados.length, egresos: egresosGuardados, datos }; },
+    aviso: m => { try { showAlert(m, 'success'); } catch (_) {} },
+    alGuardar: () => document.querySelectorAll('.resp-txt').forEach(s => s.textContent = R.texto())
+  });
+  window.JATRespaldoPersonal = R;
+
+  // Al abrir un respaldo completo también vuelven ubicaciones, pasillos, categorías y demás datos.
+  // Lo que ya está en el celular no se pisa: solo se completa lo que falte.
+  const _imp = importarArchivosEgreso;
+  importarArchivosEgreso = async function (files) {
+    let n = 0;
+    for (const f of files || []) {
+      if (/\.(pdf|xlsx|xlsm|xls|ods|csv)$/i.test(f.name) || f.type === 'application/pdf' || f.size > 60e6) continue;
+      try {
+        const j = JSON.parse((await f.text()).replace(/^﻿/, ''));
+        if (!j || j.tipo !== 'respaldo-completo' || !j.datos) continue;
+        Object.keys(j.datos).forEach(k => {
+          if (!/^(jat_|hat_|oneliv_)/.test(k) || k === 'oneliv_egresos') return;
+          const actual = localStorage.getItem(k), viejo = j.datos[k];
+          if (actual === null) { localStorage.setItem(k, viejo); n++; return; }
+          try { const a = JSON.parse(actual), v = JSON.parse(viejo);
+            if (a && v && typeof a === 'object' && typeof v === 'object' && !Array.isArray(a)) { localStorage.setItem(k, JSON.stringify(Object.assign({}, v, a))); n++; }
+            else if (Array.isArray(a) && Array.isArray(v)) { const u = [...a]; v.forEach(x => { if (!u.some(y => JSON.stringify(y) === JSON.stringify(x))) u.push(x); }); localStorage.setItem(k, JSON.stringify(u)); n++; }
+          } catch (_) {}
+        });
+      } catch (_) {}
+    }
+    const r = await _imp.apply(this, arguments);
+    if (n) { try { const fr = document.getElementById('jsBodegaFrame'); if (fr) fr.contentWindow.location.reload(); } catch (_) {}
+      try { showAlert('✅ Respaldo restaurado: egresos, ubicaciones, pasillos y categorías', 'success'); } catch (_) {} }
+    return r;
+  };
+
+  // Inicio: línea con el último respaldo y botón para respaldar ahora
+  const ICO = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></svg>';
+  const _ini = irInicio;
+  irInicio = function () {
+    const r = _ini.apply(this, arguments);
+    try {
+      const acc = document.querySelector('#mainContent .ini-wrap .ini-acciones');
+      if (acc && !document.getElementById('respFila')) {
+        acc.insertAdjacentHTML('afterend', `<div class="resp-fila" id="respFila"><span class="resp-ico">${ICO}</span><span class="resp-txt">${R.texto()}</span><button type="button" class="resp-btn">Respaldar ahora</button></div>`);
+        document.querySelector('#respFila .resp-btn').addEventListener('click', () => R.ahora());
+      }
+    } catch (_) {}
+    return r;
+  };
+  // Menú: primera opción "Respaldar ahora"
+  const main = document.getElementById('mainContent');
+  if (main) new MutationObserver(() => {
+    try {
+      if (!window.JATShell || JATShell.actual() !== 'menu') return;
+      const v = main.querySelector('.js-vista'); if (!v || v.querySelector('#respMenu')) return;
+      v.insertAdjacentHTML('afterbegin', `<button type="button" class="js-op dest" id="respMenu"><span class="ic">${ICO}</span><span><b>Respaldar ahora</b><small class="resp-txt">${R.texto()}</small></span></button>`);
+      v.querySelector('#respMenu').addEventListener('click', () => R.ahora());
+    } catch (_) {}
+  }).observe(main, { childList: true });
+  try { if (document.querySelector('#mainContent .ini-wrap')) irInicio(); } catch (_) {}
+})();
+</script>
+<style id="jat-marino">
+/* ===== Diseño Marino (azul marino y dorado). Solo estilos y elementos de lectura: no cambia IDs ni funciones. ===== */
+body.d-mar {
+  --mar-oro: #d9ad5b; --mar-oro-tx: #8a6420; --mar-navy: #0a1322; --mar-rojo: #e0503f; --mar-verde: #2fbf86;
+  --bg-main: #f2f4f8; --bg-surface: #ffffff; --bg-header: #0a1322; --bg-soft: #eef1f6;
+  --text-main: #0f1b2d; --text-muted: #5b6b82; --border-color: #dfe4ec;
+  --accent-blue: #d9ad5b; --sel-bg: #fbf3e2;
+  --ok-bg: #dcf5e9; --ok-tx: #0f7a4f; --pen-bg: #fdf0d5; --pen-tx: #8a5a0b; --par-bg: #f6ead0; --par-tx: #8a6420;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+body.d-mar.d-osc {
+  --mar-oro-tx: #e8c27a;
+  --bg-main: #0a1322; --bg-surface: #111f34; --bg-header: #0a1322; --bg-soft: #13233b;
+  --text-main: #e8edf5; --text-muted: #8391a7; --border-color: #233651;
+  --sel-bg: #2a2412;
+  --ok-bg: #0f3326; --ok-tx: #6fe0ae; --pen-bg: #2a2412; --pen-tx: #e8c27a; --par-bg: #1a2638; --par-tx: #c9d4e4;
+}
+/* Íconos de línea en vez de emojis */
+.mar-ico { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+/* ---------- Cabecera, estado, pestañas y ＋ ---------- */
+@media (max-width: 760px) {
+  body.d-mar.js-shell { padding-top: calc(84px + env(safe-area-inset-top)); }
+  body.d-mar.js-shell .js-top { background: var(--mar-navy); }
+  body.d-mar .js-logo { border: 1px solid #2a3d5a; border-radius: 10px; background: #13233b; }
+  body.d-mar .ind-brand small { color: #8391a7; }
+  body.d-mar #indStatus { top: calc(56px + env(safe-area-inset-top)); height: 28px; background: var(--mar-navy); border-top: none; border-bottom: 1px solid #16243a; gap: 2px; padding: 0 10px; }
+  body.d-mar .ind-chip { background: none; border: none; color: #8391a7; font-weight: 500; font-size: .66rem; padding: 2px 6px; }
+  body.d-mar .ind-chip .mar-ico { width: 13px; height: 13px; }
+  body.d-mar .ind-dot.ok { background: var(--mar-verde); box-shadow: none; }
+  body.d-mar button.ind-chip { color: var(--mar-oro); border: 1px solid #2a3d5a; border-radius: 8px; padding: 3px 8px; }
+  body.d-mar.js-shell .js-capa.on { top: calc(84px + env(safe-area-inset-top)); }
+  body.d-mar.js-shell .js-tabs { background: var(--bg-surface); border-top: 1px solid var(--border-color); }
+  body.d-mar.d-osc.js-shell .js-tabs { background: #0d1828; border-top-color: #1b2a40; }
+  body.d-mar .js-tabs button { color: var(--text-muted); font-weight: 500; }
+  body.d-mar .js-tabs button.on, body.d-mar.d-osc .js-tabs button.on { color: var(--mar-oro-tx); font-weight: 700; }
+  body.d-mar.js-shell .js-fab { background: var(--mar-oro); color: var(--mar-navy); border-radius: 20px; box-shadow: 0 8px 20px rgba(217,173,91,.35); }
+}
+body.d-mar .js-hoja .panel { background: var(--bg-surface); color: var(--text-main); border-radius: 22px 22px 0 0; }
+body.d-mar .js-hoja .panel h4 { color: var(--mar-oro-tx); font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; }
+body.d-mar .js-op { background: transparent; border: none; border-bottom: 1px solid var(--border-color); border-radius: 0; color: var(--text-main); box-shadow: none; }
+body.d-mar .js-op .ic { background: var(--bg-soft); color: var(--mar-oro-tx); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+body.d-mar .js-op.dest { background: var(--sel-bg); border: 1px solid var(--mar-oro); border-radius: 14px; }
+body.d-mar .js-op b { color: var(--text-main); }
+body.d-mar .js-op small { color: var(--text-muted); }
+
+/* ---------- Ventanas comunes (Kardex, Menú) ---------- */
+body.d-mar .js-vista { color: var(--text-main); }
+body.d-mar .js-buscar { background: var(--bg-surface); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 14px; }
+body.d-mar .js-buscar:focus { border-color: var(--mar-oro); outline: none; }
+body.d-mar .js-chip { background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--text-muted); border-radius: 999px; font-weight: 600; }
+body.d-mar .js-chip.on { background: var(--sel-bg); border-color: var(--mar-oro); color: var(--mar-oro-tx); }
+body.d-mar .js-item { background: var(--bg-surface); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 14px; box-shadow: none; }
+body.d-mar .js-item .n { color: var(--text-main); }
+body.d-mar .js-item .m { color: var(--text-muted); }
+body.d-mar .js-item .m > span:first-child { font-family: var(--font-mono); }
+body.d-mar .js-item .st { background: var(--ok-bg); color: var(--ok-tx); }
+body.d-mar .js-item .st.cero { background: var(--bg-soft); color: var(--text-muted); }
+body.d-mar .js-item .ub { color: var(--mar-oro-tx); }
+body.d-mar .js-vacio, body.d-mar #kmInfo { color: var(--text-muted) !important; }
+body.d-mar .js-mas { color: var(--mar-oro-tx); background: none; }
+
+/* ---------- Inicio ---------- */
+body.d-mar .content-area { background: var(--bg-main); }
+body.d-mar #mainContent > .ini-wrap, body.d-mar #mainContent > .js-vista { border: none !important; box-shadow: none !important; border-radius: 0 !important; background: transparent; }
+body.d-mar #verificadorModal .cam-off-layer { background: #070d18; }
+body.d-mar .ini-wrap > .ind-kpi { display: none; }
+body.d-mar .ini-saludo { font-size: 1.25rem; font-weight: 800; color: var(--text-main); }
+body.d-mar .ini-sub { color: var(--text-muted); }
+body.d-mar .ini-continuar { display: none; }
+body.d-mar .ini-acciones { gap: 10px; }
+body.d-mar .ini-btn { background: var(--bg-surface) !important; color: var(--text-main) !important; border: 1px solid var(--border-color); border-radius: 16px; box-shadow: none; min-height: 0; padding: 12px 10px; font-size: .88rem; line-height: 1.2; flex-direction: row; gap: 10px; justify-content: flex-start; text-align: left; }
+body.d-mar .ini-btn .ico { font-size: 0; width: 34px; height: 34px; border-radius: 11px; background: var(--bg-soft); color: var(--mar-oro-tx); display: flex; align-items: center; justify-content: center; flex: none; }
+body.d-mar .ini-btn small { color: var(--text-muted) !important; display: block; font-size: .7rem; }
+body.d-mar .ini-btn .mar-txt { display: flex; flex-direction: column; min-width: 0; }
+body.d-mar .ini-cargar { background: var(--mar-oro) !important; color: var(--mar-navy) !important; border-color: var(--mar-oro); }
+body.d-mar .ini-cargar small { color: rgba(10,19,34,.7) !important; }
+body.d-mar .ini-cargar .ico { background: rgba(10,19,34,.12); color: var(--mar-navy); }
+body.d-mar .ini-abrir small { display: block; }
+body.d-mar .ini-card { background: transparent; border: none; padding: 4px 2px; }
+body.d-mar .ini-card h4 { color: var(--text-main); font-size: .9rem; display: flex; align-items: center; gap: 6px; }
+body.d-mar .ini-buscar { background: var(--bg-surface); color: var(--text-main); border: 1px solid var(--border-color) !important; border-radius: 14px; }
+body.d-mar .ini-buscar:focus { border-color: var(--mar-oro) !important; }
+body.d-mar .ini-filtro { background: var(--bg-surface) !important; border: 1px solid var(--border-color) !important; color: var(--text-muted) !important; font-weight: 600; }
+body.d-mar .ini-filtro.on { background: var(--sel-bg) !important; border-color: var(--mar-oro) !important; color: var(--mar-oro-tx) !important; }
+body.d-mar .ini-lista { gap: 0; }
+body.d-mar .ini-eg { background: transparent; border: none; border-bottom: 1px solid var(--border-color); border-radius: 0; padding: 12px 2px; }
+body.d-mar .ini-eg .nom { color: var(--text-main); }
+body.d-mar .ini-eg .det { color: var(--text-muted); font-family: var(--font-mono); font-size: .68rem; }
+body.d-mar .ini-eg .ini-bar { display: none; }
+body.d-mar .ini-eg .mar-anillo { width: 36px; height: 36px; flex: none; }
+body.d-mar .ini-pct { font-size: .72rem; font-weight: 700; min-width: 0; padding: 3px 8px; border-radius: 7px; background: var(--bg-soft); color: var(--text-muted) !important; }
+body.d-mar .ini-eg.listo .ini-pct { background: var(--ok-bg); color: var(--ok-tx) !important; }
+body.d-mar .ini-eg.curso .ini-pct { background: var(--pen-bg); color: var(--pen-tx) !important; }
+body.d-mar .ini-vacio, body.d-mar .ini-mas { color: var(--text-muted); }
+body.d-mar.d-osc .ini-wrap :not(.ini-btn):not(.ini-btn *):not(.chip):not(.ind-kpi *):not(.mar-hero *):not(.ini-pct) { color: var(--text-main); }
+body.d-mar.d-osc .ini-wrap .det, body.d-mar.d-osc .ini-wrap .ini-sub, body.d-mar.d-osc .mar-stats small { color: var(--text-muted); }
+
+/* Tarjeta del egreso en curso */
+.mar-hero { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 22px; padding: 16px; color: var(--text-main); }
+body.d-mar.d-osc .mar-hero { background: #111f34; border-color: #233651; }
+.mar-hero .cab { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.mar-hero .tag { font-size: .66rem; font-weight: 700; letter-spacing: .05em; padding: 4px 8px; border-radius: 7px; background: var(--pen-bg); color: var(--pen-tx); }
+.mar-hero .cod { font-family: var(--font-mono); font-size: .72rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mar-hero .cuerpo { display: flex; align-items: center; gap: 16px; margin-top: 14px; }
+.mar-hero .anillo { width: 92px; height: 92px; flex: none; }
+.mar-hero .nom { font-size: 1.05rem; font-weight: 800; line-height: 1.25; color: var(--text-main); overflow-wrap: anywhere; }
+.mar-hero .sig { font-size: .72rem; color: var(--text-muted); margin-top: 6px; }
+.mar-hero .ubi { font-size: .82rem; font-weight: 700; display: flex; align-items: center; gap: 4px; color: var(--text-main); }
+.mar-hero .ubi .mar-ico { width: 15px; height: 15px; color: var(--mar-oro-tx); }
+.mar-hero .prod { font-size: .76rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mar-hero .btn { margin-top: 14px; width: 100%; height: 50px; border: none; border-radius: 14px; background: var(--mar-oro); color: var(--mar-navy); font: inherit; font-weight: 800; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
+.mar-hero .btn:active { transform: scale(.98); }
+.mar-hero .btn2 { margin-top: 8px; width: 100%; height: 42px; border: 1px solid var(--border-color); border-radius: 12px; background: transparent; color: var(--text-main); font: inherit; font-weight: 700; font-size: .88rem; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
+.mar-stats { display: flex; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); padding: 12px 0; }
+.mar-stats > div { flex: 1; text-align: center; }
+.mar-stats > div + div { border-left: 1px solid var(--border-color); }
+.mar-stats b { display: block; font-size: 1.35rem; font-weight: 800; color: var(--text-main); font-variant-numeric: tabular-nums; }
+.mar-stats small { font-size: .68rem; color: var(--text-muted); }
+.mar-stats .pend b { color: var(--mar-oro-tx); }
+
+/* ---------- Revisar (verificador) ---------- */
+body.d-mar #verificadorModal .modal-content, body.d-mar #verificadorModal .verif-bottom-pane, body.d-mar #verificadorModal .work-panels { background: var(--bg-main); }
+body.d-mar #verificadorModal .verificador-header { background: var(--mar-navy); }
+body.d-mar #verificadorModal .badge-status { background: rgba(47,191,134,.15); color: #6fe0ae; border-color: rgba(47,191,134,.35); }
+body.d-mar .vf-home-btn { background: #13233b; border: 1px solid #2a3d5a; color: #e8edf5; border-radius: 10px; }
+body.d-mar #verificadorModal .cam-panel { background: #070d18; border-bottom: none; }
+body.d-mar #verificadorModal .cam-reticle .box { border-color: rgba(217,173,91,.18); border-radius: 14px; }
+body.d-mar #verificadorModal .cam-reticle .box::after { border: none; inset: -3px; border-radius: 0;
+  background:
+    linear-gradient(var(--mar-oro),var(--mar-oro)) top left/28px 4px, linear-gradient(var(--mar-oro),var(--mar-oro)) top left/4px 28px,
+    linear-gradient(var(--mar-oro),var(--mar-oro)) top right/28px 4px, linear-gradient(var(--mar-oro),var(--mar-oro)) top right/4px 28px,
+    linear-gradient(var(--mar-oro),var(--mar-oro)) bottom left/28px 4px, linear-gradient(var(--mar-oro),var(--mar-oro)) bottom left/4px 28px,
+    linear-gradient(var(--mar-oro),var(--mar-oro)) bottom right/28px 4px, linear-gradient(var(--mar-oro),var(--mar-oro)) bottom right/4px 28px;
+  background-repeat: no-repeat; }
+body.d-mar #verificadorModal .cam-panel.disparando .cam-reticle .box::after { filter: hue-rotate(-40deg) saturate(2); }
+body.d-mar #verificadorModal .cam-btn { background: var(--mar-oro); color: var(--mar-navy); border: none; border-radius: 14px; font-weight: 800; box-shadow: none; }
+body.d-mar #verificadorModal .cam-btn.secundario { background: rgba(10,19,34,.7); color: #e8edf5; border: 1px solid #2a3d5a; }
+body.d-mar .ind-kpi .k { background: var(--bg-surface); border-color: var(--border-color); border-radius: 12px; }
+body.d-mar .ind-kpi .k .n.v { color: var(--ok-tx); }
+body.d-mar .ind-kpi .k .n.p { color: var(--mar-oro-tx); }
+body.d-mar .ind-kpi .progress-bar i { background: var(--mar-oro); }
+body.d-mar #verificadorModal .scanner-section { background: var(--bg-main); border-bottom: none; }
+body.d-mar #verificadorModal .scanner-input { border: 1px solid var(--border-color); border-radius: 14px; box-shadow: none; background: var(--bg-surface); color: var(--text-main); }
+body.d-mar #verificadorModal .scanner-input:focus { border-color: var(--mar-oro); }
+body.d-mar .qc-btn { border-radius: 12px; }
+body.d-mar .qc-btn.qc-minus { color: var(--mar-rojo); }
+body.d-mar .qc-btn.qc-custom, body.d-mar.d-osc .qc-btn.qc-custom { color: var(--mar-oro-tx); }
+body.d-mar .vl-filtros { padding: 8px 10px; }
+body.d-mar .vl-chip { background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--text-muted); box-shadow: none; font-weight: 600; }
+body.d-mar .vl-chip.on { background: var(--mar-oro); border-color: var(--mar-oro); color: var(--mar-navy); }
+body.d-mar #vlCab { background: var(--bg-main); color: var(--mar-oro-tx); border-color: var(--border-color); }
+body.d-mar .vl-lista { background: var(--bg-main); }
+body.d-mar .vl-card { background: var(--bg-main); border-left: 4px solid var(--mar-oro); }
+body.d-mar .vl-card.parcial { border-left-color: #6b7f9c; }
+body.d-mar .vl-card.hecho { border-left-color: var(--mar-verde); background: var(--bg-main); }
+body.d-mar .vl-card.sel { background: var(--sel-bg); }
+body.d-mar .vl-card .hr { color: var(--ok-tx); }
+body.d-mar .last-scan-panel, body.d-mar .selected-panel { border-radius: 14px; }
+body.d-mar .jat-gatillo { background: var(--mar-rojo); border: 4px solid var(--bg-main); box-shadow: 0 8px 22px rgba(224,80,63,.4); }
+body.d-mar .jat-gatillo.activo { background: #f0675a; box-shadow: 0 0 0 10px rgba(224,80,63,.25); }
+body.d-mar .jat-fab-mas { background: var(--mar-oro); color: var(--mar-navy); border: none; border-radius: 18px; }
+body.d-mar .voice-pill { border-radius: 10px; }
+</style>
+<script>
+/* Diseño Marino: se monta encima del industrial. Solo agrega estilos, íconos y la tarjeta del egreso en curso. */
+(function () {
+  if (!window.JATDiseno || !JATDiseno.industrial()) return;
+  const leer = (k, d) => { try { return localStorage.getItem(k) ?? d; } catch (_) { return d; } };
+  const poner = (k, v) => { try { localStorage.setItem(k, v); } catch (_) {} };
+  const marino = leer('jat_diseno', 'marino') === 'marino';
+  // Menú: el diseño pasa por Marino → Industrial → Clásico
+  JATDiseno.nombre = () => marino ? 'Marino' : 'Industrial';
+  JATDiseno.cambiarDiseno = function () { poner('jat_diseno', marino ? 'industrial' : 'clasico'); location.reload(); };
+  if (!marino) return;
+  document.body.classList.add('d-mar');
+  if (leer('jat_tema', null) === null) JATDiseno.cambiarTema();      // la primera vez abre en pantalla oscura
+  const marco = () => document.getElementById('jsBodegaFrame')?.contentDocument?.body;
+  const syncMarco = () => { const b = marco(); if (b) b.classList.add('d-mar'); };
+  new MutationObserver(() => { const f = document.getElementById('jsBodegaFrame'); if (f && !f._mar) { f._mar = 1; f.addEventListener('load', syncMarco); syncMarco(); } }).observe(document.body, { childList: true, subtree: true });
+  const m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', '#0a1322');
+
+  const P = {
+    doc: '<path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/>',
+    pdf: '<path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M12 11v6M9 14l3 3 3-3"/>',
+    carpeta: '<path d="M3 7a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/>',
+    scan: '<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M8 9v6M11 9v6M14 9v6M17 9v6"/>',
+    sacar: '<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M12 13V8M9.5 10.5L12 8l2.5 2.5"/>',
+    revisar: '<path d="M9 4h6v3H9z"/><path d="M15 5h3v16H6V5h3"/><path d="M9 14l2 2 4-4"/>',
+    pin: '<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+    guardar: '<path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/>',
+    imprimir: '<path d="M7 9V4h10v5M7 17H5a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-2"/><path d="M7 14h10v6H7z"/>',
+    carta: '<path d="M4 6h16v12H4z"/><path d="M4 7l8 6 8-6"/>',
+    lista: '<path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/>',
+    nube: '<path d="M7 18a5 5 0 0 1-.6-9.96A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9z"/>',
+    luna: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
+    paleta: '<circle cx="12" cy="12" r="9"/><circle cx="8" cy="10" r="1"/><circle cx="12" cy="7.5" r="1"/><circle cx="16" cy="10" r="1"/><path d="M12 21a3 3 0 0 1 0-6h2"/>',
+    expandir: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
+    movil: '<rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/>',
+    excel: '<path d="M4 4h16v16H4z"/><path d="M4 10h16M4 15h16M10 4v16"/>',
+    pegar: '<path d="M9 4h6v3H9z"/><path d="M15 5h3v16H6V5h3"/><path d="M9 12h6M9 16h4"/>',
+    bodega: '<path d="M3 21V9l9-5 9 5v12"/><path d="M7 21v-8h10v8M7 17h10"/>',
+    flecha: '<path d="M5 12h14M13 6l6 6-6 6"/>'
+  };
+  const ico = n => '<svg class="mar-ico" viewBox="0 0 24 24" aria-hidden="true">' + P[n] + '</svg>';
+  const EMO = { '📄': 'pdf', '📂': 'carpeta', '📁': 'carpeta', '🗂️': 'carpeta', '📦': 'scan', '📤': 'sacar', '🎯': 'revisar', '📍': 'pin', '💾': 'guardar', '🖨️': 'imprimir',
+    '📕': 'pdf', '📝': 'carta', '📋': 'lista', '🌗': 'luna', '🎨': 'paleta', '⛶': 'expandir', '📲': 'movil', '📊': 'excel', '✍️': 'pegar', '🏬': 'bodega', '📥': 'carpeta', '▶️': 'flecha' };
+  const cambiarIcos = raiz => (raiz || document).querySelectorAll('.js-op .ic, .ini-btn .ico').forEach(s => {
+    if (s.querySelector('svg')) return; const n = EMO[s.textContent.trim()]; if (n) s.innerHTML = ico(n);
+  });
+  ['jsHojaOps', 'mainContent'].forEach(id => { const el = document.getElementById(id); if (el) new MutationObserver(() => cambiarIcos(el)).observe(el, { childList: true, subtree: true }); });
+  // Estado de arriba: carpeta con ícono y tema solo con su símbolo
+  const eg = document.getElementById('indEg'); if (eg && eg.previousSibling && eg.previousSibling.nodeType === 3) { const s = document.createElement('span'); s.innerHTML = ico('carpeta'); eg.previousSibling.replaceWith(s.firstChild); }
+
+  const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const anillo = (pct, tam, grosor, txt, sub) => {
+    const r = 50 - grosor / 2 - 1, c = 2 * Math.PI * r, col = pct >= 100 ? '#2fbf86' : '#d9ad5b';
+    return `<svg viewBox="0 0 100 100" class="${tam}" aria-hidden="true"><circle cx="50" cy="50" r="${r}" fill="none" stroke="var(--border-color)" stroke-width="${grosor}"/>`
+      + (pct > 0 ? `<circle cx="50" cy="50" r="${r}" fill="none" stroke="${col}" stroke-width="${grosor}" stroke-linecap="round" stroke-dasharray="${c * Math.min(pct, 100) / 100} ${c}" transform="rotate(-90 50 50)"/>` : '')
+      + (txt ? `<text x="50" y="${sub ? 52 : 57}" text-anchor="middle" fill="var(--text-main)" font-size="22" font-weight="800" font-family="Inter,sans-serif">${txt}</text>` : '')
+      + (sub ? `<text x="50" y="68" text-anchor="middle" fill="var(--text-muted)" font-size="10.5" font-family="Inter,sans-serif">${sub}</text>` : '') + '</svg>';
+  };
+  function ubic(cod) { try { const u = (JSON.parse(localStorage.getItem('jat_ubicaciones') || '{}') || {})[cod]; return u && u.z ? u.z + (u.d ? ' · ' + u.d : '') : ''; } catch (_) { return ''; } }
+  function saludo() { const h = new Date().getHours(); return h < 12 ? 'Buenos días, Jorge' : h < 19 ? 'Buenas tardes, Jorge' : 'Buenas noches, Jorge'; }
+
+  // Inicio: tarjeta del egreso en curso, resumen y lista con anillos
+  const _ini = irInicio;
+  irInicio = function () {
+    const r = _ini.apply(this, arguments);
+    try {
+      const w = document.querySelector('#mainContent .ini-wrap'); if (!w) return r;
+      const s = w.querySelector('.ini-saludo'); if (s) s.textContent = saludo();
+      const sub = w.querySelector('.ini-sub'); if (sub) sub.textContent = new Date().toLocaleDateString('es-EC', { weekday: 'long', day: 'numeric', month: 'long' }).replace(/^./, c => c.toUpperCase()) + ' · todo se guarda solo';
+      w.querySelectorAll('.ini-btn').forEach(b => { if (b.querySelector('.mar-txt')) return; const ic = b.querySelector('.ico'); const t = document.createElement('span'); t.className = 'mar-txt'; [...b.childNodes].filter(n => n !== ic).forEach(n => t.appendChild(n)); b.appendChild(t); });
+      cambiarIcos(w);
+      let hero = '';
+      if (currentEgreso && currentProductos.length) {
+        const t = totalEsperado(), v = totalVerificado(), pct = t > 0 ? Math.floor(v / t * 100) : 0;
+        const sig = currentProductos.find(p => !isProductoVerificado(p));
+        const falta = currentProductos.filter(p => !isProductoVerificado(p)).length;
+        const u = sig ? ubic(sig.barcode) : '';
+        hero = `<div class="mar-hero"><div class="cab"><span class="tag">EN CURSO</span><span class="cod">${esc(currentEgreso.secuencial || '')}</span></div>
+          <div class="cuerpo">${anillo(pct, 'anillo', 9, pct + '%', formatearQty(v) + ' de ' + formatearQty(t))}
+          <div style="min-width:0"><div class="nom">${esc(currentEgreso.nombre || currentEgreso.secuencial || 'Egreso')}</div>
+          ${sig ? `<div class="sig">Siguiente producto</div>${u ? `<div class="ubi">${ico('pin')}${esc(u)}</div>` : ''}<div class="prod">${esc(sig.productName || sig.barcode)}</div>` : '<div class="sig">Todo revisado</div>'}</div></div>
+          <button type="button" class="btn" onclick="irIngresarMercaderia()">${falta ? 'Continuar revisión · faltan ' + falta : 'Ver egreso'} ${ico('flecha')}</button>
+          <button type="button" class="btn2" onclick="JATShell.ir('bodega')">${ico('sacar')} Sacar este egreso</button></div>`;
+      }
+      let pend = 0, comp = 0; (egresosGuardados || []).forEach(e => { const x = iniEstado(e); if (x.total > 0 && x.pct >= 100) comp++; else pend++; });
+      const stats = `<div class="mar-stats"><div class="pend"><b>${pend}</b><small>Pendientes</small></div><div><b>${comp}</b><small>Completos</small></div><div><b>${(egresosGuardados || []).length}</b><small>Egresos</small></div></div>`;
+      const acc = w.querySelector('.ini-acciones');
+      if (acc) acc.insertAdjacentHTML('beforebegin', hero);
+      if (acc) acc.insertAdjacentHTML('afterend', stats);
+    } catch (e) { console.warn(e); }
+    return r;
+  };
+  const _lista = renderIniLista;
+  renderIniLista = function () {
+    const r = _lista.apply(this, arguments);
+    try {
+      document.querySelectorAll('#iniLista .ini-eg').forEach(el => {
+        const pct = parseInt(el.querySelector('.ini-pct')?.textContent) || 0;
+        el.classList.add(pct >= 100 ? 'listo' : pct > 0 ? 'curso' : 'nuevo');
+        const nom = el.querySelector('.nom'); if (nom) nom.textContent = nom.textContent.replace(/^\s*(✅|📋)\s*/, '');
+        const pc = el.querySelector('.ini-pct'); if (pc) pc.textContent = pct >= 100 ? 'Listo' : pct > 0 ? pct + '%' : 'Nuevo';
+        if (!el.querySelector('.mar-anillo')) el.insertAdjacentHTML('afterbegin', anillo(pct, 'mar-anillo', 12));
+      });
+      document.querySelectorAll('.ini-filtro').forEach(b => { b.textContent = b.textContent.replace(/^\s*(⏳|✅)\s*/, ''); });
+    } catch (_) {}
+    return r;
+  };
+  try { if (document.querySelector('#mainContent .ini-wrap')) irInicio(); } catch (_) {}
+})();
+</script>
+
 </body>
 </html>

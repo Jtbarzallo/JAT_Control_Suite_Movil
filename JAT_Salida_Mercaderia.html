@@ -76,6 +76,29 @@ body.d-ind.d-osc .sheet{background:var(--sf);color:var(--tx)}
 body.d-ind.d-osc .li{background:var(--bg);color:var(--tx);border-color:var(--bd)}
 body.d-ind.d-osc .empty{color:var(--mu)}
 body.d-ind.d-osc .scan .bot{background:var(--sf)}
+/* Diseño Marino (azul marino y dorado) — solo estilos */
+body.d-mar{--bg:#f2f4f8;--sf:#fff;--tx:#0f1b2d;--mu:#5b6b82;--bd:#dfe4ec;--hd:#0a1322;--oro:#d9ad5b;--orotx:#8a6420;--sel:#fbf3e2;--okbg:#dcf5e9;--oktx:#0f7a4f}
+body.d-mar.d-osc{--bg:#0a1322;--sf:#111f34;--tx:#e8edf5;--mu:#8391a7;--bd:#233651;--hd:#0a1322;--orotx:#e8c27a;--sel:#2a2412;--okbg:#0f3326;--oktx:#6fe0ae}
+body.d-mar .info,body.d-mar .tools{background:var(--bg);border:none}
+body.d-mar .prog{background:var(--bd);height:6px}body.d-mar .prog i{background:var(--oro)}
+body.d-mar .btn{border-radius:14px;background:var(--sf);color:var(--tx);border:1px solid var(--bd)}
+body.d-mar .btn.pri{background:var(--oro);color:#0a1322;border-color:var(--oro)}
+body.d-mar .btn.warn{background:#e0503f;color:#fff;border-color:#e0503f}
+body.d-mar #q{border:1px solid var(--bd);border-radius:14px;font-family:inherit}body.d-mar #q:focus{border-color:var(--oro);outline:none}
+body.d-mar .chip{background:var(--sf);border:1px solid var(--bd);color:var(--mu);font-weight:600}
+body.d-mar .chip.on{background:var(--sel);border-color:var(--oro);color:var(--orotx)}
+body.d-mar .seg.fil .chip.on{background:var(--oro);border-color:var(--oro);color:#0a1322}
+body.d-mar .gh{background:transparent;color:var(--orotx);font-size:.7rem;letter-spacing:.08em;padding:12px 14px 4px;margin-top:4px}
+body.d-mar .card{background:var(--bg);border:none;border-bottom:1px solid var(--bd);border-left:4px solid var(--oro);border-radius:0;margin:0 10px;box-shadow:none}
+body.d-mar .card.part{border-left-color:#6b7f9c}body.d-mar .card.ok,body.d-mar.d-osc .card.ok{border-left-color:#2fbf86;background:var(--bg)}
+body.d-mar .card .hr{color:var(--oktx)}
+body.d-mar .loc{background:var(--sel);color:var(--orotx)}body.d-mar .loc.none{background:rgba(224,80,63,.14);color:#f08a7a}
+body.d-mar:not(.d-osc) .loc.none{color:#b42318}
+body.d-mar .sheet{border-radius:22px 22px 0 0}body.d-mar .sheet h3{color:var(--tx)}
+body.d-mar .li{border-radius:14px}
+body.d-mar .scan .ret,body.d-mar .scan.leyendo .ret{border-color:var(--oro)}
+body.d-mar .scan .gat{background:#e0503f;border-color:#0a1322}
+body.d-mar .toast{background:#13233b;border:1px solid #2a3d5a}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
 </head>
