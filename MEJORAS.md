@@ -4,8 +4,15 @@ Lista interna. **Leerla antes de tocar cualquier programa de este repositorio** 
 antes de subir, que la versión nueva sigue cumpliendo cada punto. Cada mejora nueva que pida
 Jorge se agrega aquí el mismo día.
 
-Regla general de Jorge: *lo que funciona no se cambia*, y las versiones nuevas conservan los
-arreglos ya hechos.
+## REGLA FIJA DE JORGE (no se rompe nunca)
+
+1. **Toda mejora que se haga en JAT Control Suite se hace también en la versión de venta**
+   (`JAT_Control_Suite_Venta.html`), el mismo día, adaptada a ella y sin datos de Tecnodigi.
+2. **Ninguna mejora puede dañar lo que ya funciona.** Antes de subir se prueba que lo anterior
+   sigue igual en la versión personal y en la de venta. *Lo que funciona no se cambia*, y las
+   versiones nuevas conservan los arreglos ya hechos.
+
+Esta regla también está en la "Bitácora JAT Control Suite".
 
 ## En todas las pantallas con escáner (Revisar, Sacar, Revisión de Mercadería, Venta)
 
@@ -76,6 +83,18 @@ arreglos ya hechos.
 - [ ] Las cartas de constancia solo van en la versión personal.
 - [ ] Revisión de Mercadería: kardex solo con código y producto, sin cantidades.
 
+## Pendiente de pasar a la versión de venta
+
+Mejoras de la versión personal que todavía no están en `JAT_Control_Suite_Venta.html`:
+
+- [ ] Filtros Pendientes / **Sacados** / Todos en Salida (Venta solo tiene Pendientes y Todos)
+      y Pendientes / **Revisados** / Todos en Revisar.
+- [ ] Hora de marcado (🕒 HH:MM) en cada producto contado o sacado.
+- [ ] Diseño industrial con pantalla clara / oscura.
+- [ ] Buscar escribiendo con lista de coincidencias para elegir con el dedo.
+
+Ya pasadas: categorías grandes de bodega en Salida (11 nov 2026).
+
 ## Historial de esta lista
 
 - 2026-11-09: creada. Se agregaron los filtros y el gatillo en Sacar, la lista con filtros
@@ -86,3 +105,7 @@ arreglos ya hechos.
 
 - 2026-11-10: Sacar clasificado por categorías grandes de bodega (cables, guitarras, cuerdas…),
   con chips para filtrar y opción de corregir la categoría de cada producto.
+- 2026-11-11: regla fija: toda mejora va también a la versión de venta y nada puede dañar lo que
+  ya funciona. Las categorías de bodega de Sacar se pasaron a "Salida por ubicación" de Venta
+  (chips por categoría, vista por categoría o por ubicación, categoría editable por producto;
+  usa la categoría del kardex del cliente, no la de Tecnodigi).

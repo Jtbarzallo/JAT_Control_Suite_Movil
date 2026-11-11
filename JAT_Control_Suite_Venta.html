@@ -7285,6 +7285,77 @@
         }
         window.cargarVistaUbicaciones = cargarVistaUbicaciones;
 
+        // ---- Categorías grandes de bodega (mismas que JAT Salida de Mercadería) ----
+        const norm = t => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        // ===== CATEGORÍAS GRANDES PARA SACAR (familias de bodega) =====
+        // Se revisan en orden; la primera que coincide con la categoría del kardex (o, si no hay, con el nombre) gana.
+        const FAMILIAS = [
+          ['Cuerdas', ['cuerdas de instrumento', 'cuerda', 'encordado', 'string']],
+          ['Estuches y mochilas', ['estuche', 'mochila', 'maletin', 'lonchera', 'estante para cd']],
+          ['Cables', ['cable', 'extension', 'cables y conductores', 'conectores para red', 'plug', 'hdmi']],
+          ['Guitarras y bajos', ['guitarra', 'requinto', 'charango', 'ukulele', 'ukelele', 'bajo electrico', 'bajo acustico', 'bajo']],
+          ['Violines y cuerda frotada', ['violin', 'viola', 'cello', 'contrabajo', 'mentonera', 'arco de']],
+          ['Instrumentos de viento', ['instrumentos de viento', 'acordeon', 'clarinete', 'flauta', 'saxo', 'trombon', 'trompeta', 'harmonica', 'rondador', 'melodica', 'quena']],
+          ['Percusión', ['bateria de percusion', 'instrumentos de percusion', 'bombo', 'bongo', 'cencerro', 'sapito', 'pandereta', 'lira', 'guiro', 'maracas', 'tambor', 'timbal', 'conga', 'platillo', 'redoblante', 'castanuelas', 'clave', 'xilofono', 'cajon de percucion', 'cajon', 'cabasa', 'palillos', 'parches', 'mazo', 'canas']],
+          ['Teclados y pianos', ['sintetizador', 'piano', 'controlador midi', 'teclado musical', 'organeta']],
+          ['Accesorios de instrumentos', ['capodastro', 'vitelas', 'clavijero', 'pedestal y mesa de instrumento', 'correas para intrumentos', 'sejillas', 'pedales y pedalera', 'afinador', 'atril', 'pulidor', 'asientos de instrumento', 'metronomo', 'cancioneros', 'complementos musicales', 'boton de guitarra', 'entraste', 'implementos', 'pedal de efecto', 'instrumentos miniatura']],
+          ['Micrófonos y pedestales', ['microfono', 'pedestal de microfono', 'pedestal de parlante']],
+          ['Audífonos', ['audifono', 'manos libres', 'earbuds', 'in ear', 'headset']],
+          ['Parlantes y amplificadores', ['parlante', 'amplificador', 'potencia', 'megafono', 'corneta', 'sound bar', 'crossover', 'ecualizador', 'compresor', 'mezcladora', 'consolas dj', 'controladores', 'interfases', 'karaoke', 'equipo de sonido', 'mini componente', 'radio', 'tocadiscos', 'vitrola', 'reproductor', 'mp3', 'discman', 'grabador', 'transmisor', 'bluetooth para equipos', 'convertidores de audio', 'audio', 'luces y efectos', 'maquina de humo', 'maquina de burbujas', 'maquina de nieve', 'mueble para dj', 'cine en casa']],
+          ['Televisores y video', ['televisor', 'monitor de video', 'dvd', 'blueray', 'decodificador', 'tv box', 'tv stick', 'roku', 'chromecast', 'fire tv', 'apple tv', 'google tv', 'mirascreen', 'proyector', 'soportes de television', 'antena', 'control universal', 'control smart', 'control inteligente', 'convertidores de video', 'repartidor de video', 'capturadora']],
+          ['Foto, cámaras y seguridad', ['camara', 'filmadora', 'lente para camara', 'tripode', 'monopod', 'gimbal', 'foto', 'flash', 'filtros para camara', 'aro de luz', 'dvr', 'nvr', 'alarma', 'seguridad', 'editor de video', 'lamparas y focos']],
+          ['Redes y WiFi', ['router', 'wi-fi', 'wifi', 'mesh', 'access point', 'ranger extender', 'extender', 'switch', 'tarjeta de red', 'adaptadores de red', 'ponchadora', 'modem']],
+          ['Memorias y discos', ['memoria', 'disco', 'microsd', 'pendrive', 'compact flash', 'enclousure', 'lector de memorias', 'cd-dvd writer', 'dvd y cd', 'usb flash']],
+          ['Laptops y computadoras', ['laptop', 'desktop', 'pc de escritorio', 'todo en uno', 'case', 'mainboard', 'procesador', 'tarjetas de video', 'tarjetas de sonido', 'pasta termica', 'ventilador para pc', 'lector de tarjetas interno', 'tablet', 'digitalizadora', 'lapiz optico', 'core i', 'ryzen', 'notebook', 'chromebook']],
+          ['Accesorios de computación', ['raton', 'mouse', 'teclado', 'webcam', 'joystick', 'controles y', 'hub', 'lector de barras', 'scanner', 'monitor', 'parlante para pc', 'adaptadores bluetooth', 'pad mouse', 'silla gamer', 'muebles de computadora', 'licencias', 'impresora', 'tinta', 'toner', 'cartucho', 'cintas', 'papel fotografico', 'suministros de impresora', 'micas', 'presentadores laser', 'pantallas', 'soporte de proyector', 'accesorios para proyector', 'adaptadores para tablet']],
+          ['Celulares y teléfonos', ['celular', 'telefon', 'chip', 'telefax', 'cajetin', 'intercomunicador', 'gps', 'recarga']],
+          ['Cargadores, pilas y energía', ['cargador', 'power bank', 'adaptadores', 'convertidor de voltaje', 'estacion de energia', 'supresor', 'ups', 'regulador', 'bateria', 'pilas', 'generador', 'fuente de poder', 'multimetro']],
+          ['Inteligentes (smart home)', ['inteligente']],
+          ['Línea blanca', ['linea blanca', 'refrigeradora', 'nevera', 'lavadora', 'secadora de ropa', 'aire acondicionado', 'dispensador de agua', 'calefactor', 'aspiradora', 'hidrolavador', 'horno microondas', 'extractor de olores', 'cocina']],
+          ['Ollas y sartenes', ['olla', 'sarten', 'vajilla', 'cuchillo', 'tetera', 'termos', 'utensilios de cocina', 'hielera', 'bazar']],
+          ['Pequeños electrodomésticos', ['licuadora', 'cafetera', 'tostador', 'arrocera', 'freidora', 'batidora', 'waflera', 'plancha', 'vaporera', 'procesador de alimento', 'picatodo', 'extractor de jugo', 'parrilla electrica', 'abrelata', 'asistente de cocina', 'canguilera', 'ventilador', 'cuchillo electrico', 'balanza de cocina', 'molinos', 'maquina de coser']],
+          ['Cuidado personal', ['cabello', 'depilador', 'rasuradora', 'afeitadora', 'masajeador', 'sauna', 'cortaunas', 'manicure', 'peinilla', 'medidores de presion', 'balanzas']],
+          ['Relojes', ['reloj', 'cronometro', 'pasadores']],
+          ['Juguetes y juegos', ['juguete', 'juqueste', 'juquetes', 'consola', 'juegos', 'carros', 'barco', 'motos', 'aviones', 'bicicleta', 'naipe', 'ajedrez', 'jenga', 'monopolio', 'bingo', 'rompecabezas', 'ping pong', 'futbolin', 'billar', 'superheroes', 'spinner', 'pistola', 'helicoptero', 'dron', 'tacos', 'bolas']],
+          ['Deportes', ['patin', 'scooter', 'patineta', 'raqueta', 'pelota', 'balones', 'guantes', 'pesas', 'natacion', 'salvavidas', 'trajes de bano', 'bote', 'cana de pescar', 'aro de basket', 'proteccion']],
+          ['Oficina y papelería', ['esfero', 'papeleria', 'calculadora', 'sumadora', 'caja registradora', 'etiquetadora', 'fax', 'punteros', 'oficina', 'emplasticadora', 'traductor', 'agenda', 'maquinas de escribir', 'contador de billetes', 'pizarrones', 'utiles', 'tarjetas']],
+          ['Herramientas', ['herramienta', 'pegamento', 'navaja', 'linterna', 'limpieza', 'limpiador', 'podadora', 'bomba de fumigacion', 'cerradura', 'extinguidor', 'gas de defensa']],
+          ['Hogar y bazar', ['hogar', 'lampara', 'luz de navidad', 'adorno', 'cuadro', 'portaretrato', 'porta retrato', 'florero', 'vela', 'espejo', 'colchon', 'edredon', 'tabla de planchar', 'sombrilla', 'muebles', 'joyero', 'album', 'cenicero', 'fuente de agua', 'humificador', 'soportes', 'caminera', 'llavero', 'billetera', 'gafas', 'binocular', 'lupa', 'telescopio', 'brujula', 'baston', 'tijeras', 'rollos', 'porta vino', 'destapadores', 'mascarillas', 'exibidores', 'repuesto', 'diario', 'fosforera', 'cigarr', 'esencias']],
+          ['Licores', ['vino', 'tequila', 'vodka', 'whisky', 'ron']],
+          ['Servicios', ['servicio', 'transporte', 'financiamiento', 'descuento', 'intereses']]
+        ];
+        // Categorías del kardex que las palabras clasificarían mal (se corrigen a mano)
+        const FAM_FIJA = {
+          'microfono de cable': 'Micrófonos y pedestales', 'audifonos con microfono': 'Audífonos',
+          'baterias de reloj y audifono': 'Cargadores, pilas y energía', 'pilas y baterias recargables': 'Cargadores, pilas y energía',
+          'cargador de celular tablet': 'Cargadores, pilas y energía', 'bateria de telefono': 'Cargadores, pilas y energía', 'baterias de celular': 'Cargadores, pilas y energía',
+          'procesador de alimento': 'Pequeños electrodomésticos', 'cuchillo electrico': 'Pequeños electrodomésticos', 'balanza de cocina': 'Pequeños electrodomésticos',
+          'asistente de cocina': 'Pequeños electrodomésticos', 'plancha de cabello': 'Cuidado personal', 'cepillo clavo electrico': 'Cuidado personal',
+          'amplificador de guitarra': 'Parlantes y amplificadores', 'amplificador de bajo': 'Parlantes y amplificadores', 'amplificador de sintetizador': 'Parlantes y amplificadores',
+          'boton de guitarra': 'Accesorios de instrumentos', 'utensilios de cocina': 'Ollas y sartenes', 'bazar cocina': 'Ollas y sartenes',
+          'muebles para cocina': 'Hogar y bazar', 'tabla de planchar': 'Hogar y bazar', 'album de fotos': 'Hogar y bazar', 'compact flash': 'Memorias y discos',
+          'papel fotografico': 'Accesorios de computación', 'dispositivos de entrada': 'Accesorios de computación', 'tarjeta de sonido usb': 'Accesorios de computación',
+          'accesorios para video': 'Foto, cámaras y seguridad', 'cassette s': 'Parlantes y amplificadores', 'reloj de pulsera inteligente': 'Relojes'
+        };
+        const famLimpio = t => ' ' + norm(t).replace(/[^a-z0-9ñ]+/g, ' ').trim() + ' ';
+        const FAM_NORM = FAMILIAS.map(([f, ws]) => [f, ws.map(w => ' ' + famLimpio(w).trim())]);
+        function familiaDeTexto(t) {
+          if (!t) return '';
+          const n = famLimpio(t);
+          const fija = FAM_FIJA[n.trim()]; if (fija) return fija;
+          for (const [f, ws] of FAM_NORM) if (ws.some(w => n.includes(w))) return f;
+          return '';
+        }
+        const famCod = () => jatLeerJSON('jatv_familias', {});
+        function familiaAuto(p) {
+            const k = jatKardexDato(String(p.barcode).trim()), c = k && k.c ? k.c : '';
+            return familiaDeTexto(c) || familiaDeTexto(p.productName || '') || c || 'Otros';
+        }
+        const familia = p => famCod()[String(p.barcode).trim()] || familiaAuto(p);
+        const catKardex = p => { const k = jatKardexDato(String(p.barcode).trim()); return k && k.c ? k.c : ''; };
+        const ordenFam = (a, b) => (a === 'Otros') - (b === 'Otros') || a.localeCompare(b, 'es');
+        let salAgrupar = jatLeerJSON('jatv_sacar_agrupar', 'cat'), salFam = 'todas';
+
         // ---- vista: Salida por ubicación ----
         let salFiltro = 'pend';
         function cargarVistaSalidaElegir() {
@@ -7300,24 +7371,38 @@
             const u = jatUbic(), zs = jatZonas();
             const prods = eg.productos.map((p, i) => ({ p, i, ub: u[String(p.barcode).trim()] }));
             const pend = x => getVerifiedQty(x.p) < getExpectedQty(x.p);
-            const ver = prods.filter(x => salFiltro === 'todos' || pend(x));
+            const porCat = salAgrupar === 'cat';
+            prods.forEach(x => x.fam = familia(x.p));
+            const famMapa = {};
+            prods.forEach(x => { famMapa[x.fam] = famMapa[x.fam] || { t: 0, p: 0 }; famMapa[x.fam].t++; if (pend(x)) famMapa[x.fam].p++; });
+            if (salFam !== 'todas' && !famMapa[salFam]) salFam = 'todas';
+            let ver = prods.filter(x => salFiltro === 'todos' || pend(x));
+            if (porCat && salFam !== 'todas') ver = ver.filter(x => x.fam === salFam);
             const grupos = {};
-            ver.forEach(x => { const g = x.ub && x.ub.z ? x.ub.z : '❓ Sin ubicación'; (grupos[g] = grupos[g] || []).push(x); });
-            const orden = Object.keys(grupos).sort((a, b) => { const ia = zs.indexOf(a), ib = zs.indexOf(b); return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib) || a.localeCompare(b, 'es'); });
+            ver.forEach(x => { const g = porCat ? x.fam : (x.ub && x.ub.z ? x.ub.z : '❓ Sin ubicación'); (grupos[g] = grupos[g] || []).push(x); });
+            const orden = Object.keys(grupos).sort(porCat ? ordenFam : (a, b) => { const ia = zs.indexOf(a), ib = zs.indexOf(b); return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib) || a.localeCompare(b, 'es'); });
+            const chipG = (g, txt) => `<button type="button" data-sg="${g}" style="flex:none;padding:9px 14px;border-radius:20px;border:1.5px solid ${salAgrupar === g ? '#1a3a5c' : '#dce3ea'};background:${salAgrupar === g ? '#1a3a5c' : '#fff'};color:${salAgrupar === g ? '#fff' : '#1a3a5c'};font-weight:700;font-size:.85rem;">${txt}</button>`;
+            const chipF = (f, txt, hecho) => `<button type="button" data-sfam="${jatEsc(f)}" style="flex:none;white-space:nowrap;padding:7px 12px;border-radius:20px;border:1.5px solid ${salFam === f ? '#1a3a5c' : '#dce3ea'};background:${salFam === f ? '#1a3a5c' : '#eef2f7'};color:${salFam === f ? '#fff' : '#1a3a5c'};font-weight:700;font-size:.8rem;${hecho ? 'opacity:.55;' : ''}">${txt}</button>`;
+            const nPend = prods.filter(pend).length;
+            const famChips = porCat ? `<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;">${chipF('todas', 'Todas ' + nPend + '/' + prods.length, false)}${Object.keys(famMapa).sort(ordenFam).map(f => chipF(f, jatEsc(f) + ' ' + famMapa[f].p + '/' + famMapa[f].t, !famMapa[f].p)).join('')}</div>` : '';
             const t = prods.reduce((a, x) => a + getExpectedQty(x.p), 0), v = prods.reduce((a, x) => a + Math.min(getVerifiedQty(x.p), getExpectedQty(x.p)), 0), pc = t ? Math.round(v / t * 100) : 0;
             const chip = (f, txt) => `<button type="button" data-sf="${f}" style="flex:none;padding:9px 14px;border-radius:20px;border:1.5px solid ${salFiltro === f ? '#1a3a5c' : '#dce3ea'};background:${salFiltro === f ? '#1a3a5c' : '#fff'};color:${salFiltro === f ? '#fff' : '#1a3a5c'};font-weight:700;font-size:.85rem;">${txt}</button>`;
             jatVista('📤 ' + (eg.nombre || eg.secuencial || 'Salida'), 'salida-elegir', `
                 <div style="font-size:.85rem;color:#4a5f78;">${jatEsc(eg.bodegaDestino || '')} · <b>${formatearQty(v)} de ${formatearQty(t)}</b> unidades sacadas (${pc}%)</div>
                 <div style="height:10px;border-radius:6px;background:#e3e9f0;overflow:hidden;margin-top:-4px;"><i style="display:block;height:100%;width:${pc}%;background:#1E7F4A;"></i></div>
                 <button type="button" id="salScan" class="btn btn-success" style="min-height:54px;font-size:1.05rem;">📷 Escanear lo que saco</button>
+                <div style="display:flex;gap:8px;overflow-x:auto;">${chipG('cat', '📦 Por categoría')}${chipG('ubi', '📍 Por ubicación')}</div>
+                ${famChips}
                 <div style="display:flex;gap:8px;">${chip('pend', '⏳ Pendientes')}${chip('todos', 'Todos')}</div>
-                ${orden.map(g => `<div style="background:#1a3a5c;color:#fff;font-weight:800;padding:9px 12px;border-radius:10px;margin-top:4px;">${g.startsWith('❓') ? g : '📍 ' + jatEsc(g)} <span style="font-weight:600;opacity:.8;">(${grupos[g].length})</span></div>` + grupos[g].sort((a, b) => (a.ub?.d || '').localeCompare(b.ub?.d || '', 'es')).map(x => {
+                ${orden.map(g => `<div style="background:#1a3a5c;color:#fff;font-weight:800;padding:9px 12px;border-radius:10px;margin-top:4px;">${porCat ? '📦 ' + jatEsc(g) : (g.startsWith('❓') ? g : '📍 ' + jatEsc(g))} <span style="font-weight:600;opacity:.8;">(${grupos[g].length})</span></div>` + grupos[g].sort(porCat ? (a, b) => catKardex(a.p).localeCompare(catKardex(b.p), 'es') || a.i - b.i : (a, b) => (a.ub?.d || '').localeCompare(b.ub?.d || '', 'es')).map(x => {
                     const e = getExpectedQty(x.p), q = getVerifiedQty(x.p), ok = q >= e, parc = q > 0 && !ok;
                     return `<button type="button" data-si="${x.i}" style="display:block;width:100%;text-align:left;background:${ok ? '#f0fdf4' : '#fff'};border:1px solid #e3e9f0;border-left:6px solid ${ok ? '#16a34a' : parc ? '#3b82f6' : '#f59e0b'};border-radius:12px;padding:12px;cursor:pointer;">
                         <b style="font-size:.92rem;color:#1a2b3c;">${jatEsc(x.p.productName || x.p.barcode)}</b>
-                        <div style="display:flex;justify-content:space-between;gap:8px;margin-top:6px;font-size:.8rem;color:#475569;align-items:center;"><span style="background:${x.ub ? '#fef3c7' : '#fee2e2'};color:${x.ub ? '#78350f' : '#991b1b'};border-radius:8px;padding:3px 8px;font-weight:700;">${x.ub ? (x.ub.d ? jatEsc(x.ub.d) : jatEsc(x.ub.z)) : 'Sin ubicación'}</span><b style="font-size:1rem;color:#1a3a5c;">${formatearQty(q)} / ${formatearQty(e)}</b></div></button>`; }).join('')).join('') || '<p style="text-align:center;color:#1E7F4A;font-weight:700;padding:24px 0;">✅ Todo sacado</p>'}
+                        <div style="display:flex;justify-content:space-between;gap:8px;margin-top:6px;font-size:.8rem;color:#475569;align-items:center;"><span style="background:${x.ub ? '#fef3c7' : '#fee2e2'};color:${x.ub ? '#78350f' : '#991b1b'};border-radius:8px;padding:3px 8px;font-weight:700;">${x.ub ? (x.ub.d ? jatEsc(x.ub.d) : jatEsc(x.ub.z)) : 'Sin ubicación'}</span>${porCat && catKardex(x.p) && catKardex(x.p) !== x.fam ? `<span style="flex:1;text-align:right;font-size:.75rem;color:#6b7c8f;">${jatEsc(catKardex(x.p))}</span>` : (!porCat ? `<span style="flex:1;text-align:right;font-size:.75rem;color:#6b7c8f;">${jatEsc(x.fam)}</span>` : '')}<b style="font-size:1rem;color:#1a3a5c;">${formatearQty(q)} / ${formatearQty(e)}</b></div></button>`; }).join('')).join('') || '<p style="text-align:center;color:#1E7F4A;font-weight:700;padding:24px 0;">✅ Todo sacado</p>'}
                 <button type="button" id="salCierre" class="btn" style="min-height:52px;margin-top:6px;">🧾 Abrir en Verificar para el cierre</button>`);
             document.querySelectorAll('[data-sf]').forEach(b => b.addEventListener('click', () => { salFiltro = b.dataset.sf; cargarVistaSalida(id); }));
+            document.querySelectorAll('[data-sg]').forEach(b => b.addEventListener('click', () => { salAgrupar = b.dataset.sg; jatEscribirJSON('jatv_sacar_agrupar', salAgrupar); salFam = 'todas'; cargarVistaSalida(id); }));
+            document.querySelectorAll('[data-sfam]').forEach(b => b.addEventListener('click', () => { salFam = salFam === b.dataset.sfam ? 'todas' : b.dataset.sfam; cargarVistaSalida(id); }));
             document.querySelectorAll('[data-si]').forEach(b => b.addEventListener('click', () => hojaSacar(eg, +b.dataset.si, null)));
             document.getElementById('salCierre').addEventListener('click', () => cargarEgresoParaVerificar(eg.id));
             document.getElementById('salScan').addEventListener('click', () => {
@@ -7333,10 +7418,13 @@
             const p = eg.productos[i], cod = String(p.barcode).trim(), e = getExpectedQty(p), u = jatUbic()[cod] || {};
             dlDetalles();
             const ini = ctrl ? Math.min(e, getVerifiedQty(p) + 1) : getVerifiedQty(p);
+            const fAct = familia(p), fAuto = familiaAuto(p);
+            const opFam = [...new Set([...FAMILIAS.map(f => f[0]), ...Object.values(famCod()), fAuto, fAct, 'Otros'])].sort(ordenFam).map(f => `<option value="${jatEsc(f)}" ${f === fAct ? 'selected' : ''}>${jatEsc(f)}${f === fAuto ? ' (automática)' : ''}</option>`).join('') + '<option value="__nueva">➕ Categoría nueva…</option>';
             const h = hoja(`<b style="font-size:1.05rem;color:#1a3a5c;">${jatEsc(p.productName || cod)}</b><span style="font-size:.8rem;color:#6b7c8f;font-family:monospace;">${jatEsc(cod)}</span>
                 <label style="font-weight:700;font-size:.85rem;color:#1a3a5c;">Cantidad sacada <span style="font-weight:400;color:#6b7c8f;">(pedido: ${formatearQty(e)})</span></label>
                 <div style="display:flex;gap:8px;"><button type="button" id="hsM" class="btn" style="flex:1;min-height:54px;font-size:1.4rem;">−</button><input id="hsQ" type="number" inputmode="numeric" value="${ini}" style="${INP}flex:2;text-align:center;font-size:1.4rem;font-weight:800;"><button type="button" id="hsP" class="btn" style="flex:1;min-height:54px;font-size:1.4rem;">+</button></div>
                 <button type="button" id="hsT" class="btn" style="min-height:46px;">Completar todo (${formatearQty(e)})</button>
+                <label style="font-weight:700;font-size:.85rem;color:#1a3a5c;">📦 Categoría</label><select id="hsF" style="${INP}">${opFam}</select>
                 <label style="font-weight:700;font-size:.85rem;color:#1a3a5c;">📍 Zona</label><select id="hsZ" style="${INP}">${opZonas(u.z)}</select>
                 <input id="hsD" list="jatDetList" value="${jatEsc(u.d || '')}" placeholder="Detalle (estante, nivel)" autocomplete="off" style="${INP}">
                 <div style="display:flex;gap:8px;"><button type="button" id="hsC" class="btn" style="flex:1;min-height:52px;">Cancelar</button><button type="button" id="hsG" class="btn btn-success" style="flex:2;min-height:52px;">💾 Guardar</button></div>`);
@@ -7345,6 +7433,14 @@
             h.querySelector('#hsP').addEventListener('click', () => q.value = (+q.value || 0) + 1);
             h.querySelector('#hsT').addEventListener('click', () => q.value = e);
             h.querySelector('#hsC').addEventListener('click', cerrarHoja);
+            const sF = h.querySelector('#hsF'); sF.dataset.prev = fAct;
+            sF.addEventListener('change', () => {
+                if (sF.value !== '__nueva') { sF.dataset.prev = sF.value; return; }
+                const v = (prompt('Nombre de la categoría nueva (ej: Cables, Guitarras, Cuerdas):') || '').trim();
+                if (!v) { sF.value = sF.dataset.prev; return; }
+                if (![...sF.options].some(o => o.value === v)) sF.insertAdjacentHTML('afterbegin', `<option value="${jatEsc(v)}">${jatEsc(v)}</option>`);
+                sF.value = v; sF.dataset.prev = v;
+            });
             h.querySelector('#hsG').addEventListener('click', () => {
                 const n = Math.max(0, +q.value || 0);
                 if (n > e) { showAlert(`Pediste ${formatearQty(e)}. No puedes sacar más.`, 'warning'); return; }
@@ -7353,6 +7449,7 @@
                 eg.fechaModificacion = new Date().toISOString();
                 guardarEgresosStorage();
                 const z = h.querySelector('#hsZ').value; if (z) ponerUbic(cod, z, h.querySelector('#hsD').value);
+                const fv = sF.value; if (fv && fv !== '__nueva') { const fc = famCod(); if (fv === familiaAuto(p)) delete fc[cod]; else fc[cod] = fv; jatEscribirJSON('jatv_familias', fc); }
                 cerrarHoja();
                 if (ctrl) ctrl.estado('✅ ' + (p.productName || cod) + ': ' + formatearQty(n) + ' de ' + formatearQty(e));
                 else cargarVistaSalida(eg.id);
