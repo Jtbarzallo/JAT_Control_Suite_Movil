@@ -4980,6 +4980,75 @@
     }, true);
 })();
 </script>
+<script>
+/* Categorías grandes de bodega (familias): la misma tabla de Sacar (JAT_Salida_Mercaderia.html, FAMILIAS y
+   FAM_FIJA). Si se cambia allá, se copia aquí igual. La usa el Kardex para agrupar por categoría. */
+window.JATFamilias = (function () {
+  const FAMILIAS = [
+  ['Cuerdas', ['cuerdas de instrumento', 'cuerda', 'encordado', 'string']],
+  ['Estuches y mochilas', ['estuche', 'mochila', 'maletin', 'lonchera', 'estante para cd']],
+  ['Cables', ['cable', 'extension', 'cables y conductores', 'conectores para red', 'plug', 'hdmi']],
+  ['Guitarras y bajos', ['guitarra', 'requinto', 'charango', 'ukulele', 'ukelele', 'bajo electrico', 'bajo acustico', 'bajo']],
+  ['Violines y cuerda frotada', ['violin', 'viola', 'cello', 'contrabajo', 'mentonera', 'arco de']],
+  ['Instrumentos de viento', ['instrumentos de viento', 'acordeon', 'clarinete', 'flauta', 'saxo', 'trombon', 'trompeta', 'harmonica', 'rondador', 'melodica', 'quena']],
+  ['Percusión', ['bateria de percusion', 'instrumentos de percusion', 'bombo', 'bongo', 'cencerro', 'sapito', 'pandereta', 'lira', 'guiro', 'maracas', 'tambor', 'timbal', 'conga', 'platillo', 'redoblante', 'castanuelas', 'clave', 'xilofono', 'cajon de percucion', 'cajon', 'cabasa', 'palillos', 'parches', 'mazo', 'canas']],
+  ['Teclados y pianos', ['sintetizador', 'piano', 'controlador midi', 'teclado musical', 'organeta']],
+  ['Accesorios de instrumentos', ['capodastro', 'vitelas', 'clavijero', 'pedestal y mesa de instrumento', 'correas para intrumentos', 'sejillas', 'pedales y pedalera', 'afinador', 'atril', 'pulidor', 'asientos de instrumento', 'metronomo', 'cancioneros', 'complementos musicales', 'boton de guitarra', 'entraste', 'implementos', 'pedal de efecto', 'instrumentos miniatura']],
+  ['Micrófonos y pedestales', ['microfono', 'pedestal de microfono', 'pedestal de parlante']],
+  ['Audífonos', ['audifono', 'manos libres', 'earbuds', 'in ear', 'headset']],
+  ['Parlantes y amplificadores', ['parlante', 'amplificador', 'potencia', 'megafono', 'corneta', 'sound bar', 'crossover', 'ecualizador', 'compresor', 'mezcladora', 'consolas dj', 'controladores', 'interfases', 'karaoke', 'equipo de sonido', 'mini componente', 'radio', 'tocadiscos', 'vitrola', 'reproductor', 'mp3', 'discman', 'grabador', 'transmisor', 'bluetooth para equipos', 'convertidores de audio', 'audio', 'luces y efectos', 'maquina de humo', 'maquina de burbujas', 'maquina de nieve', 'mueble para dj', 'cine en casa']],
+  ['Televisores y video', ['televisor', 'monitor de video', 'dvd', 'blueray', 'decodificador', 'tv box', 'tv stick', 'roku', 'chromecast', 'fire tv', 'apple tv', 'google tv', 'mirascreen', 'proyector', 'soportes de television', 'antena', 'control universal', 'control smart', 'control inteligente', 'convertidores de video', 'repartidor de video', 'capturadora']],
+  ['Foto, cámaras y seguridad', ['camara', 'filmadora', 'lente para camara', 'tripode', 'monopod', 'gimbal', 'foto', 'flash', 'filtros para camara', 'aro de luz', 'dvr', 'nvr', 'alarma', 'seguridad', 'editor de video', 'lamparas y focos']],
+  ['Redes y WiFi', ['router', 'wi-fi', 'wifi', 'mesh', 'access point', 'ranger extender', 'extender', 'switch', 'tarjeta de red', 'adaptadores de red', 'ponchadora', 'modem']],
+  ['Memorias y discos', ['memoria', 'disco', 'microsd', 'pendrive', 'compact flash', 'enclousure', 'lector de memorias', 'cd-dvd writer', 'dvd y cd', 'usb flash']],
+  ['Laptops y computadoras', ['laptop', 'desktop', 'pc de escritorio', 'todo en uno', 'case', 'mainboard', 'procesador', 'tarjetas de video', 'tarjetas de sonido', 'pasta termica', 'ventilador para pc', 'lector de tarjetas interno', 'tablet', 'digitalizadora', 'lapiz optico', 'core i', 'ryzen', 'notebook', 'chromebook']],
+  ['Accesorios de computación', ['raton', 'mouse', 'teclado', 'webcam', 'joystick', 'controles y', 'hub', 'lector de barras', 'scanner', 'monitor', 'parlante para pc', 'adaptadores bluetooth', 'pad mouse', 'silla gamer', 'muebles de computadora', 'licencias', 'impresora', 'tinta', 'toner', 'cartucho', 'cintas', 'papel fotografico', 'suministros de impresora', 'micas', 'presentadores laser', 'pantallas', 'soporte de proyector', 'accesorios para proyector', 'adaptadores para tablet']],
+  ['Celulares y teléfonos', ['celular', 'telefon', 'chip', 'telefax', 'cajetin', 'intercomunicador', 'gps', 'recarga']],
+  ['Cargadores, pilas y energía', ['cargador', 'power bank', 'adaptadores', 'convertidor de voltaje', 'estacion de energia', 'supresor', 'ups', 'regulador', 'bateria', 'pilas', 'generador', 'fuente de poder', 'multimetro']],
+  ['Inteligentes (smart home)', ['inteligente']],
+  ['Línea blanca', ['linea blanca', 'refrigeradora', 'nevera', 'lavadora', 'secadora de ropa', 'aire acondicionado', 'dispensador de agua', 'calefactor', 'aspiradora', 'hidrolavador', 'horno microondas', 'extractor de olores', 'cocina']],
+  ['Ollas y sartenes', ['olla', 'sarten', 'vajilla', 'cuchillo', 'tetera', 'termos', 'utensilios de cocina', 'hielera', 'bazar']],
+  ['Pequeños electrodomésticos', ['licuadora', 'cafetera', 'tostador', 'arrocera', 'freidora', 'batidora', 'waflera', 'plancha', 'vaporera', 'procesador de alimento', 'picatodo', 'extractor de jugo', 'parrilla electrica', 'abrelata', 'asistente de cocina', 'canguilera', 'ventilador', 'cuchillo electrico', 'balanza de cocina', 'molinos', 'maquina de coser']],
+  ['Cuidado personal', ['cabello', 'depilador', 'rasuradora', 'afeitadora', 'masajeador', 'sauna', 'cortaunas', 'manicure', 'peinilla', 'medidores de presion', 'balanzas']],
+  ['Relojes', ['reloj', 'cronometro', 'pasadores']],
+  ['Juguetes y juegos', ['juguete', 'juqueste', 'juquetes', 'consola', 'juegos', 'carros', 'barco', 'motos', 'aviones', 'bicicleta', 'naipe', 'ajedrez', 'jenga', 'monopolio', 'bingo', 'rompecabezas', 'ping pong', 'futbolin', 'billar', 'superheroes', 'spinner', 'pistola', 'helicoptero', 'dron', 'tacos', 'bolas']],
+  ['Deportes', ['patin', 'scooter', 'patineta', 'raqueta', 'pelota', 'balones', 'guantes', 'pesas', 'natacion', 'salvavidas', 'trajes de bano', 'bote', 'cana de pescar', 'aro de basket', 'proteccion']],
+  ['Oficina y papelería', ['esfero', 'papeleria', 'calculadora', 'sumadora', 'caja registradora', 'etiquetadora', 'fax', 'punteros', 'oficina', 'emplasticadora', 'traductor', 'agenda', 'maquinas de escribir', 'contador de billetes', 'pizarrones', 'utiles', 'tarjetas']],
+  ['Herramientas', ['herramienta', 'pegamento', 'navaja', 'linterna', 'limpieza', 'limpiador', 'podadora', 'bomba de fumigacion', 'cerradura', 'extinguidor', 'gas de defensa']],
+  ['Hogar y bazar', ['hogar', 'lampara', 'luz de navidad', 'adorno', 'cuadro', 'portaretrato', 'porta retrato', 'florero', 'vela', 'espejo', 'colchon', 'edredon', 'tabla de planchar', 'sombrilla', 'muebles', 'joyero', 'album', 'cenicero', 'fuente de agua', 'humificador', 'soportes', 'caminera', 'llavero', 'billetera', 'gafas', 'binocular', 'lupa', 'telescopio', 'brujula', 'baston', 'tijeras', 'rollos', 'porta vino', 'destapadores', 'mascarillas', 'exibidores', 'repuesto', 'diario', 'fosforera', 'cigarr', 'esencias']],
+  ['Licores', ['vino', 'tequila', 'vodka', 'whisky', 'ron']],
+  ['Servicios', ['servicio', 'transporte', 'financiamiento', 'descuento', 'intereses']]
+];
+// Categorías del kardex que las palabras clasificarían mal (se corrigen a mano)
+  const FAM_FIJA = {
+  'microfono de cable': 'Micrófonos y pedestales', 'audifonos con microfono': 'Audífonos',
+  'baterias de reloj y audifono': 'Cargadores, pilas y energía', 'pilas y baterias recargables': 'Cargadores, pilas y energía',
+  'cargador de celular tablet': 'Cargadores, pilas y energía', 'bateria de telefono': 'Cargadores, pilas y energía', 'baterias de celular': 'Cargadores, pilas y energía',
+  'procesador de alimento': 'Pequeños electrodomésticos', 'cuchillo electrico': 'Pequeños electrodomésticos', 'balanza de cocina': 'Pequeños electrodomésticos',
+  'asistente de cocina': 'Pequeños electrodomésticos', 'plancha de cabello': 'Cuidado personal', 'cepillo clavo electrico': 'Cuidado personal',
+  'amplificador de guitarra': 'Parlantes y amplificadores', 'amplificador de bajo': 'Parlantes y amplificadores', 'amplificador de sintetizador': 'Parlantes y amplificadores',
+  'boton de guitarra': 'Accesorios de instrumentos', 'utensilios de cocina': 'Ollas y sartenes', 'bazar cocina': 'Ollas y sartenes',
+  'muebles para cocina': 'Hogar y bazar', 'tabla de planchar': 'Hogar y bazar', 'album de fotos': 'Hogar y bazar', 'compact flash': 'Memorias y discos',
+  'papel fotografico': 'Accesorios de computación', 'dispositivos de entrada': 'Accesorios de computación', 'tarjeta de sonido usb': 'Accesorios de computación',
+  'accesorios para video': 'Foto, cámaras y seguridad', 'cassette s': 'Parlantes y amplificadores', 'reloj de pulsera inteligente': 'Relojes'
+};
+  const norm = t => String(t ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const limpio = t => ' ' + norm(t).replace(/[^a-z0-9ñ]+/g, ' ').trim() + ' ';
+  const NORM = FAMILIAS.map(([f, ws]) => [f, ws.map(w => ' ' + limpio(w).trim())]);
+  const memo = new Map();
+  function de(t) {
+    if (!t) return '';
+    if (memo.has(t)) return memo.get(t);
+    const n = limpio(t); let r = FAM_FIJA[n.trim()] || '';
+    if (!r) for (const [f, ws] of NORM) if (ws.some(w => n.includes(w))) { r = f; break; }
+    memo.set(t, r); return r;
+  }
+  // categoría del kardex primero; si no hay, el nombre; si nada coincide, la categoría tal cual
+  const de2 = (categoria, nombre) => de(categoria) || de(nombre) || (categoria ? String(categoria).trim() : '') || 'Otros';
+  const orden = (a, b) => (a === 'Otros') - (b === 'Otros') || a.localeCompare(b, 'es');
+  return { de, familia: de2, orden, lista: FAMILIAS.map(f => f[0]) };
+})();
+</script>
 <!-- ===================== JAT SHELL: pestañas abajo + título arriba + botón ＋ propio de cada ventana ===================== -->
 <style>
     .js-top, .js-tabs, .js-fab, .js-hoja, .js-capa { display: none; }
@@ -5025,6 +5094,11 @@
         .js-vista { display: flex; flex-direction: column; gap: 10px; }
         .js-buscar { width: 100%; padding: 13px 16px; font-size: 16px; border: 1.5px solid #dfe5ec; border-radius: 14px; background: #fff; font-family: inherit; }
         .js-chips { display: flex; gap: 8px; overflow-x: auto; }
+        .km-fams { padding-bottom: 2px; }
+        .km-fams .js-chip b { font-weight: 700; opacity: .75; margin-left: 2px; }
+        .km-cab { font-size: .72rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: #8a6420; padding: 10px 4px 2px; }
+        .km-cab span { opacity: .7; margin-left: 4px; }
+        body.d-mar.d-osc .km-cab { color: #e8c27a; }
         .js-chip { flex: none; padding: 8px 14px; border-radius: 30px; border: 1.5px solid #dfe5ec; background: #fff; font-size: .82rem; font-family: inherit; cursor: pointer; }
         .js-chip.on { background: #1a2b3c; border-color: #1a2b3c; color: #fff; }
         .js-item { background: #fff; border: 1px solid #edf0f4; border-radius: 14px; padding: 12px 14px; }
@@ -5140,6 +5214,8 @@ window.JATShell = (function () {
 
     // ---------- KARDEX (lista con stock y ubicación) ----------
     let kmFiltro = 'todos', kmMax = 60, kmDatos = null;
+    let kmFam = (() => { try { return localStorage.getItem('jat_kardex_fam') || 'todas'; } catch (_) { return 'todas'; } })();   // categoría elegida en los chips
+    const kmFamCod = () => { try { return JSON.parse(localStorage.getItem('jat_familias') || '{}') || {}; } catch (_) { return {}; } };
     async function kmCargar() {
         let d = null;
         try { d = await JATKX.cargar(); } catch (_) {}
@@ -5159,11 +5235,13 @@ window.JATShell = (function () {
                 <button class="js-chip" data-f="todos">Todos</button><button class="js-chip" data-f="stock">Con stock</button>
                 <button class="js-chip" data-f="ubic">📍 Con ubicación</button><button class="js-chip" data-f="sinubic">Sin ubicación</button>
             </div>
+            <div class="js-chips km-fams" id="kmFams"></div>
             <div id="kmInfo" style="font-size:.8rem;color:#6b7280;padding:0 4px"></div>
             <div id="kmLista" style="display:flex;flex-direction:column;gap:8px"><div class="js-vacio">Cargando kardex…</div></div>
         </div>`;
         $('kmBuscar').addEventListener('input', () => { kmMax = 60; kmRender(); });
         $('kmChips').addEventListener('click', e => { const b = e.target.closest('[data-f]'); if (b) { kmFiltro = b.dataset.f; kmMax = 60; kmRender(); } });
+        $('kmFams').addEventListener('click', e => { const b = e.target.closest('[data-fam]'); if (b) { kmFam = b.dataset.fam; try { localStorage.setItem('jat_kardex_fam', kmFam); } catch (_) {} kmMax = 60; kmRender(); } });
         kmCargar().then(kmRender);
     }
     function kmRender() {
@@ -5178,10 +5256,24 @@ window.JATShell = (function () {
         if (kmFiltro === 'ubic') r = r.filter(c => ub[c] && ub[c].z);
         if (kmFiltro === 'sinubic') r = r.filter(c => !(ub[c] && ub[c].z));
         if (q.length) r = r.filter(c => { const t = ((d.n[c] || '') + ' ' + c).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); return q.every(w => t.includes(w)); });
+        // Categorías grandes de bodega (las mismas de Sacar); se respeta la que elegiste a mano para un producto
+        const fc = kmFamCod(), famDe = c => fc[c] || (window.JATFamilias ? JATFamilias.familia(d.c[d.m[c]] || '', d.n[c] || '') : (d.c[d.m[c]] || 'Otros'));
+        const fam = {}; r.forEach(c => { fam[c] = famDe(c); });
+        const cuenta = {}; r.forEach(c => { cuenta[fam[c]] = (cuenta[fam[c]] || 0) + 1; });
+        const ord = window.JATFamilias ? JATFamilias.orden : (a, b) => a.localeCompare(b, 'es');
+        const fams = Object.keys(cuenta).sort(ord);
+        if (kmFam !== 'todas' && !cuenta[kmFam]) kmFam = 'todas';
+        $('kmFams').innerHTML = `<button class="js-chip ${kmFam === 'todas' ? 'on' : ''}" data-fam="todas">Todas <b>${r.length.toLocaleString('es')}</b></button>`
+          + fams.map(f => `<button class="js-chip ${kmFam === f ? 'on' : ''}" data-fam="${esc(f)}">${esc(f)} <b>${cuenta[f].toLocaleString('es')}</b></button>`).join('');
+        if (kmFam !== 'todas') r = r.filter(c => fam[c] === kmFam);
+        r = r.slice().sort((a, b) => ord(fam[a], fam[b]) || String(d.n[a] || a).localeCompare(String(d.n[b] || b), 'es'));
         $('kmInfo').textContent = r.length.toLocaleString('es') + ' productos' + (d.archivo ? ' · kardex: ' + d.archivo : '') + (d.s ? '' : ' · sin stock (carga el Excel)');
+        let famAnt = '';
         lista.innerHTML = r.length ? r.slice(0, kmMax).map(c => {
             const s = d.s ? (d.s[c] ?? 0) : null, u = ub[c];
-            return `<div class="js-item"><div class="n">${esc(d.n[c] || c)}</div><div class="m"><span>${esc(c)}</span><span>${esc(d.c[d.m[c]] || '')}</span>${s === null ? '' : `<span class="st ${s > 0 ? '' : 'cero'}">Stock: ${s.toLocaleString('es')}</span>`}<span class="ub">${u && u.z ? '📍 ' + esc(u.z + (u.d ? ' · ' + u.d : '')) : ''}</span></div></div>`;
+            const cab = fam[c] !== famAnt ? `<div class="km-cab">${esc(fam[c])} <span>${cuenta[fam[c]].toLocaleString('es')}</span></div>` : '';
+            famAnt = fam[c];
+            return cab + `<div class="js-item"><div class="n">${esc(d.n[c] || c)}</div><div class="m"><span>${esc(c)}</span><span>${esc(d.c[d.m[c]] || '')}</span>${s === null ? '' : `<span class="st ${s > 0 ? '' : 'cero'}">Stock: ${s.toLocaleString('es')}</span>`}<span class="ub">${u && u.z ? '📍 ' + esc(u.z + (u.d ? ' · ' + u.d : '')) : ''}</span></div></div>`;
         }).join('') + (r.length > kmMax ? '<button class="js-mas" id="kmMas">Ver más</button>' : '') : '<div class="js-vacio">Sin resultados</div>';
         $('kmMas')?.addEventListener('click', () => { kmMax += 100; kmRender(); });
     }

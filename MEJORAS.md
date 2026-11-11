@@ -58,6 +58,13 @@ Esta regla también está en la "Bitácora JAT Control Suite".
 
 ## Kardex y ubicaciones
 
+- [ ] **Kardex por categorías grandes** (las mismas de Sacar): fila de chips "Todas" + una por categoría
+      con su cantidad, y la lista agrupada con su título (Cables, Guitarras y bajos…). Se respeta la
+      categoría elegida a mano en Sacar (`jat_familias` / `jatv_familias`) y se recuerda el chip elegido
+      (`jat_kardex_fam`). La tabla de categorías está copiada en `window.JATFamilias` (Personal y Venta):
+      si se cambia `FAMILIAS`/`FAM_FIJA` en `JAT_Salida_Mercaderia.html`, copiarla igual ahí.
+- [ ] Venta: Kardex con los mismos chips y grupos (usa la categoría del kardex del cliente).
+
 - [ ] El kardex se carga desde el Excel de inventario tal como viene (encabezados en la fila 4).
 - [ ] Lista agrupada por categoría del kardex o por ubicación.
 - [ ] **Sacar: categorías grandes de bodega** (Cables, Guitarras y bajos, Cuerdas, Parlantes y
@@ -144,3 +151,4 @@ Ya pasadas: categorías grandes de bodega en Salida (11 nov 2026).
   dorado) en todas las ventanas de Personal y en Venta, con pantalla clara y oscura.
 - 2026-11-11: dictado por voz en todos los buscadores y teclado que no tapa la pantalla, en Personal
   (incluido Sacar) y en Venta.
+- 2026-11-11: Kardex agrupado por categorías grandes de bodega, con chips, en Personal y Venta.

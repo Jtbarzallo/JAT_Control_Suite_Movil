@@ -5873,14 +5873,30 @@
         const lista = document.getElementById('kdxLista'); if (!lista) return;
         const k = jatKardex(); const fotos = jatFotos(); const cods = Object.keys(k);
         const t = (document.getElementById('kdxBuscar')?.value || '').trim().toLowerCase();
-        const filtrados = cods.filter(c => !t || [c, k[c].n, k[c].c, k[c].u, k[c].prov].join(' ').toLowerCase().includes(t)).sort((a, b) => (k[a].n || '').localeCompare(k[b].n || '', 'es'));
+        let filtrados = cods.filter(c => !t || [c, k[c].n, k[c].c, k[c].u, k[c].prov].join(' ').toLowerCase().includes(t)).sort((a, b) => (k[a].n || '').localeCompare(k[b].n || '', 'es'));
+        // Por categorías grandes (las mismas de "Salida por ubicación"); se respeta la que elegiste a mano
+        const fc = jatLeerJSON('jatv_familias', {}), ord = window.JATFamilias ? JATFamilias.orden : (x, y) => x.localeCompare(y, 'es');
+        const fam = {}; filtrados.forEach(c => { fam[c] = fc[c] || (window.JATFamilias ? JATFamilias.familia(k[c].c || '', k[c].n || '') : (k[c].c || 'Otros')); });
+        const cuenta = {}; filtrados.forEach(c => { cuenta[fam[c]] = (cuenta[fam[c]] || 0) + 1; });
+        const fams = Object.keys(cuenta).sort(ord);
+        if (window.jatKdxFam && window.jatKdxFam !== 'todas' && !cuenta[window.jatKdxFam]) window.jatKdxFam = 'todas';
+        const famSel = window.jatKdxFam || 'todas';
+        let chips = document.getElementById('kdxFams');
+        if (!chips) { chips = document.createElement('div'); chips.id = 'kdxFams'; chips.style.cssText = 'display:flex;gap:8px;overflow-x:auto;padding:2px 0 4px;flex:none';
+            lista.parentNode.insertBefore(chips, lista);
+            chips.addEventListener('click', e => { const bt = e.target.closest('[data-fam]'); if (bt) { window.jatKdxFam = bt.dataset.fam; jatRenderKardex(); } }); }
+        const chip = (v, txt, n) => `<button type="button" data-fam="${jatEsc(v)}" class="chip ${famSel === v ? 'on' : ''}" style="flex:none;padding:7px 12px;border-radius:999px;border:1.5px solid ${famSel === v ? '#1a3a5c' : '#dce3ea'};background:${famSel === v ? '#1a3a5c' : '#fff'};color:${famSel === v ? '#fff' : '#1a3a5c'};font-size:.8rem;font-weight:600;white-space:nowrap;cursor:pointer">${jatEsc(txt)} <b style="opacity:.7">${n}</b></button>`;
+        chips.innerHTML = cods.length ? chip('todas', 'Todas', filtrados.length) + fams.map(x => chip(x, x, cuenta[x])).join('') : '';
+        if (famSel !== 'todas') filtrados = filtrados.filter(c => fam[c] === famSel);
+        filtrados.sort((a, b) => ord(fam[a], fam[b]) || (k[a].n || '').localeCompare(k[b].n || '', 'es'));
+        let famAnt = '';
         const unidades = cods.reduce((a, c) => a + (Number(k[c].s) || 0), 0);
         document.getElementById('kdxTotal').textContent = `${cods.length} productos · ${formatearQty(unidades)} u.`;
         if (!cods.length) { lista.innerHTML = '<p style="font-size:.85rem;color:#6b7c8f;padding:20px 0;text-align:center;"><span style="display:block;font-size:64px;margin:20px 0 10px;">📋</span><strong style="display:block;font-size:1.1rem;color:#1a2b3c;">Tu kardex está vacío</strong><span style="display:block;margin-top:8px;">Toca el botón <b style="color:#d62f3a;">＋</b> para agregar tu primer producto</span></p>'; return; }
         lista.innerHTML = filtrados.slice(0, 300).map(c => {
             const it = k[c]; const s = Number(it.s) || 0; const bajo = it.min !== undefined && s <= Number(it.min);
             const col = s < 0 ? '#c0392b' : bajo ? '#b9770e' : '#1E7F4A';
-            return `<div style="display:flex;gap:10px;align-items:center;border-bottom:1px solid #edf2f7;padding:10px 0;">
+            return (fam[c] !== famAnt ? (famAnt = fam[c], `<div class="kdx-cab" style="font-size:.72rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#8a6420;padding:12px 0 2px;">${jatEsc(fam[c])} <span style="opacity:.7">${cuenta[fam[c]]}</span></div>`) : '') + `<div style="display:flex;gap:10px;align-items:center;border-bottom:1px solid #edf2f7;padding:10px 0;">
                 ${fotos[c] ? `<img src="${fotos[c]}" alt="" style="width:48px;height:48px;border-radius:10px;object-fit:cover;flex:none;">` : '<div style="width:48px;height:48px;border-radius:10px;background:#f1f4f8;flex:none;display:flex;align-items:center;justify-content:center;font-size:22px;">📦</div>'}
                 <div style="flex:1;min-width:0;">
                     <div style="font-weight:600;font-size:.88rem;color:#1a2b3c;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">${jatEsc(it.n || '(sin nombre)')}</div>
@@ -8241,6 +8257,75 @@ body.kb-abierto #mainContent.content-area { overflow-y: auto !important; -webkit
   window.JATVoz = { dictar, avisar };
 })();
 </script>
+<script>
+/* Categorías grandes de bodega (familias): la misma tabla de Sacar (JAT_Salida_Mercaderia.html, FAMILIAS y
+   FAM_FIJA). Si se cambia allá, se copia aquí igual. La usa el Kardex para agrupar por categoría. */
+window.JATFamilias = (function () {
+  const FAMILIAS = [
+  ['Cuerdas', ['cuerdas de instrumento', 'cuerda', 'encordado', 'string']],
+  ['Estuches y mochilas', ['estuche', 'mochila', 'maletin', 'lonchera', 'estante para cd']],
+  ['Cables', ['cable', 'extension', 'cables y conductores', 'conectores para red', 'plug', 'hdmi']],
+  ['Guitarras y bajos', ['guitarra', 'requinto', 'charango', 'ukulele', 'ukelele', 'bajo electrico', 'bajo acustico', 'bajo']],
+  ['Violines y cuerda frotada', ['violin', 'viola', 'cello', 'contrabajo', 'mentonera', 'arco de']],
+  ['Instrumentos de viento', ['instrumentos de viento', 'acordeon', 'clarinete', 'flauta', 'saxo', 'trombon', 'trompeta', 'harmonica', 'rondador', 'melodica', 'quena']],
+  ['Percusión', ['bateria de percusion', 'instrumentos de percusion', 'bombo', 'bongo', 'cencerro', 'sapito', 'pandereta', 'lira', 'guiro', 'maracas', 'tambor', 'timbal', 'conga', 'platillo', 'redoblante', 'castanuelas', 'clave', 'xilofono', 'cajon de percucion', 'cajon', 'cabasa', 'palillos', 'parches', 'mazo', 'canas']],
+  ['Teclados y pianos', ['sintetizador', 'piano', 'controlador midi', 'teclado musical', 'organeta']],
+  ['Accesorios de instrumentos', ['capodastro', 'vitelas', 'clavijero', 'pedestal y mesa de instrumento', 'correas para intrumentos', 'sejillas', 'pedales y pedalera', 'afinador', 'atril', 'pulidor', 'asientos de instrumento', 'metronomo', 'cancioneros', 'complementos musicales', 'boton de guitarra', 'entraste', 'implementos', 'pedal de efecto', 'instrumentos miniatura']],
+  ['Micrófonos y pedestales', ['microfono', 'pedestal de microfono', 'pedestal de parlante']],
+  ['Audífonos', ['audifono', 'manos libres', 'earbuds', 'in ear', 'headset']],
+  ['Parlantes y amplificadores', ['parlante', 'amplificador', 'potencia', 'megafono', 'corneta', 'sound bar', 'crossover', 'ecualizador', 'compresor', 'mezcladora', 'consolas dj', 'controladores', 'interfases', 'karaoke', 'equipo de sonido', 'mini componente', 'radio', 'tocadiscos', 'vitrola', 'reproductor', 'mp3', 'discman', 'grabador', 'transmisor', 'bluetooth para equipos', 'convertidores de audio', 'audio', 'luces y efectos', 'maquina de humo', 'maquina de burbujas', 'maquina de nieve', 'mueble para dj', 'cine en casa']],
+  ['Televisores y video', ['televisor', 'monitor de video', 'dvd', 'blueray', 'decodificador', 'tv box', 'tv stick', 'roku', 'chromecast', 'fire tv', 'apple tv', 'google tv', 'mirascreen', 'proyector', 'soportes de television', 'antena', 'control universal', 'control smart', 'control inteligente', 'convertidores de video', 'repartidor de video', 'capturadora']],
+  ['Foto, cámaras y seguridad', ['camara', 'filmadora', 'lente para camara', 'tripode', 'monopod', 'gimbal', 'foto', 'flash', 'filtros para camara', 'aro de luz', 'dvr', 'nvr', 'alarma', 'seguridad', 'editor de video', 'lamparas y focos']],
+  ['Redes y WiFi', ['router', 'wi-fi', 'wifi', 'mesh', 'access point', 'ranger extender', 'extender', 'switch', 'tarjeta de red', 'adaptadores de red', 'ponchadora', 'modem']],
+  ['Memorias y discos', ['memoria', 'disco', 'microsd', 'pendrive', 'compact flash', 'enclousure', 'lector de memorias', 'cd-dvd writer', 'dvd y cd', 'usb flash']],
+  ['Laptops y computadoras', ['laptop', 'desktop', 'pc de escritorio', 'todo en uno', 'case', 'mainboard', 'procesador', 'tarjetas de video', 'tarjetas de sonido', 'pasta termica', 'ventilador para pc', 'lector de tarjetas interno', 'tablet', 'digitalizadora', 'lapiz optico', 'core i', 'ryzen', 'notebook', 'chromebook']],
+  ['Accesorios de computación', ['raton', 'mouse', 'teclado', 'webcam', 'joystick', 'controles y', 'hub', 'lector de barras', 'scanner', 'monitor', 'parlante para pc', 'adaptadores bluetooth', 'pad mouse', 'silla gamer', 'muebles de computadora', 'licencias', 'impresora', 'tinta', 'toner', 'cartucho', 'cintas', 'papel fotografico', 'suministros de impresora', 'micas', 'presentadores laser', 'pantallas', 'soporte de proyector', 'accesorios para proyector', 'adaptadores para tablet']],
+  ['Celulares y teléfonos', ['celular', 'telefon', 'chip', 'telefax', 'cajetin', 'intercomunicador', 'gps', 'recarga']],
+  ['Cargadores, pilas y energía', ['cargador', 'power bank', 'adaptadores', 'convertidor de voltaje', 'estacion de energia', 'supresor', 'ups', 'regulador', 'bateria', 'pilas', 'generador', 'fuente de poder', 'multimetro']],
+  ['Inteligentes (smart home)', ['inteligente']],
+  ['Línea blanca', ['linea blanca', 'refrigeradora', 'nevera', 'lavadora', 'secadora de ropa', 'aire acondicionado', 'dispensador de agua', 'calefactor', 'aspiradora', 'hidrolavador', 'horno microondas', 'extractor de olores', 'cocina']],
+  ['Ollas y sartenes', ['olla', 'sarten', 'vajilla', 'cuchillo', 'tetera', 'termos', 'utensilios de cocina', 'hielera', 'bazar']],
+  ['Pequeños electrodomésticos', ['licuadora', 'cafetera', 'tostador', 'arrocera', 'freidora', 'batidora', 'waflera', 'plancha', 'vaporera', 'procesador de alimento', 'picatodo', 'extractor de jugo', 'parrilla electrica', 'abrelata', 'asistente de cocina', 'canguilera', 'ventilador', 'cuchillo electrico', 'balanza de cocina', 'molinos', 'maquina de coser']],
+  ['Cuidado personal', ['cabello', 'depilador', 'rasuradora', 'afeitadora', 'masajeador', 'sauna', 'cortaunas', 'manicure', 'peinilla', 'medidores de presion', 'balanzas']],
+  ['Relojes', ['reloj', 'cronometro', 'pasadores']],
+  ['Juguetes y juegos', ['juguete', 'juqueste', 'juquetes', 'consola', 'juegos', 'carros', 'barco', 'motos', 'aviones', 'bicicleta', 'naipe', 'ajedrez', 'jenga', 'monopolio', 'bingo', 'rompecabezas', 'ping pong', 'futbolin', 'billar', 'superheroes', 'spinner', 'pistola', 'helicoptero', 'dron', 'tacos', 'bolas']],
+  ['Deportes', ['patin', 'scooter', 'patineta', 'raqueta', 'pelota', 'balones', 'guantes', 'pesas', 'natacion', 'salvavidas', 'trajes de bano', 'bote', 'cana de pescar', 'aro de basket', 'proteccion']],
+  ['Oficina y papelería', ['esfero', 'papeleria', 'calculadora', 'sumadora', 'caja registradora', 'etiquetadora', 'fax', 'punteros', 'oficina', 'emplasticadora', 'traductor', 'agenda', 'maquinas de escribir', 'contador de billetes', 'pizarrones', 'utiles', 'tarjetas']],
+  ['Herramientas', ['herramienta', 'pegamento', 'navaja', 'linterna', 'limpieza', 'limpiador', 'podadora', 'bomba de fumigacion', 'cerradura', 'extinguidor', 'gas de defensa']],
+  ['Hogar y bazar', ['hogar', 'lampara', 'luz de navidad', 'adorno', 'cuadro', 'portaretrato', 'porta retrato', 'florero', 'vela', 'espejo', 'colchon', 'edredon', 'tabla de planchar', 'sombrilla', 'muebles', 'joyero', 'album', 'cenicero', 'fuente de agua', 'humificador', 'soportes', 'caminera', 'llavero', 'billetera', 'gafas', 'binocular', 'lupa', 'telescopio', 'brujula', 'baston', 'tijeras', 'rollos', 'porta vino', 'destapadores', 'mascarillas', 'exibidores', 'repuesto', 'diario', 'fosforera', 'cigarr', 'esencias']],
+  ['Licores', ['vino', 'tequila', 'vodka', 'whisky', 'ron']],
+  ['Servicios', ['servicio', 'transporte', 'financiamiento', 'descuento', 'intereses']]
+];
+// Categorías del kardex que las palabras clasificarían mal (se corrigen a mano)
+  const FAM_FIJA = {
+  'microfono de cable': 'Micrófonos y pedestales', 'audifonos con microfono': 'Audífonos',
+  'baterias de reloj y audifono': 'Cargadores, pilas y energía', 'pilas y baterias recargables': 'Cargadores, pilas y energía',
+  'cargador de celular tablet': 'Cargadores, pilas y energía', 'bateria de telefono': 'Cargadores, pilas y energía', 'baterias de celular': 'Cargadores, pilas y energía',
+  'procesador de alimento': 'Pequeños electrodomésticos', 'cuchillo electrico': 'Pequeños electrodomésticos', 'balanza de cocina': 'Pequeños electrodomésticos',
+  'asistente de cocina': 'Pequeños electrodomésticos', 'plancha de cabello': 'Cuidado personal', 'cepillo clavo electrico': 'Cuidado personal',
+  'amplificador de guitarra': 'Parlantes y amplificadores', 'amplificador de bajo': 'Parlantes y amplificadores', 'amplificador de sintetizador': 'Parlantes y amplificadores',
+  'boton de guitarra': 'Accesorios de instrumentos', 'utensilios de cocina': 'Ollas y sartenes', 'bazar cocina': 'Ollas y sartenes',
+  'muebles para cocina': 'Hogar y bazar', 'tabla de planchar': 'Hogar y bazar', 'album de fotos': 'Hogar y bazar', 'compact flash': 'Memorias y discos',
+  'papel fotografico': 'Accesorios de computación', 'dispositivos de entrada': 'Accesorios de computación', 'tarjeta de sonido usb': 'Accesorios de computación',
+  'accesorios para video': 'Foto, cámaras y seguridad', 'cassette s': 'Parlantes y amplificadores', 'reloj de pulsera inteligente': 'Relojes'
+};
+  const norm = t => String(t ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const limpio = t => ' ' + norm(t).replace(/[^a-z0-9ñ]+/g, ' ').trim() + ' ';
+  const NORM = FAMILIAS.map(([f, ws]) => [f, ws.map(w => ' ' + limpio(w).trim())]);
+  const memo = new Map();
+  function de(t) {
+    if (!t) return '';
+    if (memo.has(t)) return memo.get(t);
+    const n = limpio(t); let r = FAM_FIJA[n.trim()] || '';
+    if (!r) for (const [f, ws] of NORM) if (ws.some(w => n.includes(w))) { r = f; break; }
+    memo.set(t, r); return r;
+  }
+  // categoría del kardex primero; si no hay, el nombre; si nada coincide, la categoría tal cual
+  const de2 = (categoria, nombre) => de(categoria) || de(nombre) || (categoria ? String(categoria).trim() : '') || 'Otros';
+  const orden = (a, b) => (a === 'Otros') - (b === 'Otros') || a.localeCompare(b, 'es');
+  return { de, familia: de2, orden, lista: FAMILIAS.map(f => f[0]) };
+})();
+</script>
 <style id="jat-respaldo">
 .resp-fila { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid var(--m-bd, var(--border-color, #e3e9ef)); border-radius: 14px; background: var(--m-sf, var(--bg-surface, #fff)); color: var(--m-tx, var(--text-main, #1a3a5c)); font-size: .8rem; }
 .resp-fila .resp-ico { display: flex; color: #2fbf86; }
@@ -8379,6 +8464,7 @@ body.d-mar {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 body.d-mar.d-osc #jatLogin { color-scheme: light; }
+body.d-mar.d-osc .kdx-cab { color: #e8c27a !important; }
 body.d-mar.d-osc { --mar-oro-tx: #e8c27a; --m-bg: #0a1322; --m-sf: #111f34; --m-soft: #13233b; --m-tx: #e8edf5; --m-mu: #8391a7; --m-bd: #233651; --m-sel: #2a2412; color-scheme: dark; }
 body.d-mar, body.d-mar.js-shell, body.d-mar .content-area, body.d-mar .main-layout { background: var(--m-bg) !important; color: var(--m-tx); }
 body.d-mar button, body.d-mar input, body.d-mar select, body.d-mar textarea { font-family: inherit; }
