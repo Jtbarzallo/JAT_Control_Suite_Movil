@@ -1454,9 +1454,9 @@
 
     function crearCSVTexto(egreso) {
         const productos = egreso?.productos || [];
-        let csv = 'Código de barras\tCantidad verificada\tCantidad total\tEstado\tProducto\tSeries / Observaciones\n';
+        let csv = 'Código de barras\tCantidad verificada\tCantidad total\tEstado\tProducto\tSeries / Observaciones\tFecha y hora escaneo\n';
         productos.forEach(p => {
-            csv += `${p.barcode}\t${formatearQty(getVerifiedQty(p))}\t${formatearQty(getExpectedQty(p))}\t${isProductoVerificado(p) ? 'VERIFICADO' : 'PENDIENTE'}\t${p.productName}\t${(p.seriesTexto || p.observacion || '').replace(/\n/g, ' | ')}\n`;
+            csv += `${p.barcode}\t${formatearQty(getVerifiedQty(p))}\t${formatearQty(getExpectedQty(p))}\t${isProductoVerificado(p) ? 'VERIFICADO' : 'PENDIENTE'}\t${p.productName}\t${(p.seriesTexto || p.observacion || '').replace(/\n/g, ' | ')}\t${fechaHoraEscaneo(p)}\n`;
         });
         return '\uFEFF' + csv;
     }
@@ -3054,10 +3054,22 @@
     }
 
     // ---- EXPORTAR ----
+    function jatFH(t) { try { const d = new Date(t); if (!t || isNaN(d)) return ''; const z = n => String(n).padStart(2, '0'); return z(d.getDate()) + '/' + z(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + z(d.getHours()) + ':' + z(d.getMinutes()); } catch (_) { return ''; } }
+    // Fecha y hora del último escaneo de un producto (sale del historial que ya guarda cada conteo)
+    function fechaHoraEscaneo(p) {
+        if (!p || getVerifiedQty(p) <= 0) return '';
+        const h = Array.isArray(p.historialMovimientos) ? p.historialMovimientos : [];
+        for (let k = h.length - 1; k >= 0; k--) {
+            const m = h[k];
+            if (m && m.fecha && m.tipo !== 'series_observacion' && (m.cantidadSumada === undefined || m.cantidadSumada > 0)) { const t = jatFH(m.fecha); if (t) return t; }
+        }
+        return p.horaSalida ? jatFH(p.horaSalida) : '';
+    }
+
     function exportarAExcel() {
-        let csv = "Código de barras\tCantidad\tEstado\tProducto\tSeries / Observaciones\n";
+        let csv = "Código de barras\tCantidad\tEstado\tFecha y hora escaneo\tProducto\tSeries / Observaciones\n";
         currentProductos.forEach(p => {
-            csv += `${p.barcode}\t${formatearQty(getVerifiedQty(p))}/${formatearQty(getExpectedQty(p))}\t${p.verified ? "VERIFICADO" : "PENDIENTE"}\t${p.productName}\t${(p.seriesTexto || p.observacion || '').replace(/\n/g, ' | ')}\n`;
+            csv += `${p.barcode}\t${formatearQty(getVerifiedQty(p))}/${formatearQty(getExpectedQty(p))}\t${p.verified ? "VERIFICADO" : "PENDIENTE"}\t${fechaHoraEscaneo(p)}\t${p.productName}\t${(p.seriesTexto || p.observacion || '').replace(/\n/g, ' | ')}\n`;
         });
         const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
         const link = document.createElement("a");
@@ -3110,8 +3122,8 @@
             <strong>Progreso:</strong> ${verificados} / ${formatearQty(totalEsperado())} unidades (${currentProductos.length > 0 ? Math.round(verificados/totalEsperado()*100) : 0}%)
             <div class="prog"><div class="prog-fill" style="width:${currentProductos.length > 0 ? Math.round(verificados/totalEsperado()*100) : 0}%"></div></div>
         </div>
-        <table><tr><th>#</th><th>Código</th><th>Cant.</th><th>Estado</th><th>Producto</th><th>Observaciones</th></tr>
-        ${currentProductos.map((p,i) => `<tr class="${p.verified?'verified':''}"><td>${i+1}</td><td style="font-family:monospace;font-size:0.75rem;">${p.barcode}</td><td style="text-align:center;">${formatearQty(getVerifiedQty(p))}/${formatearQty(getExpectedQty(p))}</td><td>${p.verified?'✅ VERIFICADO':'⏳ PENDIENTE'}</td><td>${p.productName}</td><td>${p.seriesTexto || p.observacion || ''}</td></tr>`).join('')}
+        <table><tr><th>#</th><th>Código</th><th>Cant.</th><th>Estado</th><th>Fecha y hora escaneo</th><th>Producto</th><th>Observaciones</th></tr>
+        ${currentProductos.map((p,i) => `<tr class="${p.verified?'verified':''}"><td>${i+1}</td><td style="font-family:monospace;font-size:0.75rem;">${p.barcode}</td><td style="text-align:center;">${formatearQty(getVerifiedQty(p))}/${formatearQty(getExpectedQty(p))}</td><td>${p.verified?'✅ VERIFICADO':'⏳ PENDIENTE'}</td><td style="white-space:nowrap;">${fechaHoraEscaneo(p)}</td><td>${p.productName}</td><td>${p.seriesTexto || p.observacion || ''}</td></tr>`).join('')}
         </table>
         <div class="footer">JAT Control Suite — Sistema de Verificación de Egresos | ${new Date().toLocaleString()}</div>
         </body></html>`);
@@ -3139,7 +3151,7 @@
         doc.text(`Origen: ${currentEgreso?.bodegaOrigen || ''}    Destino: ${currentEgreso?.bodegaDestino || ''}`, 12, y); y += 5;
         doc.text(`Total: ${formatearQty(total)} artículos / ${currentProductos.length} códigos    Verificado: ${formatearQty(verif)}`, 12, y); y += 8;
         doc.setFontSize(8);
-        doc.text('#', 8, y); doc.text('Código', 16, y); doc.text('Cant.', 48, y); doc.text('Estado', 66, y); doc.text('Descripción', 96, y); y += 4;
+        doc.text('#', 8, y); doc.text('Código', 16, y); doc.text('Cant.', 48, y); doc.text('Estado', 66, y); doc.text('Fecha y hora', 92, y); doc.text('Descripción', 120, y); y += 4;
         doc.line(8, y, 288, y); y += 4;
         currentProductos.forEach((p, i) => {
             if (y > 195) { doc.addPage(); y = 12; }
@@ -3147,9 +3159,11 @@
             doc.text(String(p.barcode), 16, y);
             doc.text(`${formatearQty(getVerifiedQty(p))}/${formatearQty(getExpectedQty(p))}`, 48, y);
             doc.text(isProductoVerificado(p) ? 'VERIFICADO' : 'PENDIENTE', 66, y);
-            doc.text(doc.splitTextToSize(String(p.productName || ''), 180), 96, y);
+            doc.text(fechaHoraEscaneo(p), 92, y);
+            doc.text(doc.splitTextToSize(String(p.productName || ''), 166), 120, y);
             y += 5;
         });
+        try { const n = doc.getNumberOfPages(); for (let k = 1; k <= n; k++) { doc.setPage(k); doc.setFontSize(7); doc.text(`Generado: ${jatFH(Date.now())}  ·  Página ${k} de ${n}`, 8, 205); } } catch (_) {}
         doc.save(`${safeFileName(nombre)}.pdf`);
         showAlert('📄 PDF descargado', 'success');
     }
@@ -7413,7 +7427,7 @@
                 ${orden.map(g => `<div style="background:#1a3a5c;color:#fff;font-weight:800;padding:9px 12px;border-radius:10px;margin-top:4px;">${porCat ? '📦 ' + jatEsc(g) : (g.startsWith('❓') ? g : '📍 ' + jatEsc(g))} <span style="font-weight:600;opacity:.8;">(${grupos[g].length})</span></div>` + grupos[g].sort(porCat ? (a, b) => catKardex(a.p).localeCompare(catKardex(b.p), 'es') || a.i - b.i : (a, b) => (a.ub?.d || '').localeCompare(b.ub?.d || '', 'es')).map(x => {
                     const e = getExpectedQty(x.p), q = getVerifiedQty(x.p), ok = q >= e, parc = q > 0 && !ok;
                     return `<button type="button" data-si="${x.i}" style="display:block;width:100%;text-align:left;background:${ok ? '#f0fdf4' : '#fff'};border:1px solid #e3e9f0;border-left:6px solid ${ok ? '#16a34a' : parc ? '#3b82f6' : '#f59e0b'};border-radius:12px;padding:12px;cursor:pointer;">
-                        <b style="font-size:.92rem;color:#1a2b3c;">${jatEsc(x.p.productName || x.p.barcode)}</b>
+                        <b style="font-size:.92rem;color:#1a2b3c;">${jatEsc(x.p.productName || x.p.barcode)}</b>${q > 0 && fechaHoraEscaneo(x.p) ? `<div class="jat-hora" style="font-size:.72rem;color:#475569;margin-top:3px;">🕒 Sacado ${fechaHoraEscaneo(x.p)}</div>` : ''}
                         <div style="display:flex;justify-content:space-between;gap:8px;margin-top:6px;font-size:.8rem;color:#475569;align-items:center;"><span style="background:${x.ub ? '#fef3c7' : '#fee2e2'};color:${x.ub ? '#78350f' : '#991b1b'};border-radius:8px;padding:3px 8px;font-weight:700;">${x.ub ? (x.ub.d ? jatEsc(x.ub.d) : jatEsc(x.ub.z)) : 'Sin ubicación'}</span>${porCat && catKardex(x.p) && catKardex(x.p) !== x.fam ? `<span style="flex:1;text-align:right;font-size:.75rem;color:#6b7c8f;">${jatEsc(catKardex(x.p))}</span>` : (!porCat ? `<span style="flex:1;text-align:right;font-size:.75rem;color:#6b7c8f;">${jatEsc(x.fam)}</span>` : '')}<b style="font-size:1rem;color:#1a3a5c;">${formatearQty(q)} / ${formatearQty(e)}</b></div></button>`; }).join('')).join('') || '<p style="text-align:center;color:#1E7F4A;font-weight:700;padding:24px 0;">✅ Todo sacado</p>'}
                 <button type="button" id="salCierre" class="btn" style="min-height:52px;margin-top:6px;">🧾 Abrir en Verificar para el cierre</button>`);
             document.querySelectorAll('[data-sf]').forEach(b => b.addEventListener('click', () => { salFiltro = b.dataset.sf; cargarVistaSalida(id); }));
@@ -7460,8 +7474,9 @@
             h.querySelector('#hsG').addEventListener('click', () => {
                 const n = Math.max(0, +q.value || 0);
                 if (n > e) { showAlert(`Pediste ${formatearQty(e)}. No puedes sacar más.`, 'warning'); return; }
+                if (n !== getVerifiedQty(p)) { if (n > 0) p.horaSalida = Date.now(); else delete p.horaSalida; }   // fecha y hora en que se sacó
                 setVerifiedQty(p, n);
-                if (currentEgreso && currentEgreso.id === eg.id) { const cp = currentProductos.find(x => String(x.barcode).trim() === cod); if (cp) setVerifiedQty(cp, n); }
+                if (currentEgreso && currentEgreso.id === eg.id) { const cp = currentProductos.find(x => String(x.barcode).trim() === cod); if (cp) { if (p.horaSalida) cp.horaSalida = p.horaSalida; else delete cp.horaSalida; setVerifiedQty(cp, n); } }
                 eg.fechaModificacion = new Date().toISOString();
                 guardarEgresosStorage();
                 const z = h.querySelector('#hsZ').value; if (z) ponerUbic(cod, z, h.querySelector('#hsD').value);
@@ -8603,7 +8618,7 @@ body.d-mar.d-osc .modal-content { background: var(--m-sf); color: var(--m-tx); }
 <script>
 /* ===== Verificador: Pendientes / Revisados / Todos con contador, hora de marcado y buscar escribiendo =====
    - Los filtros salen en orden Pendientes, Revisados, Todos y cada uno con su contador.
-   - Cada producto contado muestra la hora (🕒 HH:MM) en que se marcó (si la pantalla no la mostraba ya).
+   - Cada producto contado muestra la fecha y hora (🕒 dd/mm/aaaa HH:MM) en que se marcó (si la pantalla no la mostraba ya).
    - Al escribir un nombre o parte de un código sale la lista de coincidencias para elegir con el clic o el dedo.
      Elegir solo selecciona el producto; no se suma nada hasta presionar ENTER (o +1).
    Configuración: window.JAT_VERIF_CFG = { enfocar: true, textoElegido: '...' }  (enfocar true en PC: el buscador conserva el foco) */
@@ -8612,7 +8627,7 @@ body.d-mar.d-osc .modal-content { background: var(--m-sf); color: var(--m-tx); }
   const cfg = window.JAT_VERIF_CFG || {};
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const fq = n => (typeof formatearQty === 'function' ? formatearQty(n) : String(n));
-  const hhmm = iso => { try { return new Date(iso).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', hour12: false }); } catch (_) { return ''; } };
+  const hhmm = t => { try { const d = new Date(t); if (!t || isNaN(d)) return ''; const z = n => String(n).padStart(2, '0'); return z(d.getDate()) + '/' + z(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + z(d.getHours()) + ':' + z(d.getMinutes()); } catch (_) { return ''; } };   // fecha y hora
 
   // ---------- Filtros con contador ----------
   const NOMBRE = { pendientes: 'Pendientes', verificados: 'Revisados', todos: 'Todos' };
@@ -8644,8 +8659,9 @@ body.d-mar.d-osc .modal-content { background: var(--m-sf); color: var(--m-tx); }
     const td = badge && badge.closest('td');
     if (!td || td.textContent.indexOf('🕒') !== -1) return;   // la pantalla ya la muestra
     const m = (p.historialMovimientos || []).filter(x => (x.cantidadSumada || 0) > 0);
-    if (!m.length) return;
-    td.insertAdjacentHTML('beforeend', `<div class="jat-hora">🕒 ${hhmm(m[m.length - 1].fecha)}${m.length > 1 ? ' · ' + m.length + ' marcas' : ''}</div>`);
+    const t = m.length ? m[m.length - 1].fecha : (getVerifiedQty(p) > 0 ? p.horaSalida : null);
+    if (!t) return;
+    td.insertAdjacentHTML('beforeend', `<div class="jat-hora">🕒 ${hhmm(t)}${m.length > 1 ? ' · ' + m.length + ' marcas' : ''}</div>`);
   }
   function horas() { document.querySelectorAll('#verificadorTableBody tr[data-index]').forEach(horaFila); }
 

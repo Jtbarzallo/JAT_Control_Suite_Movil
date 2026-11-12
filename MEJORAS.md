@@ -45,8 +45,11 @@ Esta regla también está en la "Bitácora JAT Control Suite".
 - [ ] Lectura de texto (OCR) para productos sin código de barras.
 - [ ] Voz, sonido y vibración distintos por caso (correcto, repetido, no encontrado, completo).
 - [ ] Aviso de producto repetido y de "ya está completo".
-- [ ] **Hora de marcado**: cada producto contado muestra la hora (🕒 HH:MM) en que se marcó,
-      en la lista de Revisar y en la de Sacar.
+- [ ] **Fecha y hora de escaneo** (12 nov 2026): cada producto contado o sacado muestra
+      🕒 dd/mm/aaaa HH:MM, en todos los programas (Revisar, Sacar, Revisión de Mercadería, Venta
+      incluida su Salida por ubicación, y PC). También sale en los reportes: columna "Fecha y hora"
+      en el PDF (con pie "Generado: … · Página x de y"), en el CSV/Excel y en la hoja de imprimir.
+      En Revisión de Mercadería se guarda en cada producto (`t`) y va en el Excel.
 
 ## Egresos
 
@@ -154,7 +157,6 @@ celular que sirven en PC están en dos bloques al final del archivo: `<style id=
 Mejoras de la versión personal que todavía no están en `JAT_Control_Suite_Venta.html`:
 
 - [ ] Filtros Pendientes / **Sacados** / Todos en Salida (Venta solo tiene Pendientes y Todos).
-- [ ] Hora de marcado (🕒 HH:MM) en cada producto **sacado** (Salida).
 
 Ya pasadas: categorías grandes de bodega en Salida (11 nov 2026). En el verificador de Venta
 (11 nov 2026, junto con la versión de PC): Pendientes / Revisados / Todos con contador, hora de
@@ -181,6 +183,8 @@ marcado en cada producto contado y buscar escribiendo con lista para elegir con 
 - 2026-11-11: dictado por voz en todos los buscadores y teclado que no tapa la pantalla, en Personal
   (incluido Sacar) y en Venta.
 - 2026-11-11: Kardex agrupado por categorías grandes de bodega, con chips, en Personal y Venta.
+- 2026-11-12: fecha y hora de escaneo en pantalla y en reportes (PDF, CSV/Excel, imprimir) en los cinco
+  programas; Venta ahora guarda la fecha y hora en que se sacó cada producto en Salida por ubicación.
 - 2026-11-11: versión de PC subida al repositorio (`JAT_Control_Suite_PC.html`, PC 3.4) con las mejoras
   del celular que sirven en PC: filtros con contador, buscar escribiendo, dictado (F8), pantalla
   oscura, egreso en curso y respaldo automático. Por la regla 1, el verificador de Venta recibió

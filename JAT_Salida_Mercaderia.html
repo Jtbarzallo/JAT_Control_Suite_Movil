@@ -242,7 +242,7 @@ const LS = {
 let ubic = LS.get('jat_ubicaciones', {});                       // codigo -> {z, d, t}
 let zonas = LS.get('jat_zonas', ['Pasillo 1', 'Pasillo 2', 'Pasillo 3', 'Cuarto 1']);
 let egreso = null, productos = [], sacado = {}, horas = {}, egKey = '';
-const horaTxt = t => t ? new Date(t).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
+const horaTxt = t => { if (!t) return ''; const d = new Date(t); if (isNaN(d)) return ''; const z = n => String(n).padStart(2, '0'); return z(d.getDate()) + '/' + z(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + z(d.getHours()) + ':' + z(d.getMinutes()); };   // fecha y hora
 let agrupar = LS.get('jat_sacar_agrupar', 'cat'), filtro = 'pend', famFiltro = 'todas', idxItem = -1, KC = null;
 
 function toast(t) { const e = $('toast'); e.textContent = t; e.style.display = 'block'; clearTimeout(toast.h); toast.h = setTimeout(() => e.style.display = 'none', 2600); }

@@ -1302,9 +1302,9 @@
 
     function crearCSVTexto(egreso) {
         const productos = egreso?.productos || [];
-        let csv = 'Código de barras\tCantidad verificada\tCantidad total\tEstado\tProducto\tSeries / Observaciones\n';
+        let csv = 'Código de barras\tCantidad verificada\tCantidad total\tEstado\tProducto\tSeries / Observaciones\tFecha y hora escaneo\n';
         productos.forEach(p => {
-            csv += `${p.barcode}\t${formatearQty(getVerifiedQty(p))}\t${formatearQty(getExpectedQty(p))}\t${isProductoVerificado(p) ? 'VERIFICADO' : 'PENDIENTE'}\t${p.productName}\t${(p.seriesTexto || p.observacion || '').replace(/\n/g, ' | ')}\n`;
+            csv += `${p.barcode}\t${formatearQty(getVerifiedQty(p))}\t${formatearQty(getExpectedQty(p))}\t${isProductoVerificado(p) ? 'VERIFICADO' : 'PENDIENTE'}\t${p.productName}\t${(p.seriesTexto || p.observacion || '').replace(/\n/g, ' | ')}\t${fechaHoraEscaneo(p)}\n`;
         });
         return '\uFEFF' + csv;
     }
@@ -3033,13 +3033,13 @@
 
     // ---- LISTA DEL EGRESO DEBAJO DE LA CÁMARA (Pendientes / Revisados / Todos) ----
     let vlFiltro = 'pend', vlPendiente = false;
-    // Hora en que se marcó el producto por última vez (sale del historial que ya guarda cada conteo)
+    // Fecha y hora en que se marcó el producto por última vez (sale del historial que ya guarda cada conteo)
     function horaMarcado(p) {
         const h = Array.isArray(p.historialMovimientos) ? p.historialMovimientos : [];
         for (let k = h.length - 1; k >= 0; k--) {
             if (h[k] && h[k].fecha && h[k].tipo !== 'series_observacion') {
                 const d = new Date(h[k].fecha);
-                if (!isNaN(d)) return d.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', hour12: false });
+                if (!isNaN(d)) return jatFH(d);
             }
         }
         return '';
@@ -3091,10 +3091,22 @@
     })();
 
     // ---- EXPORTAR ----
+    function jatFH(t) { try { const d = new Date(t); if (!t || isNaN(d)) return ''; const z = n => String(n).padStart(2, '0'); return z(d.getDate()) + '/' + z(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + z(d.getHours()) + ':' + z(d.getMinutes()); } catch (_) { return ''; } }
+    // Fecha y hora del último escaneo de un producto (sale del historial que ya guarda cada conteo)
+    function fechaHoraEscaneo(p) {
+        if (!p || getVerifiedQty(p) <= 0) return '';
+        const h = Array.isArray(p.historialMovimientos) ? p.historialMovimientos : [];
+        for (let k = h.length - 1; k >= 0; k--) {
+            const m = h[k];
+            if (m && m.fecha && m.tipo !== 'series_observacion' && (m.cantidadSumada === undefined || m.cantidadSumada > 0)) { const t = jatFH(m.fecha); if (t) return t; }
+        }
+        return p.horaSalida ? jatFH(p.horaSalida) : '';
+    }
+
     function exportarAExcel() {
-        let csv = "Código de barras\tCantidad\tEstado\tProducto\tSeries / Observaciones\n";
+        let csv = "Código de barras\tCantidad\tEstado\tFecha y hora escaneo\tProducto\tSeries / Observaciones\n";
         currentProductos.forEach(p => {
-            csv += `${p.barcode}\t${formatearQty(getVerifiedQty(p))}/${formatearQty(getExpectedQty(p))}\t${p.verified ? "VERIFICADO" : "PENDIENTE"}\t${p.productName}\t${(p.seriesTexto || p.observacion || '').replace(/\n/g, ' | ')}\n`;
+            csv += `${p.barcode}\t${formatearQty(getVerifiedQty(p))}/${formatearQty(getExpectedQty(p))}\t${p.verified ? "VERIFICADO" : "PENDIENTE"}\t${fechaHoraEscaneo(p)}\t${p.productName}\t${(p.seriesTexto || p.observacion || '').replace(/\n/g, ' | ')}\n`;
         });
         const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
         const link = document.createElement("a");
@@ -3147,8 +3159,8 @@
             <strong>Progreso:</strong> ${verificados} / ${formatearQty(totalEsperado())} unidades (${currentProductos.length > 0 ? Math.round(verificados/totalEsperado()*100) : 0}%)
             <div class="prog"><div class="prog-fill" style="width:${currentProductos.length > 0 ? Math.round(verificados/totalEsperado()*100) : 0}%"></div></div>
         </div>
-        <table><tr><th>#</th><th>Código</th><th>Cant.</th><th>Estado</th><th>Producto</th><th>Observaciones</th></tr>
-        ${currentProductos.map((p,i) => `<tr class="${p.verified?'verified':''}"><td>${i+1}</td><td style="font-family:monospace;font-size:0.75rem;">${p.barcode}</td><td style="text-align:center;">${formatearQty(getVerifiedQty(p))}/${formatearQty(getExpectedQty(p))}</td><td>${p.verified?'✅ VERIFICADO':'⏳ PENDIENTE'}</td><td>${p.productName}</td><td>${p.seriesTexto || p.observacion || ''}</td></tr>`).join('')}
+        <table><tr><th>#</th><th>Código</th><th>Cant.</th><th>Estado</th><th>Fecha y hora escaneo</th><th>Producto</th><th>Observaciones</th></tr>
+        ${currentProductos.map((p,i) => `<tr class="${p.verified?'verified':''}"><td>${i+1}</td><td style="font-family:monospace;font-size:0.75rem;">${p.barcode}</td><td style="text-align:center;">${formatearQty(getVerifiedQty(p))}/${formatearQty(getExpectedQty(p))}</td><td>${p.verified?'✅ VERIFICADO':'⏳ PENDIENTE'}</td><td style="white-space:nowrap;">${fechaHoraEscaneo(p)}</td><td>${p.productName}</td><td>${p.seriesTexto || p.observacion || ''}</td></tr>`).join('')}
         </table>
         <div class="footer">JAT Control Suite — Sistema de Verificación de Egresos | ${new Date().toLocaleString()}</div>
         </body></html>`);
@@ -3176,7 +3188,7 @@
         doc.text(`Origen: ${currentEgreso?.bodegaOrigen || ''}    Destino: ${currentEgreso?.bodegaDestino || ''}`, 12, y); y += 5;
         doc.text(`Total: ${formatearQty(total)} artículos / ${currentProductos.length} códigos    Verificado: ${formatearQty(verif)}`, 12, y); y += 8;
         doc.setFontSize(8);
-        doc.text('#', 8, y); doc.text('Código', 16, y); doc.text('Cant.', 48, y); doc.text('Estado', 66, y); doc.text('Descripción', 96, y); y += 4;
+        doc.text('#', 8, y); doc.text('Código', 16, y); doc.text('Cant.', 48, y); doc.text('Estado', 66, y); doc.text('Fecha y hora', 92, y); doc.text('Descripción', 120, y); y += 4;
         doc.line(8, y, 288, y); y += 4;
         currentProductos.forEach((p, i) => {
             if (y > 195) { doc.addPage(); y = 12; }
@@ -3184,9 +3196,11 @@
             doc.text(String(p.barcode), 16, y);
             doc.text(`${formatearQty(getVerifiedQty(p))}/${formatearQty(getExpectedQty(p))}`, 48, y);
             doc.text(isProductoVerificado(p) ? 'VERIFICADO' : 'PENDIENTE', 66, y);
-            doc.text(doc.splitTextToSize(String(p.productName || ''), 180), 96, y);
+            doc.text(fechaHoraEscaneo(p), 92, y);
+            doc.text(doc.splitTextToSize(String(p.productName || ''), 166), 120, y);
             y += 5;
         });
+        try { const n = doc.getNumberOfPages(); for (let k = 1; k <= n; k++) { doc.setPage(k); doc.setFontSize(7); doc.text(`Generado: ${jatFH(Date.now())}  ·  Página ${k} de ${n}`, 8, 205); } } catch (_) {}
         doc.save(`${safeFileName(nombre)}.pdf`);
         showAlert('📄 PDF descargado', 'success');
     }

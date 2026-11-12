@@ -319,6 +319,8 @@ function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','
 function norm(s){ return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/\s+/g,' ').trim(); }
 function fq(n){ n = Number(n)||0; return Number.isInteger(n) ? String(n) : String(+n.toFixed(3)).replace('.', ','); }
 function hoy(){ return new Date().toISOString().slice(0,10); }
+function fhEsc(t){ if (!t) return ''; const d = new Date(t); if (isNaN(d)) return ''; const z = n => String(n).padStart(2,'0'); return z(d.getDate())+'/'+z(d.getMonth()+1)+'/'+d.getFullYear()+' '+z(d.getHours())+':'+z(d.getMinutes()); }
+function marcarHora(p){ if (p.qty > 0) p.t = Date.now(); else delete p.t; }   // fecha y hora del último escaneo
 function fechaHora(d){ return new Date(d||Date.now()).toLocaleString('es-EC',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
 let toastT;
 function toast(msg, tipo='info'){
@@ -789,7 +791,7 @@ function pintarProductos(resaltar=-1){
     const e = estadoProd(p);
     const meta = (rev.libre || p.extra) ? "" : `<small>de ${fq(p.expectedQty)}</small>`;
     return `<div class="prod ${e}${i === resaltar ? ' hl' : ''}" id="p${i}">
-      <div class="x" data-teclado onclick="pedirCantidad(${i})"><div class="n">${esc(p.productName)}</div><div class="c">${esc(p.barcode || 'sin código')}${p.extra && !rev.libre ? ' · NO ESTÁ EN EL EGRESO' : ''}</div>${p.obs ? `<div class="o">📝 ${esc(p.obs)}</div>` : ''}</div>
+      <div class="x" data-teclado onclick="pedirCantidad(${i})"><div class="n">${esc(p.productName)}</div><div class="c">${esc(p.barcode || 'sin código')}${p.extra && !rev.libre ? ' · NO ESTÁ EN EL EGRESO' : ''}</div>${p.qty > 0 && p.t ? `<div class="c hr">🕒 ${fhEsc(p.t)}</div>` : ''}${p.obs ? `<div class="o">📝 ${esc(p.obs)}</div>` : ''}</div>
       <div class="qty"><button onclick="sumar(${i},-1)">−</button><div class="v" data-teclado onclick="pedirCantidad(${i})">${fq(p.qty)}${meta}</div><button onclick="sumar(${i},1)">+</button></div></div>`;
   }).join('');
   if (resaltar >= 0){ const el = $('#p' + resaltar); if (el) el.scrollIntoView({ block:'center', behavior:'smooth' }); }
@@ -800,7 +802,7 @@ function sumar(i, d){
   const p = rev.productos[i]; const prev = p.qty;
   if (d < 0 && prev <= 0){ beep(false); hablar('No se puede restar, ya está en cero.'); return; }
   const antes = todoCompleto();
-  p.qty = Math.max(0, +(p.qty + d).toFixed(3));
+  p.qty = Math.max(0, +(p.qty + d).toFixed(3)); if (d > 0) marcarHora(p); else if (p.qty <= 0) delete p.t;
   historial.push({ i, prev });
   const sobra = p.qty > p.expectedQty && !p.extra && !rev.libre;
   beep(sobra ? 'warn' : 'ok'); hablar(vozConteo(p));
@@ -820,14 +822,14 @@ function confirmarCantidad(){
   const p = rev.productos[cantIdx]; const v = parseFloat(String($('#cantInp').value).replace(',', '.'));
   if (isNaN(v) || v < 0){ toast('Cantidad no válida', 'warn'); return; }
   const antes = todoCompleto();
-  historial.push({ i:cantIdx, prev:p.qty }); p.qty = v; p.obs = $('#cantObs').value.trim();
+  historial.push({ i:cantIdx, prev:p.qty }); if (v !== p.qty) { p.qty = v; marcarHora(p); } p.obs = $('#cantObs').value.trim();
   beep((p.qty > p.expectedQty && !p.extra && !rev.libre) ? 'warn' : 'ok'); hablar(vozConteo(p));
   cerrarModal('mCant'); guardar(); pintarProductos(cantIdx); revisarTodoCompleto(antes);
 }
 $('#cantInp').addEventListener('keydown', e => { if (e.key === 'Enter') confirmarCantidad(); });
 function deshacer(){
   const h = historial.pop(); if (!h){ toast('Nada para deshacer', 'info'); return; }
-  rev.productos[h.i].qty = h.prev; guardar(); pintarProductos(h.i); toast('↩️ Deshecho', 'info'); hablar('Deshecho. ' + vozConteo(rev.productos[h.i]));
+  rev.productos[h.i].qty = h.prev; if (h.prev <= 0) delete rev.productos[h.i].t; guardar(); pintarProductos(h.i); toast('↩️ Deshecho', 'info'); hablar('Deshecho. ' + vozConteo(rev.productos[h.i]));
 }
 $$('#chips button').forEach(b => b.onclick = () => { filtro = b.dataset.f; $$('#chips button').forEach(x => x.classList.toggle('on', x === b)); pintarProductos(); });
 
@@ -847,7 +849,7 @@ function procesarCodigo(codigo){
   const antes = todoCompleto();
   if (i >= 0){
     const p = rev.productos[i];
-    historial.push({ i, prev:p.qty }); p.qty = +(p.qty + 1).toFixed(3);
+    historial.push({ i, prev:p.qty }); p.qty = +(p.qty + 1).toFixed(3); marcarHora(p);
     const e = estadoProd(p);
     hablar(vozConteo(p));
     if (e === 'over'){ beep('warn'); mostrarUltimo('bad', `⚠️ <b>SOBRA</b> · ${esc(p.productName)}<br>Contado ${fq(p.qty)} de ${fq(p.expectedQty)}`); }
@@ -857,7 +859,7 @@ function procesarCodigo(codigo){
   // No está en la lista
   const nk = nombreKardex(codigo);
   if (rev.libre){
-    rev.productos.unshift({ barcode:codigo, productName: nk || '(no está en el kardex)', expectedQty:0, qty:1, obs:'', extra:true });
+    rev.productos.unshift({ barcode:codigo, productName: nk || '(no está en el kardex)', expectedQty:0, qty:1, obs:'', extra:true, t:Date.now() });
     historial = historial.map(h => ({...h, i:h.i+1})); historial.push({ i:0, prev:0 });
     beep(nk ? 'ok' : 'warn'); hablar(nk ? '1.' : 'Código no está en el kardex. Verifique.');
     mostrarUltimo(nk ? 'ok' : 'warn', nk ? `✅ ${esc(nk)}<br>Contado 1` : `⚠️ Código ${esc(codigo)} no está en el kardex. Toca el producto para anotar una observación.`);
@@ -865,7 +867,7 @@ function procesarCodigo(codigo){
   }
   uso.noEncontrados++; ls.set(K.uso, uso);
   beep(false); hablar('Código incorrecto. Verifique.');
-  rev.productos.push({ barcode:codigo, productName: nk || '(no está en el kardex)', expectedQty:0, qty:1, obs:'', extra:true });
+  rev.productos.push({ barcode:codigo, productName: nk || '(no está en el kardex)', expectedQty:0, qty:1, obs:'', extra:true, t:Date.now() });
   historial.push({ i:rev.productos.length - 1, prev:0 });
   mostrarUltimo('bad', `❌ <b>NO ESTÁ EN EL EGRESO</b><br>${esc(nk || 'Código ' + codigo + ' (tampoco está en el kardex)')}<br><small>${esc(codigo)} · se anotó como sobrante</small>`);
   guardar(); pintarProductos(rev.productos.length - 1);
@@ -1088,7 +1090,7 @@ function textoResumen(){
   const ruta = [r.meta.bodegaOrigen, r.meta.bodegaDestino].filter(Boolean).join(' → ');
   let s = `*REVISIÓN DE MERCADERÍA*\n${r.meta.secuencial || 'Egreso'}${ruta ? '\n' + ruta : ''}\nRevisó: ${perfil?.nombre || '-'} (${perfil?.area || ''})\nFecha: ${fechaHora()}\n\n`;
   if (r.libre){
-    s += r.productos.map(p => `• ${fq(p.qty)} x ${p.productName} [${p.barcode}]`).join('\n');
+    s += r.productos.map(p => `• ${fq(p.qty)} x ${p.productName} [${p.barcode}]${p.t ? ' · ' + fhEsc(p.t) : ''}`).join('\n');
   } else {
     const { falt, sobr } = difs(r);
     s += `Revisado: ${fq(t.ver)} de ${fq(t.esp)} unidades (${t.lineasOk}/${t.lineas} líneas)\n`;
@@ -1115,10 +1117,11 @@ function exportarExcel(){
     'Cantidad egreso': rev.libre ? '' : p.expectedQty, 'Cantidad revisada': p.qty,
     'Diferencia': rev.libre ? '' : p.qty - p.expectedQty,
     'Estado': rev.libre ? 'CONTADO' : ({pend:'PENDIENTE', part:'FALTA', over:'SOBRA', extra:'NO ESTÁ EN EGRESO', done:'OK'})[estadoProd(p)],
+    'Fecha y hora escaneo': p.qty > 0 ? fhEsc(p.t) : '',
     'Observación': p.obs
   }));
   const ws = XLSX.utils.json_to_sheet(filas);
-  ws['!cols'] = [{wch:16},{wch:55},{wch:10},{wch:10},{wch:10},{wch:18},{wch:30}];
+  ws['!cols'] = [{wch:16},{wch:55},{wch:10},{wch:10},{wch:10},{wch:18},{wch:17},{wch:30}];
   const info = XLSX.utils.aoa_to_sheet([
     ['Documento', rev.meta.secuencial || ''], ['Bodega origen', rev.meta.bodegaOrigen || ''], ['Bodega destino', rev.meta.bodegaDestino || ''],
     ['Revisó', perfil?.nombre || ''], ['Área', perfil?.area || ''], ['Fecha', fechaHora()], ['Observación', rev.obs || '']
