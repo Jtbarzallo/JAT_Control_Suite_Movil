@@ -993,7 +993,7 @@
                 <button type="button" class="qc-btn" data-qc="1">+1</button>
                 <button type="button" class="qc-btn" data-qc="5">+5</button>
                 <button type="button" class="qc-btn" data-qc="10">+10</button>
-                <button type="button" class="qc-btn qc-custom" id="qcCustomBtn">🔢 Cantidad…</button>
+                <button type="button" class="qc-btn qc-custom" id="qcCustomBtn">🔢 Escribir cantidad</button>
             </div>
 
             <div id="historialAcciones" class="historial-acciones" style="display:none;"><span style="color:#bdc3c7;">Sin acciones</span></div>
@@ -1100,7 +1100,7 @@
     let oneDrivePending = false;
     let oneDriveDebounceTimer = null;
     let lastScanMemory = { code: '', time: 0 };
-    const HIGH_QTY_THRESHOLD = 2;
+    const HIGH_QTY_THRESHOLD = 11;   // pide escribir la cantidad solo si el producto trae MÁS de 10 unidades; con 10 o menos se cuenta escaneando 1 por 1 ("1 de 3, 2 de 3…")
     let verificadorViewMode = 'revision';
     let modoRevisionActivo = false;
     let focusScannerTimer = null;
@@ -1265,10 +1265,7 @@
     function mensajeConteoVoz(p, prev, nuevo, origen = 'scan') {
         const esperado = getExpectedQty(p);
         const faltan = Math.max(0, esperado - nuevo);
-        if (origen.includes('conteo_rapido') || (nuevo - prev) > 1) {
-            if (faltan === 0) return `${formatearQty(nuevo - prev)} unidades registradas. Producto completo.`;
-            return `${formatearQty(nuevo - prev)} unidades registradas. Faltan ${formatearQty(faltan)}.`;
-        }
+        // Siempre igual que en la PC: "1 de 3", "2 de 3", "3 de 3. Producto completo."
         if (faltan === 0) return `${formatearQty(nuevo)} de ${formatearQty(esperado)}. Producto completo.`;
         return `${formatearQty(nuevo)} de ${formatearQty(esperado)}.`;
     }
@@ -2600,7 +2597,7 @@
         document.getElementById('lastScanCode').innerText = 'CÓDIGO: ' + p.barcode;
         document.getElementById('lastScanName').innerText = p.productName;
         document.getElementById('lastScanQty').innerText = `CANTIDAD: ${formatearQty(v)} / ${formatearQty(e)}`;
-        document.getElementById('lastScanMsg').innerText = mensaje || (faltan === 0 ? '✅ COMPLETO' : `⏳ FALTAN ${formatearQty(faltan)}`);
+        document.getElementById('lastScanMsg').innerText = mensaje || (faltan === 0 ? `✅ ${formatearQty(v)} de ${formatearQty(e)} — PRODUCTO COMPLETO` : `⏳ ${formatearQty(v)} de ${formatearQty(e)} — faltan ${formatearQty(faltan)}`);
     }
 
     function pedirCantidadRapida(idx) {
@@ -2624,7 +2621,7 @@
             document.getElementById('qtyFastConfirmBtn').onclick = () => {
                 const n = parseInt(input.value, 10);
                 if (isNaN(n) || n <= 0) { showAlert('Cantidad inválida', 'warning'); return; }
-                if (n > faltan) showAlert(`Se guardó solo lo pendiente (${faltan})`, 'info');
+                if (n > faltan) { showAlert(`🚫 Producto excedido: escribiste ${n} y solo faltaban ${faltan}. Se guardó ${faltan}.`, 'warning'); window.__jatExcedido = true; }
                 cerrar(Math.min(n, faltan));
             };
             input.onkeydown = (e) => { if (e.key === 'Enter') document.getElementById('qtyFastConfirmBtn').click(); if (e.key === 'Escape') cerrar(0); };
@@ -2637,10 +2634,11 @@
         const prev = getVerifiedQty(p);
         const esperado = getExpectedQty(p);
         if (prev >= esperado) {
-            mostrarUltimoEscaneo(idx, 'error', '🚫 YA ESTABA COMPLETO');
-            hablarHat('Cantidad excedida. Producto ya completo.', 'error', {force:true, interrupt:true});
+            mostrarUltimoEscaneo(idx, 'error', '🚫 PRODUCTO EXCEDIDO — ya estaba completo');
+            hablarHat('Producto excedido.', 'error', {force:true, interrupt:true});
             return false;
         }
+        if (prev + cantidad > esperado) window.__jatExcedido = true;   // +5 / +10 / cantidad que se pasa de lo que falta
         const nuevo = Math.min(esperado, prev + cantidad);
         setVerifiedQty(p, nuevo);
         p.historialMovimientos = p.historialMovimientos || [];
@@ -2648,7 +2646,8 @@
         registrarAccion('verificar', { idx, prevQty: prev });
         autoGuardarEgreso();
         mostrarUltimoEscaneo(idx, isProductoVerificado(p) ? 'ok' : 'partial');
-        hablarHat(mensajeConteoVoz(p, prev, nuevo, origen), isProductoVerificado(p) ? 'ok' : 'info', {force: true});
+        if (window.__jatExcedido) { window.__jatExcedido = false; mostrarUltimoEscaneo(idx, 'error', `🚫 PRODUCTO EXCEDIDO — se guardó ${formatearQty(nuevo)} de ${formatearQty(esperado)}`); hablarHat(`${formatearQty(nuevo)} de ${formatearQty(esperado)}. Producto excedido.`, 'error', {force: true, interrupt: true}); }
+        else hablarHat(mensajeConteoVoz(p, prev, nuevo, origen), isProductoVerificado(p) ? 'ok' : 'info', {force: true});
         actualizarStatsProgramado();
         if (!actualizarFilaVerificador(idx) || filtroChipActivo !== 'todos') {
             renderVerificadorTablaProgramado();
@@ -2847,7 +2846,7 @@
         document.getElementById('selectedProductCode').innerText = 'CÓDIGO: ' + p.barcode;
         document.getElementById('selectedProductName').innerText = p.productName;
         document.getElementById('selectedProductQty').innerText = `CANTIDAD: ${formatearQty(v)} / ${formatearQty(e)}`;
-        document.getElementById('selectedProductMsg').innerText = faltan === 0 ? '✅ COMPLETO' : (faltan >= HIGH_QTY_THRESHOLD ? `🔢 FALTAN ${formatearQty(faltan)} — usa los botones +5 / +10 / Cantidad… de abajo` : `⏳ FALTAN ${formatearQty(faltan)} — toca ENTER o el botón +1 para sumar 1 unidad`);
+        document.getElementById('selectedProductMsg').innerText = faltan === 0 ? '✅ COMPLETO' : (faltan >= HIGH_QTY_THRESHOLD ? `🔢 FALTAN ${formatearQty(faltan)} — usa +5 / +10 o “Escribir cantidad” de abajo` : `⏳ FALTAN ${formatearQty(faltan)} — toca ENTER o el botón +1 para sumar 1 unidad`);
     }
 
     function resaltarFilaVerificador(index, guardarEstado = true) {
@@ -2971,8 +2970,8 @@
         if (isProductoVerificado(p)) {
             const input = document.getElementById('scannerInput');
             input.classList.add('duplicado');
-            mostrarUltimoEscaneo(idx, 'error', '🚫 YA VERIFICADO / COMPLETO');
-            hablarHat('Cantidad excedida. Producto ya completo.', 'error', {force:true, interrupt:true});
+            mostrarUltimoEscaneo(idx, 'error', '🚫 PRODUCTO EXCEDIDO — ya estaba completo');
+            hablarHat('Producto excedido.', 'error', {force:true, interrupt:true});
             showAlert(`🚫 YA VERIFICADO: ${p.productName.substring(0,40)}`, 'error');
             setTimeout(() => input.classList.remove('duplicado'), 1000);
             return;
@@ -3385,7 +3384,7 @@
                         const p = currentProductos[exactIdx];
                         const faltan = getExpectedQty(p) - getVerifiedQty(p);
                         const sumar = Math.min(n, Math.max(0, faltan));
-                        if (sumar <= 0) { mostrarUltimoEscaneo(exactIdx, 'error', '🚫 YA ESTABA COMPLETO'); hablarHat('Cantidad excedida. Producto ya completo.', 'error', {force:true, interrupt:true}); return; }
+                        if (sumar <= 0) { mostrarUltimoEscaneo(exactIdx, 'error', '🚫 PRODUCTO EXCEDIDO — ya estaba completo'); hablarHat('Producto excedido.', 'error', {force:true, interrupt:true}); return; }
                         if (n > faltan && !confirm(`La cantidad ingresada (${n}) supera lo pendiente (${faltan}). ¿Completar solo ${faltan}?`)) return;
                         await sumarCantidadProducto(exactIdx, sumar, 'conteo_rapido_escrito');
                         scanInput.value = (getExpectedQty(p) - getVerifiedQty(p)) > 0 ? code : '';
@@ -8900,5 +8899,70 @@ body.d-osc .jimp-box{background:#14202e;color:#e8eef4}body.d-osc .jimp-it{border
   document.querySelectorAll('.menu-item[data-action="paraImprimir"]').forEach(el => el.addEventListener('click', () => abrir()));
 })();
 </script>
+<style id="jat-revisar-gatillo">
+/* 12 nov 2026 — Revisar: el gatillo ESCANEAR sube junto a la cámara (lado derecho de la imagen), al alcance
+   del pulgar y sin tapar la lista. Solo en celular; en tablet/PC (vista dividida) queda como estaba. */
+@media (max-width: 899px) {
+  #verificadorModal .jat-gatillo.gat-arriba { bottom: auto; top: var(--gat-top, 110px); right: 10px; width: 80px; height: 80px; font-size: .66rem; }
+  #verificadorModal .jat-gatillo.gat-arriba .ico { font-size: 1.4rem; }
+  body.gat-arriba-on #verificadorModal .cam-reticle { justify-content: flex-start; padding-left: 3%; }
+  body.gat-arriba-on #verificadorModal .cam-reticle .box { width: calc(100% - 112px); }
+  body.gat-arriba-on #verificadorModal .cam-off-layer { padding-right: 104px; }
+  body.gat-arriba-on #verificadorModal .cam-off-layer .cam-btn { max-width: 100%; }
+  body.gat-arriba-on #verificadorModal .verif-bottom-pane { padding-bottom: 96px; }
+}
+</style>
+<script>
+/* ===== 12 nov 2026: Revisar más fluido =====
+   1) Campo para escribir: si el cursor ya estaba puesto ahí sin teclado (el programa lo deja así para el lector
+      USB y el gatillo), al tocarlo se suelta primero y el toque lo vuelve a tomar con teclado. Antes a veces se
+      trababa y no dejaba escribir. Mientras tanto el programa no le roba el cursor.
+   2) Gatillo ESCANEAR arriba, a la derecha de la cámara. */
+(function () {
+  const $ = id => document.getElementById(id);
+  const esTexto = el => !!el && (el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && !/^(button|checkbox|radio|file|range|color|submit|reset|hidden|image)$/i.test(el.type || '')));
+  if (matchMedia('(pointer: coarse)').matches) {
+    // Va en window (fase de captura): corre antes que el módulo "teclado solo al tocar un campo".
+    window.addEventListener('pointerdown', e => {
+      const el = e.target && e.target.closest && e.target.closest('input, textarea');
+      if (!esTexto(el) || el.disabled || el.readOnly) return;
+      if (document.activeElement === el && el.getAttribute('inputmode') === 'none') {
+        window.__jatToqueCampo = Date.now();
+        try { el.blur(); } catch (_) {}
+      }
+    }, true);
+  }
+  if (typeof enfocarBuscadorSeguro === 'function') {
+    const _enf = enfocarBuscadorSeguro;
+    enfocarBuscadorSeguro = function () {
+      if (Date.now() - (window.__jatToqueCampo || 0) < 900) return;   // estás tocando el campo: no se le quita el cursor
+      return _enf.apply(this, arguments);
+    };
+  }
+
+  // ---- Gatillo arriba ----
+  const g = $('jatGatillo'), panel = $('camPanel'), modal = $('verificadorModal');
+  if (!g || !panel || !modal) return;
+  const celular = matchMedia('(max-width: 899px)');
+  function ubicar() {
+    const on = celular.matches && modal.style.display === 'flex';
+    const r = panel.getBoundingClientRect();
+    const visible = on && r.height > 90 && getComputedStyle(panel).display !== 'none';
+    g.classList.toggle('gat-arriba', visible);
+    document.body.classList.toggle('gat-arriba-on', visible);
+    if (!visible) return;
+    const alto = g.offsetHeight || 80;
+    const top = Math.max(r.top + 44, r.top + (r.height - alto) / 2 + 12);   // debajo del botón "Más", centrado en la imagen
+    g.style.setProperty('--gat-top', Math.round(top) + 'px');
+  }
+  window.addEventListener('resize', ubicar);
+  if (window.ResizeObserver) new ResizeObserver(ubicar).observe(panel);
+  new MutationObserver(ubicar).observe(modal, { attributes: true, attributeFilter: ['style', 'class'] });
+  setInterval(() => { if (modal.style.display === 'flex') ubicar(); }, 1500);
+  ubicar();
+  window.JATGatilloArriba = { ubicar };
+})();
+</script>
+
 </body>
 </html>

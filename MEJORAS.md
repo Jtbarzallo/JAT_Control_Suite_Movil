@@ -21,6 +21,18 @@ Esta regla también está en la "Bitácora JAT Control Suite".
 
 - [ ] **Gatillo disparador**: botón rojo ESCANEAR; la cámara lee solo mientras se aprieta,
       un producto por apretón; toque corto = 2,5 s. Opción de cambiar a lectura continua.
+- [ ] **Gatillo arriba, junto a la cámara** (12 nov 2026, Revisar en Personal y Venta, solo celular):
+      va a la derecha de la imagen de la cámara, el recuadro se corre a la izquierda para no quedar
+      debajo. En tablet/PC (vista dividida) queda como antes. Bloque `jat-revisar-gatillo` al final.
+- [ ] **Conteo como en la PC** (12 nov 2026, Revisar en Personal y Venta): cada escaneo dice y muestra
+      "1 de 3", "2 de 3", "3 de 3. Producto completo". Si se pasa: **"Producto excedido"** (escanear un
+      producto ya completo, +5/+10 o una cantidad escrita mayor a lo que falta; se guarda solo lo que
+      faltaba). La ventana para escribir la cantidad sale sola **solo si el producto trae más de 10**
+      (`HIGH_QTY_THRESHOLD = 11`); con 10 o menos se escanea 1 por 1. Botón **"🔢 Escribir cantidad"**
+      debajo para escribirla a mano en cualquier producto.
+- [ ] **El campo para escribir no se traba** (12 nov 2026): si el cursor ya estaba ahí sin teclado, al
+      tocarlo se suelta y el toque lo toma con teclado; el programa no le roba el cursor mientras lo tocas;
+      la cámara se esconde recién al levantar el dedo; un parpadeo del teclado no cierra el campo.
 - [ ] **Cámara fija arriba y la lista se desliza debajo.** La cámara nunca se va con el scroll
       ni ocupa más de la mitad de la pantalla.
 - [ ] **Filtros Pendientes / Revisados (o Sacados) / Todos**, en su propia fila y con contador.
@@ -191,6 +203,9 @@ marcado en cada producto contado y buscar escribiendo con lista para elegir con 
 - 2026-11-11: Kardex agrupado por categorías grandes de bodega, con chips, en Personal y Venta.
 - 2026-11-12: fecha y hora de escaneo en pantalla y en reportes (PDF, CSV/Excel, imprimir) en los cinco
   programas; Venta ahora guarda la fecha y hora en que se sacó cada producto en Salida por ubicación.
+- 2026-11-12: Revisar (Personal y Venta): gatillo arriba junto a la cámara; conteo "1 de 3… Producto
+  completo / Producto excedido"; cantidad escrita solo para más de 10 y botón "Escribir cantidad"; arreglo
+  del campo de escribir que se trababa.
 - 2026-11-11: versión de PC subida al repositorio (`JAT_Control_Suite_PC.html`, PC 3.4) con las mejoras
   del celular que sirven en PC: filtros con contador, buscar escribiendo, dictado (F8), pantalla
   oscura, egreso en curso y respaldo automático. Por la regla 1, el verificador de Venta recibió
