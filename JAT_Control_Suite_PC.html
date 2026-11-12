@@ -405,6 +405,7 @@
                     <div class="menu-item" data-action="explorarCarpeta"><span class="icon">📂</span> Ver lo guardado en la carpeta</div>
                     <div class="menu-item" data-action="imprimir"><span class="icon">🖨️</span> Imprimir</div>
                     <div class="menu-item" data-action="exportarPdf"><span class="icon">📕</span> Exportar PDF</div>
+                    <div class="menu-item" data-action="paraImprimir"><span class="icon">🖨️</span> Para imprimir</div>
                     <div class="menu-item" data-action="respaldarAhora"><span class="icon">🛟</span> Respaldar ahora</div>
                     <div class="menu-item" data-action="recuperarRespaldo"><span class="icon">♻️</span> Recuperar respaldo</div>
                 </div>
@@ -2803,7 +2804,7 @@
         setTimeout(() => w.print(), 400);
     }
 
-    function descargarReportePDF() {
+    function descargarReportePDF(opts) {
         if (!currentProductos.length) { showAlert('No hay productos para exportar', 'warning'); return; }
         if (!(window.jspdf && window.jspdf.jsPDF)) {
             showAlert('Lector PDF no disponible. Se abrirá imprimir/guardar como PDF.', 'warning');
@@ -2816,7 +2817,7 @@
         const total = totalEsperado();
         const verif = totalVerificado();
         let y = 12;
-        doc.setFontSize(14); doc.text('JAT Control Suite - Verificación de Egreso', 12, y);
+        doc.setFontSize(14); doc.text((opts && opts.revisado) ? 'EGRESO REVISADO - 100% VERIFICADO' : 'JAT Control Suite - Verificación de Egreso', 12, y); if (opts && opts.revisado) { doc.setFontSize(9); doc.text('Revisión terminada: ' + jatFH(Date.now()), 200, y); }
         doc.setFontSize(9); y += 7;
         doc.text(`Documento: ${nombre}`, 12, y); y += 5;
         if (currentEgreso?.secuencial) { doc.text(`Secuencial: ${currentEgreso.secuencial}`, 12, y); y += 5; }
@@ -2836,6 +2837,7 @@
             y += 5;
         });
         try { const n = doc.getNumberOfPages(); for (let k = 1; k <= n; k++) { doc.setPage(k); doc.setFontSize(7); doc.text(`Generado: ${jatFH(Date.now())}  ·  Página ${k} de ${n}`, 8, 205); } } catch (_) {}
+        if (opts && opts.devolver) return doc;
         doc.save(`${safeFileName(nombre)}.pdf`);
         showAlert('📄 PDF descargado', 'success');
     }
@@ -5080,5 +5082,151 @@ body.d-osc .qty-modal-card h3 { color: var(--o-tx); }
 })();
 </script>
 
+
+<style id="jat-imprimir">
+#completadoBanner .jimp-acc{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px}
+#completadoBanner .jimp-acc button,.jimp-modal button{border:0;border-radius:12px;padding:10px 14px;font:inherit;font-weight:700;font-size:.85rem;cursor:pointer;background:#0d4d7a;color:#fff}
+#completadoBanner .jimp-acc button.sec,.jimp-modal button.sec{background:#e8eef4;color:#0d2b45}
+.jimp-modal{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;display:flex;align-items:flex-start;justify-content:center;padding:4vh 10px}
+.jimp-box{background:#fff;color:#14263a;border-radius:16px;width:min(94vw,620px);max-height:90vh;overflow:auto;padding:16px}
+.jimp-box h3{margin:0 0 4px;font-size:1.05rem}.jimp-box .sub{color:#667;font-size:.8rem;margin-bottom:12px}
+.jimp-it{border:1px solid #dfe6ee;border-radius:12px;padding:10px 12px;margin-bottom:8px}
+.jimp-it.impreso{opacity:.6}.jimp-it b{display:block;font-size:.9rem;word-break:break-word}
+.jimp-it small{color:#667;display:block;margin:2px 0 8px}.jimp-it .row{display:flex;gap:6px;flex-wrap:wrap}
+.jimp-it .row button{padding:8px 11px;font-size:.78rem}
+body.d-osc .jimp-box{background:#14202e;color:#e8eef4}body.d-osc .jimp-it{border-color:#2a3a4c}
+</style>
+<script>
+/* ===== JAT Imprimir: al terminar de revisar un egreso se genera el PDF revisado y se guarda para imprimir =====
+   - Cuando el egreso pasa a 100 % verificado, se crea "REVISADO_<egreso>_<fecha>.pdf".
+   - Se guarda en la carpeta de trabajo › Imprimir (si está conectada en la PC); si no, baja a Descargas.
+   - Además queda una copia dentro del programa (lista "Para imprimir") para imprimirlo o compartirlo después.
+   No cambia nada de lo que ya funciona: solo se engancha al aviso de "100% verificado". */
+(function () {
+  if (typeof descargarReportePDF !== 'function' || typeof actualizarStatsVerificador !== 'function') return;
+  const DB = 'jat_imprimir', ST = 'pdfs', MAX = 40;
+  const z = n => String(n).padStart(2, '0');
+  const fh = t => { const d = new Date(t); return z(d.getDate()) + '/' + z(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + z(d.getHours()) + ':' + z(d.getMinutes()); };
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const aviso = (m, t) => { try { showAlert(m, t || 'success'); } catch (_) {} };
+  function abrirDB() {
+    return new Promise((ok, mal) => { let r; try { r = indexedDB.open(DB, 1); } catch (e) { return mal(e); }
+      r.onupgradeneeded = () => r.result.createObjectStore(ST, { keyPath: 'id' });
+      r.onsuccess = () => ok(r.result); r.onerror = () => mal(r.error); });
+  }
+  async function tx(modo, fn) { const db = await abrirDB(); return new Promise((ok, mal) => { const t = db.transaction(ST, modo); const s = t.objectStore(ST); const r = fn(s); t.oncomplete = () => ok(r && r.result); t.onerror = () => mal(t.error); }); }
+  const todos = async () => { try { const l = await tx('readonly', s => s.getAll()); return (l || []).sort((a, b) => b.t - a.t); } catch (_) { return []; } };
+  const guardarCopia = it => tx('readwrite', s => s.put(it)).catch(() => {});
+  const borrar = id => tx('readwrite', s => s.delete(id)).catch(() => {});
+  async function recortar() { const l = await todos(); for (const it of l.slice(MAX)) await borrar(it.id); }
+
+  function bajar(blob, nom) { const u = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = u; a.download = nom; a.style.display = 'none'; document.body.appendChild(a); a.click(); setTimeout(() => { a.remove(); URL.revokeObjectURL(u); }, 4000); }
+  async function aCarpeta(blob, nom) {
+    try {
+      if (typeof isAndroidBridge === 'function' && isAndroidBridge()) return false;
+      if (typeof oneDriveDirHandle === 'undefined' || !oneDriveDirHandle) return false;
+      if ((await oneDriveDirHandle.queryPermission({ mode: 'readwrite' })) !== 'granted') return false;
+      await escribirArchivoOneDrive('Imprimir/' + nom, blob, 'application/pdf');
+      return true;
+    } catch (e) { console.warn('Imprimir: carpeta no disponible', e); return false; }
+  }
+
+  let ultimo = null;
+  async function generar(manual) {
+    if (typeof currentEgreso === 'undefined' || !currentEgreso) return;
+    const doc = descargarReportePDF({ devolver: true, revisado: true });
+    if (!doc || !doc.output) return;
+    const blob = doc.output('blob');
+    const t = Date.now(), d = new Date(t);
+    const base = (typeof safeFileName === 'function' ? safeFileName(currentEgreso.nombre || currentEgreso.secuencial || 'Egreso') : 'Egreso');
+    const nom = 'REVISADO_' + base + '_' + d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate()) + '_' + z(d.getHours()) + '-' + z(d.getMinutes()) + '.pdf';
+    const it = { id: String(currentEgreso.id || base) + '_' + t, egresoId: currentEgreso.id || null, nombre: currentEgreso.nombre || base, archivo: nom, t, blob, impreso: false };
+    await guardarCopia(it); recortar();
+    const enCarpeta = await aCarpeta(blob, nom);
+    if (!enCarpeta) bajar(blob, nom);
+    it.donde = enCarpeta ? 'carpeta de trabajo › Imprimir' : 'Descargas';
+    ultimo = it;
+    try { currentEgreso.pdfRevisado = { t, archivo: nom, donde: it.donde }; } catch (_) {}
+    aviso('🖨️ PDF revisado guardado en ' + it.donde + ' y en "Para imprimir"');
+    pintarBanner();
+  }
+
+  function pintarBanner() {
+    const b = document.getElementById('completadoBanner'); if (!b) return;
+    let acc = b.querySelector('.jimp-acc');
+    if (!acc) { acc = document.createElement('div'); acc.className = 'jimp-acc'; b.appendChild(acc); }
+    const pr = currentEgreso && currentEgreso.pdfRevisado;
+    acc.innerHTML = (pr ? '<div style="flex-basis:100%;font-size:.8rem;font-weight:600">📄 ' + esc(pr.archivo) + ' · ' + fh(pr.t) + '</div>' : '') +
+      '<button type="button" data-a="imp">🖨️ Imprimir PDF revisado</button>' +
+      '<button type="button" class="sec" data-a="com">📤 Compartir</button>' +
+      '<button type="button" class="sec" data-a="lista">📋 Para imprimir</button>';
+    acc.onclick = async e => {
+      const a = e.target.closest('button')?.dataset.a; if (!a) return;
+      e.stopPropagation();
+      if (a === 'lista') return abrir();
+      let it = ultimo && currentEgreso && ultimo.egresoId === (currentEgreso.id || null) ? ultimo : null;
+      if (!it) { const l = await todos(); it = l.find(x => currentEgreso && x.egresoId === (currentEgreso.id || null)); }
+      if (!it) { await generar(true); it = ultimo; }
+      if (it) a === 'imp' ? imprimir(it) : compartir(it);
+    };
+  }
+
+  function imprimir(it) {
+    const u = URL.createObjectURL(it.blob);
+    const movil = /Android|iPhone|iPad/i.test(navigator.userAgent);
+    if (movil) { window.open(u, '_blank') || bajar(it.blob, it.archivo); }
+    else {
+      const f = document.createElement('iframe'); f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0'; f.src = u;
+      f.onload = () => { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (_) { window.open(u, '_blank'); } };
+      document.body.appendChild(f); setTimeout(() => f.remove(), 120000);
+    }
+    marcar(it, true);
+  }
+  async function compartir(it) {
+    try { const f = new File([it.blob], it.archivo, { type: 'application/pdf' });
+      if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], title: it.archivo }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+    bajar(it.blob, it.archivo); aviso('📄 PDF bajado a Descargas', 'info');
+  }
+  async function marcar(it, v) { it.impreso = v; await guardarCopia(it); if (document.getElementById('jimpModal')) abrir(); }
+
+  async function abrir() {
+    let m = document.getElementById('jimpModal');
+    if (!m) { m = document.createElement('div'); m.id = 'jimpModal'; m.className = 'jimp-modal'; document.body.appendChild(m);
+      m.addEventListener('click', e => { if (e.target === m) m.remove(); }); }
+    const l = await todos();
+    const pend = l.filter(x => !x.impreso).length;
+    m.innerHTML = '<div class="jimp-box"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h3>🖨️ Para imprimir</h3><button type="button" class="sec" data-c>Cerrar</button></div>' +
+      '<div class="sub">PDF de los egresos revisados, del más nuevo al más viejo. ' + (pend ? pend + ' sin imprimir.' : 'Todo impreso.') + '</div>' +
+      (l.length ? l.map((x, i) => '<div class="jimp-it' + (x.impreso ? ' impreso' : '') + '"><b>' + esc(x.nombre) + '</b><small>' + (x.impreso ? '✅ Impreso · ' : '🕒 ') + 'Revisado el ' + fh(x.t) + ' · ' + esc(x.archivo) + '</small><div class="row">' +
+        '<button type="button" data-i="' + i + '" data-a="imp">🖨️ Imprimir</button><button type="button" class="sec" data-i="' + i + '" data-a="com">📤 Compartir</button>' +
+        '<button type="button" class="sec" data-i="' + i + '" data-a="mar">' + (x.impreso ? '↩️ No impreso' : '✅ Ya impreso') + '</button><button type="button" class="sec" data-i="' + i + '" data-a="del">🗑</button></div></div>').join('')
+        : '<div class="jimp-it">Todavía no hay egresos revisados. Al terminar de revisar uno (100 %), su PDF aparece aquí.</div>') + '</div>';
+    m.querySelector('[data-c]').onclick = () => m.remove();
+    m.querySelectorAll('[data-a]').forEach(b => b.onclick = async () => { const it = l[+b.dataset.i], a = b.dataset.a;
+      if (a === 'imp') imprimir(it); else if (a === 'com') compartir(it); else if (a === 'mar') marcar(it, !it.impreso);
+      else if (a === 'del' && confirm('¿Quitar "' + it.archivo + '" de la lista? (El archivo ya guardado en la carpeta o Descargas no se borra.)')) { await borrar(it.id); abrir(); } });
+  }
+
+  // Se engancha al aviso de completado: solo cuando el egreso PASA a 100 % mientras se revisa.
+  const estado = {};
+  const _orig = actualizarStatsVerificador;
+  actualizarStatsVerificador = function () {
+    const r = _orig.apply(this, arguments);
+    try {
+      const id = currentEgreso ? String(currentEgreso.id || currentEgreso.nombre || '') : '';
+      const tot = totalEsperado(), ver = totalVerificado(), comp = tot > 0 && ver >= tot;
+      if (id) {
+        if (comp && estado[id] === false) setTimeout(() => generar(false), 300);
+        if (!comp && currentEgreso.pdfRevisado) delete currentEgreso.pdfRevisado;
+        estado[id] = comp;
+      }
+      if (comp) pintarBanner();
+    } catch (e) { console.warn('Imprimir', e); }
+    return r;
+  };
+  window.JATImprimir = { abrir, generar: () => generar(true), lista: todos };
+  document.querySelectorAll('.menu-item[data-action="paraImprimir"]').forEach(el => el.addEventListener('click', () => abrir()));
+})();
+</script>
 </body>
 </html>

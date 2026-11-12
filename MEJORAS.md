@@ -56,6 +56,12 @@ Esta regla también está en la "Bitácora JAT Control Suite".
 - [ ] Se pueden elegir PDF desde OneDrive y Descargas sin que salgan en gris.
 - [ ] El egreso se recibe también compartiendo el PDF desde WhatsApp.
 - [ ] Todo se guarda solo; no hay botón obligatorio de guardar.
+- [ ] **PDF revisado al terminar** (12 nov 2026): cuando el egreso llega a 100 % verificado se genera solo
+      "REVISADO_<egreso>_<fecha>_<hora>.pdf" (título "EGRESO REVISADO - 100% VERIFICADO" y hora de término).
+      Se guarda en la carpeta de trabajo › Imprimir si está conectada (PC); si no, baja a Descargas. Además queda
+      una copia en la lista **🖨️ Para imprimir** (menú y aviso de completado) con Imprimir, Compartir y "Ya impreso".
+      Solo se genera cuando el egreso PASA a completo mientras se revisa, no al abrir uno ya completo.
+      En Personal, Venta y PC. Revisión de Mercadería (piloto) no se toca.
 - [ ] En la versión personal, el egreso abierto en Inicio aparece en Sacar, y el elegido en
       Sacar pasa a Revisar (es el mismo documento).
 
@@ -189,3 +195,4 @@ marcado en cada producto contado y buscar escribiendo con lista para elegir con 
   del celular que sirven en PC: filtros con contador, buscar escribiendo, dictado (F8), pantalla
   oscura, egreso en curso y respaldo automático. Por la regla 1, el verificador de Venta recibió
   filtros con contador, hora de marcado y buscar escribiendo.
+- 2026-11-12: PDF revisado automático al terminar de revisar un egreso, guardado en carpeta › Imprimir o Descargas y en la lista "Para imprimir" (Personal, Venta y PC).
