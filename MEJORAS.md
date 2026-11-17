@@ -90,6 +90,20 @@ Esta regla también está en la "Bitácora JAT Control Suite".
       (se mueven solas al abrir). Sacar (`JAT_Salida_Mercaderia.html`) también lee los egresos del almacén grande.
       Ningún `localStorage.setItem` suelto puede romper el guardado (todos con try).
 
+- [ ] **Bienvenida "Dónde se guardan tus datos"** (16 nov 2026, Personal, Venta y Revisión de Mercadería): la
+      primera vez (en Venta después de iniciar sesión; en Revisión después de escribir el nombre) explica que todo se
+      guarda en el teléfono y que el respaldo baja solo a **Descargas** con el nombre `<archivo>_auto_FECHA_HORA`
+      (en la PC, si hay carpeta de trabajo conectada, va a su subcarpeta **Backups**), cuándo se guarda y cómo
+      recuperarlo. Botones: "Guardar una copia ahora en OneDrive, Drive o WhatsApp", en PC "Elegir otra carpeta",
+      "Entendido". Se vuelve a abrir con "¿Dónde?" junto a "Respaldar ahora", tocando "Último respaldo…" o, en
+      Personal, Menú › "Dónde se guardan mis datos". Clave `<clave>_bienvenida`.
+- [ ] **"Último respaldo: hoy 21:10 · en Descargas"**: dice dónde quedó y se pone en **rojo** si no hay respaldo o
+      tiene más de 24 h.
+- [ ] **Revisión de Mercadería ya tiene respaldo** (regla 3): `JAT_Revision_respaldo_auto_….json` al empezar una
+      revisión, al cerrarla y una vez al día con cambios; ＋ › "Respaldar ahora" y "Recuperar respaldo" (no pisa lo
+      que ya está, solo agrega las revisiones que falten).
+- [ ] Sin egresos no se baja respaldo por "cambios del día".
+
 ## Kardex y ubicaciones
 
 - [ ] **Kardex por categorías grandes** (las mismas de Sacar): fila de chips "Todas" + una por categoría
@@ -228,3 +242,5 @@ marcado en cada producto contado y buscar escribiendo con lista para elegir con 
   (Revisar y Sacar en Personal, Revisar y Salida por ubicación en Venta).
 - 2026-11-16: arreglo de "No se pudo guardar localmente (almacenamiento lleno)": egresos al almacén grande
   del teléfono (IndexedDB) en Personal y Venta; Sacar los lee de ahí.
+- 2026-11-16: bienvenida "Dónde se guardan tus datos" y línea de último respaldo con lugar (rojo si > 24 h) en
+  Personal, Venta y Revisión de Mercadería; Revisión de Mercadería recibe respaldo automático y "Recuperar respaldo".

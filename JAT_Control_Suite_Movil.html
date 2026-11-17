@@ -1541,6 +1541,7 @@
         // Un solo JSON.stringify debounced. Evita congelamientos en egresos grandes.
         const json = JSON.stringify(egresosGuardados), t = Date.now();
         const enChico = guardarEnAlmacenChico(json, t);
+        if (!enChico) try { window.JATRespaldoPersonal && JATRespaldoPersonal.cambio(); } catch (_) {}
         JATEgDB.poner('egresos', { json, t }).catch(e => {
             if (enChico) return;   // quedó en el almacén chico
             persistLastError = 'No se pudo guardar localmente: ' + (e && e.message || e);
@@ -6020,7 +6021,17 @@ body.kb-abierto #mainContent.content-area { overflow-y: auto !important; -webkit
 <style id="jat-respaldo">
 .resp-fila { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid var(--m-bd, var(--border-color, #e3e9ef)); border-radius: 14px; background: var(--m-sf, var(--bg-surface, #fff)); color: var(--m-tx, var(--text-main, #1a3a5c)); font-size: .8rem; }
 .resp-fila .resp-ico { display: flex; color: #2fbf86; }
-.resp-fila .resp-txt { flex: 1; min-width: 0; color: var(--m-mu, var(--text-muted, #6b7c8f)); }
+.resp-fila .resp-txt { flex: 1; min-width: 0; color: var(--m-mu, var(--text-muted, #6b7c8f)); cursor: pointer; }
+.resp-txt.resp-viejo { color: #dc2626 !important; font-weight: 700; }
+.resp-bv { position: fixed; inset: 0; z-index: 200000; background: rgba(6,12,22,.62); display: flex; align-items: flex-end; justify-content: center; }
+.resp-bv .p { width: 100%; max-width: 520px; max-height: 92vh; overflow: auto; background: var(--m-sf, var(--bg-surface, #fff)); color: var(--m-tx, var(--text-main, #0f1b2d)); border-radius: 22px 22px 0 0; padding: 20px 18px calc(18px + env(safe-area-inset-bottom)); font-size: .92rem; line-height: 1.45; box-shadow: 0 -10px 30px rgba(0,0,0,.25); }
+@media (min-width: 700px) { .resp-bv { align-items: center; } .resp-bv .p { border-radius: 22px; } }
+.resp-bv h3 { margin: 0 0 8px; font-size: 1.15rem; }
+.resp-bv p { margin: 8px 0; }
+.resp-bv .nom { display: block; margin: 6px 0; padding: 8px 10px; border-radius: 10px; background: var(--m-soft, var(--bg-soft, #eef1f6)); font-family: 'JetBrains Mono', monospace; font-size: .78rem; word-break: break-all; }
+.resp-bv .b { display: block; width: 100%; min-height: 50px; margin-top: 10px; border-radius: 14px; border: 1px solid var(--m-bd, var(--border-color, #cfd9e3)); background: transparent; color: inherit; font: inherit; font-weight: 700; cursor: pointer; }
+.resp-bv .b.pri { background: #0a1322; color: #fff; border-color: #0a1322; }
+body.d-osc .resp-bv .b.pri { background: #d9ad5b; color: #0a1322; border-color: #d9ad5b; }
 .resp-fila .resp-btn { border: 1px solid var(--border-color, #cfd9e3); background: transparent; color: var(--text-main, #1a3a5c); border-radius: 10px; padding: 8px 10px; font: inherit; font-weight: 700; font-size: .78rem; cursor: pointer; white-space: nowrap; }
 body.d-mar .resp-fila .resp-btn { border-color: var(--mar-oro); color: var(--mar-oro-tx); }
 </style>
@@ -6050,6 +6061,8 @@ window.JATRespaldo = function (cfg) {
     return r;
   };
 
+  // Avisa un cambio que no pasó por la memoria chica (por ejemplo, egresos guardados solo en el almacén grande)
+  function cambio() { cambios = true; clearTimeout(t); t = setTimeout(revisar, ESPERA); }
   function estado() {
     const lista = (cfg.egresos() || []);
     return { n: lista.length, completos: lista.filter(cfg.completo).length, ids: lista.map(cfg.id).filter(Boolean) };
@@ -6069,15 +6082,24 @@ window.JATRespaldo = function (cfg) {
     const a = document.createElement('a'); a.href = url; a.download = nom; a.style.display = 'none';
     document.body.appendChild(a); a.click(); setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 4000);
   }
-  function marcar(motivo) {
+  function marcar(motivo, donde) {
     const e = estado();
-    poner(K_ULT, JSON.stringify({ t: Date.now(), motivo }));
+    poner(K_ULT, JSON.stringify({ t: Date.now(), motivo, donde: donde || '' }));
     poner(K_EST, JSON.stringify(e));
     cambios = false;
     try { cfg.alGuardar && cfg.alGuardar(); } catch (_) {}
+    pintar();
+  }
+  // En la PC, si hay carpeta de trabajo conectada, el respaldo va ahí (subcarpeta Backups); si no, a Descargas.
+  async function guardarArchivo(nom, txt) {
+    if (cfg.carpeta) { try { const d = await cfg.carpeta(nom, txt); if (d) return d; } catch (e) { console.warn('respaldo carpeta', e); } }
+    bajar(nom, txt); return 'Descargas';
   }
   function respaldarAuto(motivo) {
-    try { bajar(nombre(true), contenido()); marcar(motivo); if (cfg.aviso) cfg.aviso('💾 Respaldo guardado en Descargas (' + motivo + ')'); } catch (e) { console.warn('respaldo', e); }
+    try {
+      const nom = nombre(true), txt = contenido();
+      guardarArchivo(nom, txt).then(donde => { marcar(motivo, donde); if (cfg.aviso) cfg.aviso('💾 Respaldo guardado en ' + donde + ' (' + motivo + ')'); });
+    } catch (e) { console.warn('respaldo', e); }
   }
   function revisar() {
     if (cfg.listo && !cfg.listo()) return;
@@ -6088,7 +6110,7 @@ window.JATRespaldo = function (cfg) {
     const nuevos = ahora.ids.filter(id => !(antes.ids || []).includes(id));
     if (nuevos.length) return respaldarAuto(nuevos.length === 1 ? 'egreso nuevo' : nuevos.length + ' egresos nuevos');
     if (ahora.completos > (antes.completos || 0)) return respaldarAuto('egreso completo');
-    if (cambios && (!ult || Date.now() - ult.t > HORAS * 3600e3)) return respaldarAuto('cambios del día');
+    if (cambios && ahora.n && (!ult || Date.now() - ult.t > HORAS * 3600e3)) return respaldarAuto('cambios del día');   // sin egresos no hay nada que respaldar
   }
   function ultimo() { try { return JSON.parse(leer(K_ULT, 'null')); } catch (_) { return null; } }
   function texto() {
@@ -6096,8 +6118,57 @@ window.JATRespaldo = function (cfg) {
     const d = new Date(u.t), hoy = new Date(), ayer = new Date(Date.now() - 864e5);
     const h = d.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
     const dia = d.toDateString() === hoy.toDateString() ? 'hoy' : d.toDateString() === ayer.toDateString() ? 'ayer' : d.toLocaleDateString('es-EC', { day: 'numeric', month: 'short' });
-    return 'Último respaldo: ' + dia + ' ' + h;
+    return 'Último respaldo: ' + dia + ' ' + h + (u.donde ? ' · en ' + u.donde : '');
   }
+  // Rojo si no hay respaldo o si tiene más de 24 horas
+  function viejo() { const u = ultimo(); return !u || Date.now() - u.t > 24 * 3600e3; }
+  function pintar() {
+    const tx = texto(), v = viejo();
+    document.querySelectorAll('.resp-txt').forEach(el => { if (el.textContent !== tx) el.textContent = tx; el.classList.toggle('resp-viejo', v); });
+  }
+  setInterval(pintar, 2000);
+
+  // ===== Bienvenida (16 nov 2026): a un usuario nuevo se le dice dónde quedan sus datos y su respaldo =====
+  const K_BIEN = cfg.clave + '_bienvenida';
+  const esPC = () => 'showDirectoryPicker' in window && !/Android|iPhone|iPad/i.test(navigator.userAgent);
+  function bienvenida(forzar) {
+    if (!forzar && leer(K_BIEN, '') === '1') return;
+    if (document.querySelector('.resp-bv')) return;
+    const ej = cfg.archivo + '_auto_2026-11-16_21-30' + cfg.extension;
+    const u = ultimo();
+    const carpeta = cfg.carpetaNombre ? cfg.carpetaNombre() : '';
+    const dondeVa = carpeta ? `en tu carpeta <b>${carpeta}</b>, dentro de <b>Backups</b>` : 'en la carpeta <b>Descargas</b> del ' + (esPC() ? 'computador' : 'teléfono');
+    const d = document.createElement('div'); d.className = 'resp-bv';
+    d.innerHTML = `<div class="p" role="dialog" aria-label="Dónde se guardan tus datos">
+      <h3>Dónde se guardan tus datos</h3>
+      <p>Todo lo que haces se guarda solo en este ${esPC() ? 'computador' : 'teléfono'}, sin internet.</p>
+      <p>Además, el programa guarda <b>por su cuenta</b> una copia de respaldo ${dondeVa}, con un nombre así:</p>
+      <span class="nom">${ej}</span>
+      <p>Se guarda cuando ${cfg.cuando || 'entra un egreso nuevo, cuando uno queda completo y una vez al día si hubo cambios'}.</p>
+      <p>Si desinstalas la app o se borran los datos del navegador, ${cfg.comoRecuperar || 'abre ese archivo desde el programa'} y vuelve todo.</p>
+      ${u ? '<p><b>' + texto() + '</b></p>' : ''}
+      <button type="button" class="b pri" data-a="enviar">Guardar una copia ahora en OneDrive, Drive o WhatsApp</button>
+      ${esPC() && cfg.elegirCarpeta ? '<button type="button" class="b" data-a="carpeta">Elegir otra carpeta para los respaldos</button>' : ''}
+      <button type="button" class="b" data-a="ok">Entendido</button>
+    </div>`;
+    (document.fullscreenElement || document.body).appendChild(d);
+    const cerrar = () => { poner(K_BIEN, '1'); d.remove(); };
+    d.addEventListener('click', async e => {
+      const a = e.target.closest('[data-a]')?.dataset.a;
+      if (!a && e.target === d) return cerrar();
+      if (a === 'ok') return cerrar();
+      if (a === 'enviar') { cerrar(); await ahora(); }
+      if (a === 'carpeta') { cerrar(); try { await cfg.elegirCarpeta(); } catch (_) {} }
+    });
+  }
+  // Tocar el texto "Último respaldo…" abre esta explicación
+  document.addEventListener('click', e => { if (e.target.closest && e.target.closest('.resp-txt')) bienvenida(true); });
+  // Primera vez: se muestra cuando el programa ya está listo (en Venta, después de iniciar sesión)
+  (function esperar(n) {
+    if (leer(K_BIEN, '') === '1' || n > 300) return;
+    if ((!cfg.listo || cfg.listo()) && (!cfg.puedeBienvenida || cfg.puedeBienvenida())) return setTimeout(() => bienvenida(false), 1500);
+    setTimeout(() => esperar(n + 1), 2000);
+  })(0);
   // Botón "Respaldar ahora": se puede mandar a OneDrive, Drive, WhatsApp o correo
   async function ahora() {
     const nom = nombre(false), txt = contenido();
@@ -6108,12 +6179,12 @@ window.JATRespaldo = function (cfg) {
         marcar('respaldo manual'); return true;
       }
     } catch (e) { if (e && e.name === 'AbortError') return false; }
-    bajar(nom, txt); marcar('respaldo manual');
-    if (cfg.aviso) cfg.aviso('💾 Respaldo guardado en Descargas. Súbelo a OneDrive o envíatelo por correo.');
+    const donde = await guardarArchivo(nom, txt); marcar('respaldo manual', donde);
+    if (cfg.aviso) cfg.aviso('💾 Respaldo guardado en ' + donde + '. Súbelo a OneDrive o envíatelo por correo.');
     return true;
   }
   setTimeout(revisar, 6000);
-  return { ahora, texto, ultimo, revisar };
+  return { ahora, texto, ultimo, revisar, cambio, bienvenida, pintar };
 };
 
 (function () {
@@ -6121,6 +6192,15 @@ window.JATRespaldo = function (cfg) {
   const est = e => { try { return iniEstado(e); } catch (_) { return { total: 0, pct: 0 }; } };
   const R = JATRespaldo({
     app: 'JAT Control Suite Personal', clave: 'jat_respaldo', archivo: 'JAT_Personal_respaldo', extension: '.hat',
+    comoRecuperar: 'abre ese archivo en Inicio › ＋ › "Importar / abrir archivo"',
+    // PC: si hay carpeta de trabajo conectada, el respaldo va a su subcarpeta Backups
+    carpeta: async (nom, txt) => {
+      if (typeof oneDriveEnabled === 'undefined' || !oneDriveEnabled || !oneDriveDirHandle) return null;
+      await escribirArchivoOneDrive('Backups/' + nom, txt);
+      return 'tu carpeta ' + (carpetaTrabajoNombre || '') + ' › Backups';
+    },
+    carpetaNombre: () => (typeof oneDriveEnabled !== 'undefined' && oneDriveEnabled && oneDriveDirHandle) ? (carpetaTrabajoNombre || 'de trabajo') : '',
+    elegirCarpeta: () => conectarOneDrive(),
     incluir: k => /^(oneliv_|jat_|hat_)/.test(k) && !UI.test(k),
     listo: () => typeof egresosGuardados !== 'undefined',
     egresos: () => egresosGuardados,
@@ -6169,8 +6249,9 @@ window.JATRespaldo = function (cfg) {
     try {
       const acc = document.querySelector('#mainContent .ini-wrap .ini-acciones');
       if (acc && !document.getElementById('respFila')) {
-        acc.insertAdjacentHTML('afterend', `<div class="resp-fila" id="respFila"><span class="resp-ico">${ICO}</span><span class="resp-txt">${R.texto()}</span><button type="button" class="resp-btn">Respaldar ahora</button></div>`);
+        acc.insertAdjacentHTML('afterend', `<div class="resp-fila" id="respFila"><span class="resp-ico">${ICO}</span><span class="resp-txt">${R.texto()}</span><button type="button" class="resp-btn">Respaldar ahora</button><button type="button" class="resp-btn resp-donde" aria-label="Dónde se guarda">¿Dónde?</button></div>`);
         document.querySelector('#respFila .resp-btn').addEventListener('click', () => R.ahora());
+        document.querySelector('#respFila .resp-donde').addEventListener('click', () => R.bienvenida(true));
       }
     } catch (_) {}
     return r;
@@ -6183,6 +6264,8 @@ window.JATRespaldo = function (cfg) {
       const v = main.querySelector('.js-vista'); if (!v || v.querySelector('#respMenu')) return;
       v.insertAdjacentHTML('afterbegin', `<button type="button" class="js-op dest" id="respMenu"><span class="ic">${ICO}</span><span><b>Respaldar ahora</b><small class="resp-txt">${R.texto()}</small></span></button>`);
       v.querySelector('#respMenu').addEventListener('click', () => R.ahora());
+      v.querySelector('#respMenu').insertAdjacentHTML('afterend', `<button type="button" class="js-op" id="respDonde"><span class="ic">${ICO}</span><span><b>Dónde se guardan mis datos</b><small>Respaldo en Descargas o en tu carpeta</small></span></button>`);
+      v.querySelector('#respDonde').addEventListener('click', () => R.bienvenida(true));
     } catch (_) {}
   }).observe(main, { childList: true });
   try { if (document.querySelector('#mainContent .ini-wrap')) irInicio(); } catch (_) {}
