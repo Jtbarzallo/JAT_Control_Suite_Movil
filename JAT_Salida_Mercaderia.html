@@ -1027,7 +1027,9 @@ async function abrirScanner() {
         sDet = new BarcodeDetector({ formats: fm.filter(f => /ean|upc|code_|itf|codabar|qr/.test(f)) });
         sTimer = setInterval(async () => {
           if (sPausado() || v.readyState < 2) return;
-          try { const r = (await sDet.detect(v)).filter(x => enRecuadro(x.boundingBox)); if (r.length && !sPausado()) lectura(r.map(x => x.rawValue)); } catch (_) {}
+          // 16 nov 2026: al sacar se leen TODOS los códigos que ve la cámara (del centro hacia afuera) y se elige el del egreso.
+          // Al registrar ubicaciones se sigue leyendo solo lo que está dentro del recuadro.
+          try { let r = await sDet.detect(v); if (modoReg) r = r.filter(x => enRecuadro(x.boundingBox)); if (r.length && !sPausado()) lectura(delCentroAfuera(r, v)); } catch (_) {}
         }, 220);
         return;
       } catch (_) {}
@@ -1039,7 +1041,15 @@ async function abrirScanner() {
 }
 function sPausado() { return $('shItem').style.display === 'flex' || $('shNuevo').style.display === 'flex' || !gatActivo(); }
 // ----- Gatillo: la cámara solo lee mientras aprietas ESCANEAR (un apretón = un producto). Un toque corto lee 2,5 s. -----
-let gatModo = (() => { try { return localStorage.getItem('jat_cam_modo') !== 'continuo'; } catch (_) { return true; } })();
+let gatModo = true;   // 16 nov 2026: solo gatillo (sin lectura continua)
+function delCentroAfuera(r, v) {
+  const cx = (v.videoWidth || 0) / 2, cy = (v.videoHeight || 0) / 2;
+  const d = x => { const b = x.boundingBox; return b ? Math.hypot(b.x + b.width / 2 - cx, b.y + b.height / 2 - cy) : 1e9; };
+  return [...r].sort((a, b) => d(a) - d(b)).map(x => x.rawValue);
+}
+// Gatillo apretado: si lo que ve no está en el egreso sigue buscando; al soltar avisa "no encontrado".
+let gatSinCoincidir = '';
+setInterval(() => { if (gatSinCoincidir && !gatActivo()) { const c = gatSinCoincidir; gatSinCoincidir = ''; noEncontrado(c); } }, 150);
 let gatOn = false, gatHasta = 0, gatT0 = 0;
 function gatActivo() { return !gatModo || gatOn || Date.now() < gatHasta; }
 function gatPintar() {
@@ -1051,7 +1061,7 @@ function gatSoltar() { gatOn = false; gatHasta = 0; gatPintar(); }
 function gatAyuda() { if (gatModo && sStream) sEstado((modoReg ? $('rZona').value + ' — a' : 'A') + 'punta al producto y aprieta ESCANEAR'); }
 $('sGat').addEventListener('pointerdown', e => {
   e.preventDefault(); try { $('sGat').setPointerCapture(e.pointerId); } catch (_) {}
-  gatOn = true; gatT0 = Date.now(); gatHasta = 0; sUlt = ''; ocrUlt = ''; sUltBarcode = Date.now() - 1800;
+  gatOn = true; gatT0 = Date.now(); gatHasta = 0; sUlt = ''; gatSinCoincidir = ''; ocrUlt = ''; sUltBarcode = Date.now() - 1800;
   if (navigator.vibrate) navigator.vibrate(15);
   sEstado('🔴 Leyendo…'); gatPintar();
 });
@@ -1064,8 +1074,9 @@ const gatFin = () => {
 };
 ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => $('sGat').addEventListener(ev, gatFin));
 $('sGat').addEventListener('contextmenu', e => e.preventDefault());
+$('sModo').style.display = 'none';   // solo gatillo: ya no se cambia a continuo
 $('sModo').onclick = () => {
-  gatModo = !gatModo; gatSoltar();
+  gatModo = true; gatSoltar();
   try { localStorage.setItem('jat_cam_modo', gatModo ? 'gatillo' : 'continuo'); } catch (_) {}
   if (gatModo) gatAyuda(); else sEstado('🟢 Lectura continua: apunta al código');
 };
@@ -1091,20 +1102,31 @@ function buscarIdx(cod) {
 }
 function lectura(codigos) {
   sUltBarcode = Date.now();
-  if (gatModo) gatSoltar();   // un apretón = una lectura
-  if (modoReg) { registrarCodigo(codigos, true); return; }
-  // De todos los códigos a la vista, se elige el que coincide COMPLETO con el egreso
+  if (modoReg) { if (gatModo) gatSoltar(); registrarCodigo(codigos, true); return; }
+  // De todos los códigos a la vista, se elige el que coincide COMPLETO con el egreso;
+  // si hay varios, primero uno que todavía falte sacar.
   let idx = -1;
-  for (const c of codigos) { const i = buscarIdx(String(c || '').trim()); if (i >= 0) { idx = i; break; } }
-  const cod = String(codigos[0] || '').trim(), ahora = Date.now();
+  for (const c of codigos) {
+    const i = buscarIdx(String(c || '').trim());
+    if (i < 0) continue;
+    if (idx < 0) idx = i;
+    if ((sacado[i] || 0) < pedido(productos[i])) { idx = i; break; }
+  }
+  const cod = String(codigos[0] || '').trim();
+  if (gatModo) {
+    if (idx < 0) { gatSinCoincidir = cod; return; }   // sigue buscando mientras el gatillo esté apretado
+    gatSinCoincidir = ''; gatSoltar();   // un apretón = una lectura
+  }
+  const ahora = Date.now();
   const clave = idx >= 0 ? 'i' + idx : cod;
   if (clave === sUlt && ahora - sUltT < 1800) return;
   sUlt = clave; sUltT = ahora;
-  if (idx < 0) {
-    if (navigator.vibrate) navigator.vibrate([40, 40, 40]);
-    sEstado('❌ PRODUCTO NO ENCONTRADO — ' + cod); decir('Producto no encontrado.'); return;
-  }
+  if (idx < 0) { noEncontrado(cod); return; }
   accionProducto(idx);
+}
+function noEncontrado(cod) {
+  if (navigator.vibrate) navigator.vibrate([40, 40, 40]);
+  sEstado('❌ PRODUCTO NO ENCONTRADO — ' + cod); decir('Producto no encontrado.');
 }
 function accionProducto(idx) {
   if (gatModo) gatSoltar();

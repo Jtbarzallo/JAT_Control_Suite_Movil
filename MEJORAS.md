@@ -20,7 +20,8 @@ Esta regla también está en la "Bitácora JAT Control Suite".
 ## En todas las pantallas con escáner (Revisar, Sacar, Revisión de Mercadería, Venta; en PC lo que aplique, ver "Versión de PC")
 
 - [ ] **Gatillo disparador**: botón rojo ESCANEAR; la cámara lee solo mientras se aprieta,
-      un producto por apretón; toque corto = 2,5 s. Opción de cambiar a lectura continua.
+      un producto por apretón; toque corto = 2,5 s. **Solo gatillo** (16 nov 2026, Revisar y Sacar en
+      Personal, Revisar en Venta): se quitó la lectura continua y el botón para cambiarla.
 - [ ] **Gatillo arriba, junto a la cámara** (12 nov 2026, Revisar en Personal y Venta, solo celular):
       va a la derecha de la imagen de la cámara, el recuadro se corre a la izquierda para no quedar
       debajo. En tablet/PC (vista dividida) queda como antes. Bloque `jat-revisar-gatillo` al final.
@@ -36,8 +37,13 @@ Esta regla también está en la "Bitácora JAT Control Suite".
 - [ ] **Cámara fija arriba y la lista se desliza debajo.** La cámara nunca se va con el scroll
       ni ocupa más de la mitad de la pantalla.
 - [ ] **Filtros Pendientes / Revisados (o Sacados) / Todos**, en su propia fila y con contador.
-- [ ] **Solo se lee el código dentro del recuadro**; si la etiqueta trae varios códigos, se
-      acepta el que coincide completo con el egreso.
+- [ ] **Lee todos los códigos alrededor y escoge el correcto** (16 nov 2026, Revisar y Sacar en Personal,
+      Revisar y Salida por ubicación en Venta): con el gatillo (o LEER) apretado la cámara lee la imagen completa, ordena los códigos del
+      centro hacia afuera y marca el que coincide completo con el egreso (si hay varios, primero uno
+      pendiente). Si lo que ve no está en el egreso sigue buscando; "Producto no encontrado" sale recién al
+      soltar el gatillo (o a los 2,5 s del toque corto). Al **registrar ubicaciones** (Sacar y Venta) se
+      sigue tomando solo el código del recuadro, porque ahí no hay egreso para comparar.
+      Revisión de Mercadería (piloto) no se tocó.
 - [ ] **Teclado solo al tocar un campo**: ningún botón, tarjeta ni lectura abre el teclado.
 - [ ] **Botón ＋ con las acciones de cada ventana**, en vez de barras de botones.
 - [ ] **El ＋ y el gatillo no tapan ningún botón**: se esconden cuando hay otra ventana encima.
@@ -211,3 +217,5 @@ marcado en cada producto contado y buscar escribiendo con lista para elegir con 
   oscura, egreso en curso y respaldo automático. Por la regla 1, el verificador de Venta recibió
   filtros con contador, hora de marcado y buscar escribiendo.
 - 2026-11-12: PDF revisado automático al terminar de revisar un egreso, guardado en carpeta › Imprimir o Descargas y en la lista "Para imprimir" (Personal, Venta y PC).
+- 2026-11-16: escáner solo con gatillo y lectura de todos los códigos alrededor, eligiendo el del egreso
+  (Revisar y Sacar en Personal, Revisar y Salida por ubicación en Venta).

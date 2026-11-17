@@ -3940,29 +3940,50 @@
         // en el buscador) — usarlo con lecturas de cámara podría confundir dos productos
         // distintos que por casualidad terminen igual.
         function elegirCodigoExactoEnEgreso(codigosCrudos) {
+            // 16 nov 2026: la cámara lee TODOS los códigos que ve (ya vienen ordenados del centro hacia afuera).
+            // De esos se queda con el que está en el egreso; si hay varios, primero uno que todavía esté pendiente.
+            const enEgreso = [];
             for (const c of (codigosCrudos || [])) {
                 const limpio = (c || '').trim();
-                if (limpio && currentProductos.some(p => p.barcode === limpio)) return limpio;
+                if (limpio && !enEgreso.includes(limpio) && currentProductos.some(p => p.barcode === limpio)) enEgreso.push(limpio);
             }
-            return null;
+            if (!enEgreso.length) return null;
+            const pendiente = enEgreso.find(c => currentProductos.some(p => p.barcode === c && !isProductoVerificado(p)));
+            return pendiente || enEgreso[0];
         }
+        // Ordena las lecturas de la cámara: primero la que está más cerca del centro de la imagen.
+        function codigosDelCentroAfuera(resultados, video) {
+            const cx = (video.videoWidth || 0) / 2, cy = (video.videoHeight || 0) / 2;
+            const dist = r => { const b = r.boundingBox; return b ? Math.hypot(b.x + b.width / 2 - cx, b.y + b.height / 2 - cy) : 1e9; };
+            return [...resultados].sort((a, b) => dist(a) - dist(b)).map(r => r.rawValue);
+        }
+        // Gatillo apretado: si lo que ve no está en el egreso, sigue buscando hasta que se suelte el gatillo.
+        // Recién ahí avisa "producto no encontrado" con el código que vio.
+        var camGatilloSinCoincidir = '';
+        setInterval(() => {
+            if (camGatilloSinCoincidir && !gatilloActivo()) { const c = camGatilloSinCoincidir; camGatilloSinCoincidir = ''; avisarNoEncontradoCamara(c); }
+        }, 150);
 
         function manejarLecturaCamara(codigosCrudos) {
             const codigos = (codigosCrudos || []).map(c => (c || '').trim()).filter(Boolean);
             if (!codigos.length) return;
+            camUltimaLecturaBarcode = Date.now();
+            const exacto = elegirCodigoExactoEnEgreso(codigos);
             if (camModoGatillo) {
                 if (!gatilloActivo()) return;
+                if (!exacto && !window.jatModoRegistro) { camGatilloSinCoincidir = codigos[0]; return; }   // sigue buscando el correcto
+                camGatilloSinCoincidir = '';
                 soltarDisparo();
                 camUltimoCodigo = ''; camUltimoTiempo = 0;   // cada apretón es una lectura nueva
             }
-            camUltimaLecturaBarcode = Date.now();
-            const exacto = elegirCodigoExactoEnEgreso(codigos);
             if (exacto) { manejarCodigoDetectado(exacto); return; }
             if (window.jatModoRegistro) { manejarCodigoDetectado(codigos[0]); return; }
             // Ninguno de los códigos vistos en el cuadro coincide EXACTO con este egreso.
             // No se intenta adivinar por últimos dígitos: se reporta como no encontrado,
             // usando el primer código leído solo para mostrarlo en pantalla.
-            const primero = codigos[0];
+            avisarNoEncontradoCamara(codigos[0]);
+        }
+        function avisarNoEncontradoCamara(primero) {
             const ahora = Date.now();
             if (primero === camUltimoCodigo && (ahora - camUltimoTiempo) < CAM_DEBOUNCE_MS) return;
             camUltimoCodigo = primero;
@@ -4269,9 +4290,9 @@
             if (camModoGatillo && !gatilloActivo()) return;
             camDetectando = true;
             try {
-                const resultados = camModoGatillo ? await camDetector.detect(recorteVisible(video))
-                    : (window.jatDetectarRapido ? await window.jatDetectarRapido(camDetector, video) : await camDetector.detect(video));
-                if (resultados && resultados.length) manejarLecturaCamara(resultados.map(r => r.rawValue));
+                // Lee la imagen completa: todos los códigos alrededor (16 nov 2026)
+                const resultados = await camDetector.detect(video);
+                if (resultados && resultados.length) manejarLecturaCamara(codigosDelCentroAfuera(resultados, video));
             } catch (e) { camUltimoError = e; /* frame sin lectura, normal la mayoría de las veces */ }
             finally { camDetectando = false; }
         }
@@ -4433,7 +4454,7 @@
             if (ev) { ev.preventDefault(); ev.stopPropagation(); }
             if (!camModoGatillo) return;
             if (!camActiva) { await iniciarCamaraEscaner(); if (!camActiva) return; }
-            camDisparando = true; camDisparoHasta = 0; camDisparoInicio = Date.now();
+            camDisparando = true; camDisparoHasta = 0; camDisparoInicio = Date.now(); camGatilloSinCoincidir = '';
             if (navigator.vibrate) navigator.vibrate(15);
             pintarGatillo();
         }
@@ -4447,6 +4468,7 @@
         }
         function aplicarModoCamara() {
             const b = $('camModoBtn'); if (b) b.textContent = camModoGatillo ? '🎯 Modo: Gatillo (cambiar a continuo)' : '🔁 Modo: Continuo (cambiar a gatillo)';
+            if (b) b.style.display = 'none';   // solo gatillo: ya no se cambia a continuo
             $('jatGatillo')?.classList.toggle('oculto', !camModoGatillo);
             soltarDisparo();
             if (camActiva) setEstadoPill(camModoGatillo ? '🎯 Listo — aprieta el gatillo' : '🟢 Escaneando continuo…', true);
@@ -4468,8 +4490,7 @@
                 ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => panel.addEventListener(t, soltarGatillo));
             }
             $('camModoBtn')?.addEventListener('click', () => {
-                camModoGatillo = !camModoGatillo;
-                try { localStorage.setItem('jatv_disparador', camModoGatillo ? '1' : '0'); } catch (_) {}
+                camModoGatillo = true;   // solo gatillo
                 aplicarModoCamara();
             });
             aplicarModoCamara();
@@ -7097,7 +7118,7 @@
     // ===== Cámara del verificador: botón disparador + mejor enfoque =====
     (function () {
         const K = 'jatv_disparador';
-        window.jatDisparadorActivo = () => localStorage.getItem(K) !== '0';
+        window.jatDisparadorActivo = () => true;   // 16 nov 2026: solo gatillo (sin lectura continua)
         window.jatDisparoHasta = 0;
         let tAviso = null;
         const btn = () => document.getElementById('camDisparo');
@@ -7177,9 +7198,9 @@
         const hojaAbierta = () => !!document.getElementById('jatUbHoja');
 
         // ---- escáner continuo con botón LEER ----
-        function escanerContinuo(titulo, alLeer) {
+        function escanerContinuo(titulo, alLeer, elegir) {   // elegir(códigos): escoge el correcto entre todos los que ve (16 nov 2026)
             const FMT = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'code_93', 'itf', 'codabar', 'qr_code'];
-            let stream = null, vivo = true, timer = null, zx = null, armado = 0, tAv = null;
+            let stream = null, vivo = true, timer = null, zx = null, armado = 0, tAv = null, sinCoincidir = '';
             const ov = document.createElement('div'); ov.id = 'jatScanCont';
             ov.style.cssText = 'position:fixed;inset:0;z-index:100000;background:#000;display:flex;flex-direction:column;';
             ov.innerHTML = `<div style="flex:1;position:relative;overflow:hidden;"><video playsinline muted autoplay style="width:100%;height:100%;object-fit:cover;"></video>
@@ -7197,11 +7218,16 @@
             const pintarL = (on) => { bL.style.background = on ? '#d4a017' : '#1E7F4A'; bL.textContent = on ? '...' : 'LEER'; };
             let enfocar = () => {};
             bL.addEventListener('click', () => {
-                armado = Date.now() + 2000; pintarL(true); enfocar(); if (navigator.vibrate) navigator.vibrate(25);
-                clearTimeout(tAv); tAv = setTimeout(() => { if (armado) { armado = 0; pintarL(false); ctrl.estado('No se leyó. Acerca o aleja un poco y aprieta LEER'); } }, 2050);
+                armado = Date.now() + 2000; sinCoincidir = ''; pintarL(true); enfocar(); if (navigator.vibrate) navigator.vibrate(25);
+                clearTimeout(tAv); tAv = setTimeout(() => { if (armado) { armado = 0; pintarL(false); if (sinCoincidir) { const c = sinCoincidir; sinCoincidir = ''; alLeer(c, ctrl); } else ctrl.estado('No se leyó. Acerca o aleja un poco y aprieta LEER'); } }, 2050);
             });
-            const lectura = (cod) => {
-                cod = String(cod || '').trim(); if (!vivo || !cod || hojaAbierta() || !(armado > Date.now())) return;
+            const lectura = (cods) => {
+                if (!Array.isArray(cods)) cods = [cods];
+                cods = cods.map(c => String(c || '').trim()).filter(Boolean);
+                if (!vivo || !cods.length || hojaAbierta() || !(armado > Date.now())) return;
+                let cod = cods[0];
+                if (elegir) { const ok = elegir(cods); if (!ok) { sinCoincidir = cods[0]; return; } cod = ok; }   // sigue buscando hasta que se acabe el LEER
+                sinCoincidir = '';
                 armado = 0; clearTimeout(tAv); pintarL(false);
                 if (navigator.vibrate) navigator.vibrate(80);
                 alLeer(cod, ctrl);
@@ -7219,7 +7245,7 @@
                     if (cap.zoom && cap.zoom.max >= 1.5) { const zb = ov.querySelector('#jscZoom'), zm = Math.min(cap.zoom.max, 2.5); let z = (pista.getSettings && pista.getSettings().zoom) || 1; const et = () => { zb.textContent = z > 1.05 ? '🔍 1x' : '🔍 ' + (Math.round(zm * 10) / 10) + 'x'; }; zb.style.display = 'block'; et(); zb.addEventListener('click', async () => { z = z > 1.05 ? 1 : zm; try { await pista.applyConstraints({ advanced: [{ zoom: z }] }); } catch (e) {} et(); enfocar(); }); }
                     let det = null;
                     if ('BarcodeDetector' in window) { try { const sop = await BarcodeDetector.getSupportedFormats(); const f = FMT.filter(x => sop.includes(x)); det = new BarcodeDetector({ formats: f.length ? f : sop }); } catch (e) { det = null; } }
-                    if (det) { const ciclo = async () => { if (!vivo) return; if (armado > Date.now()) { try { const r = await window.jatDetectarRapido(det, video); if (r && r.length) lectura(r[0].rawValue); } catch (e) {} } timer = setTimeout(ciclo, 120); }; ciclo(); }
+                    if (det) { const ciclo = async () => { if (!vivo) return; if (armado > Date.now()) { try { const r = elegir ? await det.detect(video) : await window.jatDetectarRapido(det, video); if (r && r.length) { const cx = video.videoWidth / 2, cy = video.videoHeight / 2, dd = x => { const b = x.boundingBox; return b ? Math.hypot(b.x + b.width / 2 - cx, b.y + b.height / 2 - cy) : 1e9; }; lectura([...r].sort((a, b) => dd(a) - dd(b)).map(x => x.rawValue)); } } catch (e) {} } timer = setTimeout(ciclo, 120); }; ciclo(); }
                     else {
                         if (!window.ZXing) await new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js'; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
                         if (!vivo) return; zx = new ZXing.BrowserMultiFormatReader(); zx.decodeFromVideoElementContinuously(video, r => { if (r) lectura(r.getText()); });
@@ -7440,6 +7466,9 @@
                     const i = eg.productos.findIndex(p => String(p.barcode).trim() === cod);
                     if (i < 0) { ctrl.estado('❌ ' + cod + ' no está en este egreso'); try { hablarHat('No está en este egreso.', 'error', { force: true }); } catch (e) {} return; }
                     hojaSacar(eg, i, ctrl);
+                }, cods => {   // lee todos los códigos alrededor y escoge el del egreso (primero uno que falte sacar)
+                    const en = cods.filter(c => eg.productos.some(p => String(p.barcode).trim() === c));
+                    return en.find(c => eg.productos.some(p => String(p.barcode).trim() === c && getVerifiedQty(p) < getExpectedQty(p))) || en[0] || null;
                 });
                 c.alCerrar = () => cargarVistaSalida(id);
             });
