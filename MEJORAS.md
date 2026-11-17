@@ -83,6 +83,13 @@ Esta regla también está en la "Bitácora JAT Control Suite".
 - [ ] En la versión personal, el egreso abierto en Inicio aparece en Sacar, y el elegido en
       Sacar pasa a Revisar (es el mismo documento).
 
+- [ ] **Nunca "almacenamiento lleno"** (16 nov 2026, Personal y Venta): los egresos se guardan siempre en el
+      almacén grande del teléfono (IndexedDB `jat_egresos` / `jatv_egresos`, clave `egresos`) y, si cabe, también en
+      localStorage como copia. Si no cabe, se quita la copia vieja de localStorage para no abrir una versión atrasada.
+      Al abrir se usa la versión más nueva de los dos. Las copias por egreso `hat_backup_*` viven en el almacén grande
+      (se mueven solas al abrir). Sacar (`JAT_Salida_Mercaderia.html`) también lee los egresos del almacén grande.
+      Ningún `localStorage.setItem` suelto puede romper el guardado (todos con try).
+
 ## Kardex y ubicaciones
 
 - [ ] **Kardex por categorías grandes** (las mismas de Sacar): fila de chips "Todas" + una por categoría
@@ -219,3 +226,5 @@ marcado en cada producto contado y buscar escribiendo con lista para elegir con 
 - 2026-11-12: PDF revisado automático al terminar de revisar un egreso, guardado en carpeta › Imprimir o Descargas y en la lista "Para imprimir" (Personal, Venta y PC).
 - 2026-11-16: escáner solo con gatillo y lectura de todos los códigos alrededor, eligiendo el del egreso
   (Revisar y Sacar en Personal, Revisar y Salida por ubicación en Venta).
+- 2026-11-16: arreglo de "No se pudo guardar localmente (almacenamiento lleno)": egresos al almacén grande
+  del teléfono (IndexedDB) en Personal y Venta; Sacar los lee de ahí.

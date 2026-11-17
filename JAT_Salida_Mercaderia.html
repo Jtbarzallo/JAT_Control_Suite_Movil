@@ -649,8 +649,22 @@ function abrirEgreso(e) {
 }
 function guardarProgreso() { LS.set(egKey, sacado); LS.set(egKey + '_h', horas); }
 
-function listarEgresos() {
-  const lista = [...LS.get('jat_salida_lista', []), ...LS.get('oneliv_egresos', [])].filter((e, i, a) => a.findIndex(x => (x.id || x.nombre) === (e.id || e.nombre)) === i).reverse();
+// 16 nov 2026: los egresos del Control Suite ahora se guardan en el almacén grande del teléfono (IndexedDB),
+// porque el almacenamiento chico se llenaba. Aquí se leen de ahí también.
+let egGrande = null;
+function leerEgresosGrande() {
+  return new Promise(ok => {
+    try {
+      const r = indexedDB.open('jat_egresos', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('kv');
+      r.onsuccess = () => { try { const q = r.result.transaction('kv').objectStore('kv').get('egresos'); q.onsuccess = () => { try { ok(JSON.parse((q.result && q.result.json) || '[]')); } catch (_) { ok([]); } }; q.onerror = () => ok([]); } catch (_) { ok([]); } };
+      r.onerror = () => ok([]);
+    } catch (_) { ok([]); }
+  });
+}
+function listarEgresos(yaLeido) {
+  if (!yaLeido) leerEgresosGrande().then(l => { egGrande = l; listarEgresos(true); });
+  const lista = [...LS.get('jat_salida_lista', []), ...(egGrande || []), ...LS.get('oneliv_egresos', [])].filter((e, i, a) => a.findIndex(x => (x.id || x.nombre) === (e.id || e.nombre)) === i).reverse();
   $('egList').innerHTML = lista.length
     ? '<div style="font-weight:700;margin:6px 0">Egresos en este celular:</div>' + lista.map((e, i) =>
       `<div class="li" data-i="${i}">${esc(e.nombre || e.secuencial || 'Sin nombre')}<div style="font-weight:400;font-size:.8rem;color:#64748b">${esc(e.bodegaDestino || '')} · ${(e.productos || []).length} productos</div></div>`).join('')
