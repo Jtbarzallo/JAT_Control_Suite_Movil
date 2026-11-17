@@ -22,6 +22,10 @@ Esta regla también está en la "Bitácora JAT Control Suite".
 - [ ] **Gatillo disparador**: botón rojo ESCANEAR; la cámara lee solo mientras se aprieta,
       un producto por apretón; toque corto = 2,5 s. **Solo gatillo** (16 nov 2026, Revisar y Sacar en
       Personal, Revisar en Venta): se quitó la lectura continua y el botón para cambiarla.
+- [ ] **Bip de escáner y láser apagado al leer** (16 nov 2026, Revisar y Sacar en Personal, Revisar y Salida/LEER en
+      Venta, Revisión de Mercadería): como una pistola lectora real, cuando el gatillo lee el código correcto suena al
+      instante un bip corto y fuerte (`jatBipEscaner`, 2700 Hz, 0,1 s) y el láser se apaga; se suelta y se vuelve a
+      apretar para el siguiente. El audio se despierta al apretar el gatillo (`jatBipDespertar`).
 - [ ] **Gatillo arriba, junto a la cámara** (12 nov 2026, Revisar en Personal y Venta, solo celular):
       va a la derecha de la imagen de la cámara, el recuadro se corre a la izquierda para no quedar
       debajo. En tablet/PC (vista dividida) queda como antes. Bloque `jat-revisar-gatillo` al final.
@@ -244,3 +248,4 @@ marcado en cada producto contado y buscar escribiendo con lista para elegir con 
   del teléfono (IndexedDB) en Personal y Venta; Sacar los lee de ahí.
 - 2026-11-16: bienvenida "Dónde se guardan tus datos" y línea de último respaldo con lugar (rojo si > 24 h) en
   Personal, Venta y Revisión de Mercadería; Revisión de Mercadería recibe respaldo automático y "Recuperar respaldo".
+- 2026-11-16: bip de escáner real al leer con el gatillo y láser apagado (Personal, Venta y Revisión de Mercadería).

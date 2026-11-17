@@ -4010,6 +4010,23 @@
             const pendiente = enEgreso.find(c => currentProductos.some(p => p.barcode === c && !isProductoVerificado(p)));
             return pendiente || enEgreso[0];
         }
+
+        // ---- BIP DE ESCÁNER (16 nov 2026): como una pistola lectora real, al leer suena un bip corto y fuerte
+        // al instante y el láser se apaga. Se suelta y se vuelve a apretar para el siguiente producto.
+        function jatBipEscaner() {
+          try {
+            const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+            const c = window.__jatBipCtx = window.__jatBipCtx || new AC();
+            if (c.state === 'suspended') c.resume();
+            const o = c.createOscillator(), g = c.createGain(), n = c.currentTime;
+            o.type = 'square'; o.frequency.setValueAtTime(2700, n);
+            g.gain.setValueAtTime(0.0001, n); g.gain.exponentialRampToValueAtTime(0.16, n + 0.005);
+            g.gain.setValueAtTime(0.16, n + 0.085); g.gain.exponentialRampToValueAtTime(0.0001, n + 0.1);
+            o.connect(g).connect(c.destination); o.start(n); o.stop(n + 0.11);
+          } catch (_) {}
+        }
+        // El audio del teléfono se despierta al apretar el gatillo (Chrome solo deja sonar después de un toque)
+        function jatBipDespertar() { try { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; const c = window.__jatBipCtx = window.__jatBipCtx || new AC(); if (c.state === 'suspended') c.resume(); } catch (_) {} }
         // Ordena las lecturas de la cámara: primero la que está más cerca del centro de la imagen.
         function codigosDelCentroAfuera(resultados, video) {
             const cx = (video.videoWidth || 0) / 2, cy = (video.videoHeight || 0) / 2;
@@ -4032,6 +4049,7 @@
                 if (!gatilloActivo()) return;
                 if (!exacto && !window.jatModoRegistro) { camGatilloSinCoincidir = codigos[0]; return; }   // sigue buscando el correcto
                 camGatilloSinCoincidir = '';
+                jatBipEscaner();   // bip al instante y láser apagado
                 soltarDisparo();
                 camUltimoCodigo = ''; camUltimoTiempo = 0;   // cada apretón es una lectura nueva
             }
@@ -4513,7 +4531,7 @@
             if (ev) { ev.preventDefault(); ev.stopPropagation(); }
             if (!camModoGatillo) return;
             if (!camActiva) { await iniciarCamaraEscaner(); if (!camActiva) return; }
-            camDisparando = true; camDisparoHasta = 0; camDisparoInicio = Date.now(); camGatilloSinCoincidir = '';
+            camDisparando = true; camDisparoHasta = 0; camDisparoInicio = Date.now(); camGatilloSinCoincidir = ''; jatBipDespertar();
             if (navigator.vibrate) navigator.vibrate(15);
             pintarGatillo();
         }
@@ -7277,7 +7295,7 @@
             const pintarL = (on) => { bL.style.background = on ? '#d4a017' : '#1E7F4A'; bL.textContent = on ? '...' : 'LEER'; };
             let enfocar = () => {};
             bL.addEventListener('click', () => {
-                armado = Date.now() + 2000; sinCoincidir = ''; pintarL(true); enfocar(); if (navigator.vibrate) navigator.vibrate(25);
+                armado = Date.now() + 2000; sinCoincidir = ''; jatBipDespertar(); pintarL(true); enfocar(); if (navigator.vibrate) navigator.vibrate(25);
                 clearTimeout(tAv); tAv = setTimeout(() => { if (armado) { armado = 0; pintarL(false); if (sinCoincidir) { const c = sinCoincidir; sinCoincidir = ''; alLeer(c, ctrl); } else ctrl.estado('No se leyó. Acerca o aleja un poco y aprieta LEER'); } }, 2050);
             });
             const lectura = (cods) => {
@@ -7287,6 +7305,7 @@
                 let cod = cods[0];
                 if (elegir) { const ok = elegir(cods); if (!ok) { sinCoincidir = cods[0]; return; } cod = ok; }   // sigue buscando hasta que se acabe el LEER
                 sinCoincidir = '';
+                jatBipEscaner();   // bip al instante y el LEER se apaga
                 armado = 0; clearTimeout(tAv); pintarL(false);
                 if (navigator.vibrate) navigator.vibrate(80);
                 alLeer(cod, ctrl);

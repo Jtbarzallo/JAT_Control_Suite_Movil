@@ -4286,6 +4286,23 @@
             const pendiente = enEgreso.find(c => currentProductos.some(p => p.barcode === c && !isProductoVerificado(p)));
             return pendiente || enEgreso[0];
         }
+
+        // ---- BIP DE ESCÁNER (16 nov 2026): como una pistola lectora real, al leer suena un bip corto y fuerte
+        // al instante y el láser se apaga. Se suelta y se vuelve a apretar para el siguiente producto.
+        function jatBipEscaner() {
+          try {
+            const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+            const c = window.__jatBipCtx = window.__jatBipCtx || new AC();
+            if (c.state === 'suspended') c.resume();
+            const o = c.createOscillator(), g = c.createGain(), n = c.currentTime;
+            o.type = 'square'; o.frequency.setValueAtTime(2700, n);
+            g.gain.setValueAtTime(0.0001, n); g.gain.exponentialRampToValueAtTime(0.16, n + 0.005);
+            g.gain.setValueAtTime(0.16, n + 0.085); g.gain.exponentialRampToValueAtTime(0.0001, n + 0.1);
+            o.connect(g).connect(c.destination); o.start(n); o.stop(n + 0.11);
+          } catch (_) {}
+        }
+        // El audio del teléfono se despierta al apretar el gatillo (Chrome solo deja sonar después de un toque)
+        function jatBipDespertar() { try { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; const c = window.__jatBipCtx = window.__jatBipCtx || new AC(); if (c.state === 'suspended') c.resume(); } catch (_) {} }
         // Ordena las lecturas de la cámara: primero la que está más cerca del centro de la imagen.
         function codigosDelCentroAfuera(resultados, video) {
             const cx = (video.videoWidth || 0) / 2, cy = (video.videoHeight || 0) / 2;
@@ -4308,6 +4325,7 @@
                 if (!gatilloActivo()) return;
                 if (!exacto && !false) { camGatilloSinCoincidir = codigos[0]; return; }   // sigue buscando el correcto
                 camGatilloSinCoincidir = '';
+                jatBipEscaner();   // bip al instante y láser apagado
                 soltarDisparo();
                 camUltimoCodigo = ''; camUltimoTiempo = 0;   // cada apretón es una lectura nueva
             }
@@ -4786,7 +4804,7 @@
             if (ev) { ev.preventDefault(); ev.stopPropagation(); }
             if (!camModoGatillo) return;
             if (!camActiva) { await iniciarCamaraEscaner(); if (!camActiva) return; }
-            camDisparando = true; camDisparoHasta = 0; camDisparoInicio = Date.now(); camGatilloSinCoincidir = '';
+            camDisparando = true; camDisparoHasta = 0; camDisparoInicio = Date.now(); camGatilloSinCoincidir = ''; jatBipDespertar();
             if (navigator.vibrate) navigator.vibrate(15);
             pintarGatillo();
         }

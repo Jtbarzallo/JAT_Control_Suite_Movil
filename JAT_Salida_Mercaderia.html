@@ -1021,7 +1021,24 @@ $('rEscanear').onclick = () => { if (!$('rZona').value) { toast('Primero elige l
 // ---------- ESCÁNER ----------
 let sStream = null, sDet = null, sTimer = null, sZX = null, sUlt = '', sUltT = 0;
 function decir(t) { try { if (!window.speechSynthesis) return; const u = new SpeechSynthesisUtterance(t); u.lang = 'es-ES'; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (_) {} }
-function pitido() { try { const a = new (window.AudioContext || window.webkitAudioContext)(); const o = a.createOscillator(); o.frequency.value = 880; o.connect(a.destination); o.start(); setTimeout(() => { o.stop(); a.close(); }, 120); } catch (_) {} }
+// ---- BIP DE ESCÁNER (16 nov 2026): como una pistola lectora real, al leer suena un bip corto y fuerte
+// al instante y el láser se apaga. Se suelta y se vuelve a apretar para el siguiente producto.
+function jatBipEscaner() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    const c = window.__jatBipCtx = window.__jatBipCtx || new AC();
+    if (c.state === 'suspended') c.resume();
+    const o = c.createOscillator(), g = c.createGain(), n = c.currentTime;
+    o.type = 'square'; o.frequency.setValueAtTime(2700, n);
+    g.gain.setValueAtTime(0.0001, n); g.gain.exponentialRampToValueAtTime(0.16, n + 0.005);
+    g.gain.setValueAtTime(0.16, n + 0.085); g.gain.exponentialRampToValueAtTime(0.0001, n + 0.1);
+    o.connect(g).connect(c.destination); o.start(n); o.stop(n + 0.11);
+  } catch (_) {}
+}
+// El audio del teléfono se despierta al apretar el gatillo (Chrome solo deja sonar después de un toque)
+function jatBipDespertar() { try { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; const c = window.__jatBipCtx = window.__jatBipCtx || new AC(); if (c.state === 'suspended') c.resume(); } catch (_) {} }
+function pitido() { jatBipEscaner(); }
+function pitidoViejo() { try { const a = new (window.AudioContext || window.webkitAudioContext)(); const o = a.createOscillator(); o.frequency.value = 880; o.connect(a.destination); o.start(); setTimeout(() => { o.stop(); a.close(); }, 120); } catch (_) {} }
 function sEstado(t) { $('sSt').textContent = t; }
 async function abrirScanner() {
   if (!egreso && !modoReg) { toast('Primero elige un egreso'); return; }
@@ -1075,7 +1092,7 @@ function gatSoltar() { gatOn = false; gatHasta = 0; gatPintar(); }
 function gatAyuda() { if (gatModo && sStream) sEstado((modoReg ? $('rZona').value + ' — a' : 'A') + 'punta al producto y aprieta ESCANEAR'); }
 $('sGat').addEventListener('pointerdown', e => {
   e.preventDefault(); try { $('sGat').setPointerCapture(e.pointerId); } catch (_) {}
-  gatOn = true; gatT0 = Date.now(); gatHasta = 0; sUlt = ''; gatSinCoincidir = ''; ocrUlt = ''; sUltBarcode = Date.now() - 1800;
+  gatOn = true; gatT0 = Date.now(); gatHasta = 0; sUlt = ''; gatSinCoincidir = ''; jatBipDespertar(); ocrUlt = ''; sUltBarcode = Date.now() - 1800;
   if (navigator.vibrate) navigator.vibrate(15);
   sEstado('🔴 Leyendo…'); gatPintar();
 });

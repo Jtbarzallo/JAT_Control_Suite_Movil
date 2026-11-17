@@ -997,11 +997,27 @@ async function iniciarCamara(destino){
     detenerCamara(true);
   }
 }
+// ---- BIP DE ESCÁNER (16 nov 2026): como una pistola lectora real, al leer suena un bip corto y fuerte
+// al instante y el láser se apaga. Se suelta y se vuelve a apretar para el siguiente producto.
+function jatBipEscaner() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    const c = window.__jatBipCtx = window.__jatBipCtx || new AC();
+    if (c.state === 'suspended') c.resume();
+    const o = c.createOscillator(), g = c.createGain(), n = c.currentTime;
+    o.type = 'square'; o.frequency.setValueAtTime(2700, n);
+    g.gain.setValueAtTime(0.0001, n); g.gain.exponentialRampToValueAtTime(0.16, n + 0.005);
+    g.gain.setValueAtTime(0.16, n + 0.085); g.gain.exponentialRampToValueAtTime(0.0001, n + 0.1);
+    o.connect(g).connect(c.destination); o.start(n); o.stop(n + 0.11);
+  } catch (_) {}
+}
+// El audio del teléfono se despierta al apretar el gatillo (Chrome solo deja sonar después de un toque)
+function jatBipDespertar() { try { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; const c = window.__jatBipCtx = window.__jatBipCtx || new AC(); if (c.state === 'suspended') c.resume(); } catch (_) {} }
 function lecturaCamara(cod){
   cod = String(cod||'').trim(); const ahora = Date.now();
   if (!cod || (cod === camUlt && ahora - camUltT < 1600)) return;
   camUlt = cod; camUltT = ahora;
-  if (modoGatilloActivo()) soltarDisparo();
+  if (modoGatilloActivo()) { jatBipEscaner(); soltarDisparo(); }   // bip al instante y láser apagado
   if (camDestino === 'kx'){ $('#kxBuscar').value = cod; pintarKardex(); beep(nombreKardex(cod) ? 'ok' : 'error'); if (!nombreKardex(cod)) hablar('Código no está en el kardex.'); detenerCamara(); return; }
   procesarCodigo(cod);
 }
@@ -1033,7 +1049,7 @@ async function apretarGatillo(ev){
   if (ev){ ev.preventDefault(); ev.stopPropagation(); }
   if (!camGatillo) return;
   if (!camStream || camDestino !== 'rev'){ await iniciarCamara('rev'); if (!camStream) return; }
-  disparando = true; disparoHasta = 0; disparoIni = Date.now();
+  disparando = true; disparoHasta = 0; disparoIni = Date.now(); jatBipDespertar();
   try{ navigator.vibrate && navigator.vibrate(15); }catch(e){}
   pintarGatillo();
 }
