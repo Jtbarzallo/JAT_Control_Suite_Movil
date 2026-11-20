@@ -911,6 +911,20 @@ scanInput.addEventListener('keydown', e => {
 });
 // Algunos teclados de Android no mandan "Enter": el formulario recibe el botón Ir/Listo
 $('#scanForm').addEventListener('submit', e => { e.preventDefault(); enviarEscrito(); });
+// ESCÁNER USB / BLUETOOTH (pistola NETUM y similares): escribe como un teclado. Si el cuadro perdió el foco
+// (tocaste otra cosa), el primer dígito lo vuelve a enfocar y así ningún código se pierde.
+document.addEventListener('keydown', e => {
+  if (e.key.length !== 1 || e.key === ' ' || e.ctrlKey || e.altKey || e.metaKey) return;
+  const a = document.activeElement;
+  if (a === scanInput) return;
+  if (a && a !== document.body && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable)) return;
+  if (document.querySelector('.modal.on')) return;
+  if (!scanInput.getClientRects().length) return;   // el cuadro no está a la vista
+  e.preventDefault();
+  scanInput.focus({ preventScroll:true });
+  scanInput.value = e.key;
+  scanInput.dispatchEvent(new Event('input', { bubbles:true }));
+});
 scanInput.addEventListener('input', () => { clearTimeout(busqT); busqT = setTimeout(() => { if (!/^\d+$/.test(scanInput.value.trim())) pintarProductos(); }, 200); });
 
 /* ---------- cámara ---------- */

@@ -3413,11 +3413,36 @@
 
     // ---- TECLADO ----
     function initKeyboardNavigation() {
+        // El teclado en pantalla vuelve a salir normal si tocas el cuadro con el dedo.
+        const _siUsb = document.getElementById('scannerInput');
+        if (_siUsb) {
+            const _devolverTeclado = () => { if (_siUsb.dataset.usbIm) { delete _siUsb.dataset.usbIm; _siUsb.removeAttribute('inputmode'); return true; } return false; };
+            _siUsb.addEventListener('blur', _devolverTeclado);
+            _siUsb.addEventListener('pointerdown', () => { if (_devolverTeclado() && document.activeElement === _siUsb) { _siUsb.blur(); setTimeout(() => _siUsb.focus(), 0); } });
+        }
         document.addEventListener('keydown', async (e) => {
             const modal = document.getElementById('verificadorModal');
             if (modal.style.display !== 'flex') return;
             const scanInput = document.getElementById('scannerInput');
             const isScannerFocused = document.activeElement === scanInput;
+            // ESCÁNER USB / BLUETOOTH (pistola NETUM y similares): escribe como un teclado.
+            // Si el cuadro de código perdió el foco (tocaste otra cosa), el primer dígito lo vuelve a enfocar
+            // y así ningún código se pierde. No actúa si escribes en otro campo o hay otra ventana abierta.
+            if (!isScannerFocused && scanInput && e.key.length === 1 && e.key !== ' ' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+                const act = document.activeElement;
+                const tg = (act?.tagName || '').toLowerCase();
+                const escribiendoOtro = act && act !== document.body && (['input','textarea','select'].includes(tg) || act.isContentEditable);
+                const otraVentana = Array.from(document.querySelectorAll('.modal')).some(m => m !== modal && getComputedStyle(m).display !== 'none');
+                const tablaAbierta = document.getElementById('tablaPantallaCompleta')?.classList.contains('abierta');
+                if (!escribiendoOtro && !otraVentana && !tablaAbierta) {
+                    e.preventDefault();
+                    if (!scanInput.hasAttribute('inputmode')) { scanInput.dataset.usbIm = '1'; scanInput.setAttribute('inputmode', 'none'); } // sin teclado en pantalla
+                    scanInput.focus({ preventScroll: true });
+                    scanInput.value = e.key;
+                    scanInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    return;
+                }
+            }
             if ((e.key === 'ArrowRight' || e.key === 'ArrowDown') && isScannerFocused) { e.preventDefault(); if (currentMultipleResults.length > 0) navegarMultiple(1); }
             if ((e.key === 'ArrowLeft' || e.key === 'ArrowUp') && isScannerFocused) { e.preventDefault(); if (currentMultipleResults.length > 0) navegarMultiple(-1); }
             if (e.key === 'F3' && isScannerFocused) { e.preventDefault(); if (currentMultipleResults.length > 0) navegarMultiple(e.shiftKey ? -1 : 1); }

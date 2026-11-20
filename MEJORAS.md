@@ -110,6 +110,11 @@ Esta regla también está en la "Bitácora JAT Control Suite".
       En Personal, Venta y PC. Revisión de Mercadería (piloto) no se toca.
 - [ ] En la versión personal, el egreso abierto en Inicio aparece en Sacar, y el elegido en
       Sacar pasa a Revisar (es el mismo documento).
+- [ ] **Escáner USB / Bluetooth tipo pistola (NETUM y similares)** (20 nov 2026): escribe como un teclado, así que
+      ya contaba con el cuadro de código tocado; ahora, si el cuadro pierde el foco (tocaste otra cosa), el primer
+      dígito que llega lo vuelve a enfocar y ningún código se pierde. No actúa si escribes en otro campo ni si hay
+      otra ventana abierta; no abre el teclado en pantalla (vuelve a salir normal al tocar el cuadro con el dedo).
+      En Personal, Venta, Revisión de Mercadería y Sacar (ventana de registrar ubicación). PC ya lo traía.
 
 - [ ] **Nunca "almacenamiento lleno"** (16 nov 2026, Personal y Venta): los egresos se guardan siempre en el
       almacén grande del teléfono (IndexedDB `jat_egresos` / `jatv_egresos`, clave `egresos`) y, si cabe, también en
@@ -280,3 +285,4 @@ marcado en cada producto contado y buscar escribiendo con lista para elegir con 
   programas; tabla del celular como tarjetas con texto oscuro legible.
 - 2026-11-20: nombre del egreso completo (sin "…"), en negrita y más grande en todas las listas del celular.
 - 2026-11-20: ventanas blancas (Buscar egresos, etc.) con texto oscuro nítido, nombre completo y porcentajes en colores fuertes.
+- 2026-11-20: escáner USB/Bluetooth (NETUM): recupera el foco solo y no pierde códigos (Personal, Venta, Revisión y Sacar).

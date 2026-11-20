@@ -1016,6 +1016,15 @@ $('rZona').onchange = () => LS.set('jat_reg_zona', $('rZona').value);
 $('rDet').oninput = () => LS.set('jat_reg_det', $('rDet').value.trim());
 $('rAdd').onclick = () => { const v = $('rCod').value.trim(); if (!v) return; registrarCodigo([v], false); $('rCod').value = ''; };
 $('rCod').onkeydown = e => { if (e.key === 'Enter') $('rAdd').click(); };
+// ESCÁNER USB / BLUETOOTH (pistola NETUM y similares): con la ventana de registro abierta, si el cuadro del código
+// perdió el foco, el primer dígito lo recupera y ningún código se pierde.
+document.addEventListener('keydown', e => {
+  if (e.key.length !== 1 || e.key === ' ' || e.ctrlKey || e.altKey || e.metaKey) return;
+  const a = document.activeElement, rc = $('rCod');
+  if (a === rc || $('shReg').style.display !== 'flex') return;
+  if (a && a !== document.body && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable)) return;
+  e.preventDefault(); rc.focus({ preventScroll:true }); rc.value = e.key;
+});
 $('rEscanear').onclick = () => { if (!$('rZona').value) { toast('Primero elige la zona donde estás'); return; } modoReg = true; cerrar('shReg'); abrirScanner(); };
 
 // ---------- ESCÁNER ----------
