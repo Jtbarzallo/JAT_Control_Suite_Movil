@@ -1,0 +1,15 @@
+{
+  "name": "JAT Control Suite PC",
+  "short_name": "JAT PC",
+  "description": "Verificador de egresos profesional para computadora: revisar, kardex, reportes e impresión",
+  "start_url": "JAT_Control_Suite_PC.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#061b34",
+  "theme_color": "#061b34",
+  "icons": [
+    { "src": "icon-pc-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-pc-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "id": "JAT_Control_Suite_PC.html"
+}

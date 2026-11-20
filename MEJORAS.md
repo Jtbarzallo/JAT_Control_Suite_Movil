@@ -169,7 +169,8 @@ Esta regla también está en la "Bitácora JAT Control Suite".
 - [ ] Pantalla de Inicio simple: buscar egresos, cargar egreso, ingresar mercadería.
 - [ ] Pestañas abajo. Versión personal: Inicio, Sacar, Revisar, Kardex, Menú.
 - [ ] Botones grandes para dedo; nada de atajos de teclado de Windows en el celular.
-- [ ] Icono distinto por programa: Personal azul y dorado, Venta rojo, Revisión verde.
+- [ ] Icono distinto por programa: Personal azul y dorado, Venta rojo, Revisión verde, PC violeta (20 nov 2026:
+      icono y manifiesto propios para guardar el acceso directo en el escritorio de la PC con su logo).
 - [ ] El enlace corto de la página abre el programa (index.html), sin error.
 - [ ] **Diseño industrial** (bloque `<style id="jat-industrial">` al final del archivo, todo bajo
       `body.d-ind`): cabecera oscura con marca y barra de estado (carpeta, egreso, guardado),
@@ -293,3 +294,4 @@ marcado en cada producto contado y buscar escribiendo con lista para elegir con 
 - 2026-11-20: ventanas blancas (Buscar egresos, etc.) con texto oscuro nítido, nombre completo y porcentajes en colores fuertes.
 - 2026-11-20: escáner USB/Bluetooth (NETUM): recupera el foco solo y no pierde códigos (Personal, Venta, Revisión y Sacar).
 - 2026-11-20: impresión del egreso en una sola hoja A3 vertical, con letra que se ajusta sola (Personal, Venta y PC).
+- 2026-11-20: icono violeta con logo JAT y manifiesto propio para la versión de PC (acceso directo en el escritorio).
