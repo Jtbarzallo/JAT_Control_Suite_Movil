@@ -7547,7 +7547,7 @@
                 ${orden.map(g => `<div style="background:#1a3a5c;color:#fff;font-weight:800;padding:9px 12px;border-radius:10px;margin-top:4px;">${porCat ? '📦 ' + jatEsc(g) : (g.startsWith('❓') ? g : '📍 ' + jatEsc(g))} <span style="font-weight:600;opacity:.8;">(${grupos[g].length})</span></div>` + grupos[g].sort(porCat ? (a, b) => catKardex(a.p).localeCompare(catKardex(b.p), 'es') || a.i - b.i : (a, b) => (a.ub?.d || '').localeCompare(b.ub?.d || '', 'es')).map(x => {
                     const e = getExpectedQty(x.p), q = getVerifiedQty(x.p), ok = q >= e, parc = q > 0 && !ok;
                     return `<button type="button" data-si="${x.i}" style="display:block;width:100%;text-align:left;background:${ok ? '#f0fdf4' : '#fff'};border:1px solid #e3e9f0;border-left:6px solid ${ok ? '#16a34a' : parc ? '#3b82f6' : '#f59e0b'};border-radius:12px;padding:12px;cursor:pointer;">
-                        <b style="font-size:.92rem;color:#1a2b3c;">${jatEsc(x.p.productName || x.p.barcode)}</b>${q > 0 && fechaHoraEscaneo(x.p) ? `<div class="jat-hora" style="font-size:.72rem;color:#475569;margin-top:3px;">🕒 Sacado ${fechaHoraEscaneo(x.p)}</div>` : ''}
+                        <b style="font-size:1.05rem;font-weight:800;color:#0f172a;line-height:1.3;">${jatEsc(x.p.productName || x.p.barcode)}</b>${q > 0 && fechaHoraEscaneo(x.p) ? `<div class="jat-hora" style="font-size:.72rem;color:#475569;margin-top:3px;">🕒 Sacado ${fechaHoraEscaneo(x.p)}</div>` : ''}
                         <div style="display:flex;justify-content:space-between;gap:8px;margin-top:6px;font-size:.8rem;color:#475569;align-items:center;"><span style="background:${x.ub ? '#fef3c7' : '#fee2e2'};color:${x.ub ? '#78350f' : '#991b1b'};border-radius:8px;padding:3px 8px;font-weight:700;">${x.ub ? (x.ub.d ? jatEsc(x.ub.d) : jatEsc(x.ub.z)) : 'Sin ubicación'}</span>${porCat && catKardex(x.p) && catKardex(x.p) !== x.fam ? `<span style="flex:1;text-align:right;font-size:.75rem;color:#6b7c8f;">${jatEsc(catKardex(x.p))}</span>` : (!porCat ? `<span style="flex:1;text-align:right;font-size:.75rem;color:#6b7c8f;">${jatEsc(x.fam)}</span>` : '')}<b style="font-size:1rem;color:#1a3a5c;">${formatearQty(q)} / ${formatearQty(e)}</b></div></button>`; }).join('')).join('') || '<p style="text-align:center;color:#1E7F4A;font-weight:700;padding:24px 0;">✅ Todo sacado</p>'}
                 <button type="button" id="salCierre" class="btn" style="min-height:52px;margin-top:6px;">🧾 Abrir en Verificar para el cierre</button>`);
             document.querySelectorAll('[data-sf]').forEach(b => b.addEventListener('click', () => { salFiltro = b.dataset.sf; cargarVistaSalida(id); }));
@@ -9167,5 +9167,25 @@ body.d-osc .jimp-box{background:#14202e;color:#e8eef4}body.d-osc .jimp-it{border
 })();
 </script>
 
+<style id="jat-categorias-negrita">
+/* 20 nov 2026: categorías en Revisar y el producto en negrita grande (Jorge ve poco). */
+/* Ver tabla: en pantalla oscura el panel es blanco y el texto salía casi blanco. Texto oscuro siempre. */
+#tablaPantallaCompleta .series-input { background: #f8fafc !important; color: #0f172a !important; border: 1.5px solid #94a3b8 !important; font-size: 1rem; }
+#tablaPantallaCompleta td, #tablaPantallaCompleta .chip:not(.active), #tablaPantallaCompleta .cat-chip:not(.active) { color: #0f172a; }
+#tablaPantallaCompleta tr.cat-header td { color: #fff; }
+/* Nombre del producto en negrita y más grande */
+#verificadorTableBody tr[data-index] td:nth-child(4) { font-weight: 800; font-size: 1rem; color: #0f172a; line-height: 1.3; }
+/* En el celular cada fila de la tabla es una tarjeta: primero el producto, a lo ancho y en negrita */
+@media (max-width: 700px) {
+  #tablaPantallaCompleta .data-table, #tablaPantallaCompleta #verificadorTableBody { display: block; width: 100%; min-width: 0 !important; }
+  #tablaPantallaCompleta .data-table thead { display: none; }
+  #verificadorTableBody tr.cat-header, #verificadorTableBody tr.cat-header td { display: block; }
+  #verificadorTableBody tr[data-index] { display: grid; grid-template-columns: 1fr auto auto; gap: 6px 12px; align-items: center; padding: 12px 14px; border-bottom: 1px solid #e2e8f0; }
+  #verificadorTableBody tr[data-index] td { display: block; padding: 0 !important; border: 0 !important; width: auto !important; min-width: 0 !important; }
+  #verificadorTableBody tr[data-index] td:nth-child(4) { grid-column: 1 / -1; order: -1; font-size: 1.1rem; }
+  #verificadorTableBody tr[data-index] td:nth-child(5) { grid-column: 1 / -1; }
+  #verificadorTableBody tr[data-index] td:nth-child(5) textarea { width: 100%; }
+}
+</style>
 </body>
 </html>

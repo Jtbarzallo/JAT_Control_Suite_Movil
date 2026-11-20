@@ -54,6 +54,15 @@ Esta regla también está en la "Bitácora JAT Control Suite".
       Cuando encuentra el correcto: bip, vibración, dice "1 de 2" y el láser se apaga (se suelta y se vuelve a apretar).
 - [ ] **LEER se mantiene apretado** (19 nov 2026, Salida por ubicación y registrar ubicaciones en Venta): igual que el
       gatillo; toque corto sigue leyendo 2 s como antes.
+- [ ] **Categorías en Revisar y el producto en negrita grande** (20 nov 2026, Jorge ve poco): en Personal, la lista
+      de debajo de la cámara (Pendientes / Revisados / Todos) ahora tiene una fila de botones por categoría con
+      pendientes/total y la lista agrupada con su título ("Cables — 1 pendiente de 2"); tocar otra vez la categoría
+      vuelve a Todas. "Ver tabla" (Personal, Venta y PC) también va agrupada y con botones por categoría (PC no tenía).
+      El **nombre del producto va en negrita y más grande** en todos los programas (Personal, Venta, PC, Sacar,
+      Revisión de Mercadería). En "Ver tabla" del celular cada fila es una tarjeta con el producto arriba, a lo ancho,
+      y el texto ya no sale casi blanco sobre fondo blanco en pantalla oscura. Bloque `jat-categorias-negrita`.
+      Historia: las categorías no se borraron; desde el 9 nov la lista de debajo de la cámara pasó a ser la pantalla
+      principal y quedó sin categorías (solo estaban en "Ver tabla").
 - [ ] **Teclado solo al tocar un campo**: ningún botón, tarjeta ni lectura abre el teclado.
 - [ ] **Botón ＋ con las acciones de cada ventana**, en vez de barras de botones.
 - [ ] **El ＋ y el gatillo no tapan ningún botón**: se esconden cuando hay otra ventana encima.
@@ -258,3 +267,5 @@ marcado en cada producto contado y buscar escribiendo con lista para elegir con 
 - 2026-11-19: gatillo "mantener apretado": busca entre todos los códigos (SAP, EAN, UPC, serie) el del egreso, y al
   soltar sin encontrarlo dice "Producto no encontrado. Verifique." (Personal, Venta, Sacar y Revisión de Mercadería,
   que ahora también lee todos los códigos alrededor). LEER de Venta se mantiene apretado.
+- 2026-11-20: categorías en la lista de Revisar (Personal) y en la tabla de PC; producto en negrita grande en todos los
+  programas; tabla del celular como tarjetas con texto oscuro legible.

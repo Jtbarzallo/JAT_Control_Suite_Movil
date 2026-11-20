@@ -850,6 +850,7 @@
                 <button type="button" class="vl-chip" data-vl="hecho">✅ Revisados <b id="vlNHecho">0</b></button>
                 <button type="button" class="vl-chip" data-vl="todos">Todos <b id="vlNTodos">0</b></button>
             </div>
+            <div class="vl-cats" id="vlCats"></div>
             <div id="vlCab"><span>Producto / código</span><span>Cont.</span><span>Estado</span></div>
             <div class="vl-lista" id="vlLista"></div>
             </div><!-- /.verif-bottom-pane -->
@@ -3086,7 +3087,7 @@
     }
 
     // ---- LISTA DEL EGRESO DEBAJO DE LA CÁMARA (Pendientes / Revisados / Todos) ----
-    let vlFiltro = 'pend', vlPendiente = false;
+    let vlFiltro = 'pend', vlPendiente = false, vlCat = 'todas';   // vlCat: categoría elegida (20 nov 2026)
     // Fecha y hora en que se marcó el producto por última vez (sale del historial que ya guarda cada conteo)
     function horaMarcado(p) {
         const h = Array.isArray(p.historialMovimientos) ? p.historialMovimientos : [];
@@ -3107,12 +3108,29 @@
         document.getElementById('vlNPend').textContent = todos.length - nH;
         document.getElementById('vlNHecho').textContent = nH;
         document.getElementById('vlNTodos').textContent = todos.length;
-        const lista = vlFiltro === 'pend' ? todos.filter(x => !x.ok) : vlFiltro === 'hecho' ? todos.filter(x => x.ok) : todos;
+        let lista = vlFiltro === 'pend' ? todos.filter(x => !x.ok) : vlFiltro === 'hecho' ? todos.filter(x => x.ok) : todos;
+        // ---- Categorías (20 nov 2026): fila de botones por categoría y la lista agrupada, como en Sacar ----
+        todos.forEach(x => { x.c = categoriaDeProducto(x.p); });
+        const mapaCat = {};
+        todos.forEach(x => { const m = mapaCat[x.c] = mapaCat[x.c] || { total: 0, pend: 0 }; m.total++; if (!x.ok) m.pend++; });
+        const ordenCat = ordenCategorias(Object.keys(mapaCat));
+        if (vlCat !== 'todas' && !mapaCat[vlCat]) vlCat = 'todas';
+        const boxCats = document.getElementById('vlCats');
+        if (boxCats) {
+            boxCats.innerHTML = ordenCat.length < 2 ? '' : `<button type="button" class="vl-cat ${vlCat === 'todas' ? 'on' : ''}" data-cat="todas">Todas <b>${todos.length - nH}/${todos.length}</b></button>` +
+                ordenCat.map(c => `<button type="button" class="vl-cat ${vlCat === c ? 'on' : ''} ${mapaCat[c].pend === 0 ? 'listo' : ''}" data-cat="${htmlSeguro(c)}">${htmlSeguro(c)} <b>${mapaCat[c].pend}/${mapaCat[c].total}</b></button>`).join('');
+            boxCats.style.display = ordenCat.length < 2 ? 'none' : '';
+            const fil = document.getElementById('vlFiltros');
+            if (fil) boxCats.style.top = ((parseFloat(fil.style.top) || 0) + fil.offsetHeight - 1) + 'px';
+        }
+        if (vlCat !== 'todas') lista = lista.filter(x => x.c === vlCat);
+        lista = lista.map((x, k) => ({ ...x, k, o: ordenCat.indexOf(x.c) })).sort((a, b) => (a.o - b.o) || (a.k - b.k));
         if (!lista.length) {
             cont.innerHTML = '<div class="vl-vacio">' + (vlFiltro === 'pend' ? (todos.length ? '🎉 No queda nada pendiente' : 'Abre un egreso para ver sus productos') : vlFiltro === 'hecho' ? 'Todavía no has revisado ningún producto completo' : 'Sin productos') + '</div>';
             return;
         }
-        cont.innerHTML = lista.map(x => `<button type="button" class="vl-card ${x.ok ? 'hecho' : x.v > 0 ? 'parcial' : ''} ${x.i === currentSelectedIndex ? 'sel' : ''}" data-i="${x.i}"><span class="tx"><span class="nm">${htmlSeguro(x.p.productName || '')}</span><div class="cd">${htmlSeguro(x.p.barcode || '')}${x.v > 0 && horaMarcado(x.p) ? ` <span class="hr">🕒 ${horaMarcado(x.p)}</span>` : ''}</div></span><span class="qt">${formatearQty(x.v)}/${formatearQty(x.e)}</span><span class="bd">${x.ok ? 'VERIFICADO' : x.v > 0 ? 'PARCIAL' : 'PENDIENTE'}</span></button>`).join('');
+        let ultCat = null;
+        cont.innerHTML = lista.map(x => (x.c !== ultCat && ordenCat.length > 1 ? (ultCat = x.c, `<div class="vl-grupo">${htmlSeguro(x.c)}<span>${mapaCat[x.c].pend} ${mapaCat[x.c].pend === 1 ? 'pendiente' : 'pendientes'} de ${mapaCat[x.c].total}</span></div>`) : '') + `<button type="button" class="vl-card ${x.ok ? 'hecho' : x.v > 0 ? 'parcial' : ''} ${x.i === currentSelectedIndex ? 'sel' : ''}" data-i="${x.i}"><span class="tx"><span class="nm">${htmlSeguro(x.p.productName || '')}</span><div class="cd">${htmlSeguro(x.p.barcode || '')}${x.v > 0 && horaMarcado(x.p) ? ` <span class="hr">🕒 ${horaMarcado(x.p)}</span>` : ''}</div></span><span class="qt">${formatearQty(x.v)}/${formatearQty(x.e)}</span><span class="bd">${x.ok ? 'VERIFICADO' : x.v > 0 ? 'PARCIAL' : 'PENDIENTE'}</span></button>`).join('');
     }
     function renderListaVerifProgramado() {
         if (vlPendiente) return;
@@ -3124,6 +3142,12 @@
         vlFiltro = c.dataset.vl;
         document.querySelectorAll('#vlFiltros .vl-chip').forEach(x => x.classList.toggle('on', x === c));
         renderListaVerif();
+    });
+    document.getElementById('vlCats')?.addEventListener('click', e => {
+        const c = e.target.closest('.vl-cat'); if (!c) return;
+        vlCat = c.dataset.cat === vlCat ? 'todas' : c.dataset.cat;
+        renderListaVerif();
+        document.getElementById('vlLista')?.scrollIntoView({ block: 'nearest' });
     });
     // Tocar un producto lo deja seleccionado para contarlo con −1 / +1 / +5 / +10 / Cantidad
     document.getElementById('vlLista')?.addEventListener('click', e => {
@@ -6775,5 +6799,38 @@ body.d-osc .jimp-box{background:#14202e;color:#e8eef4}body.d-osc .jimp-it{border
 })();
 </script>
 
+<style id="jat-categorias-negrita">
+/* 20 nov 2026: categorías en Revisar y el producto en negrita grande (Jorge ve poco). */
+/* Revisar: fila de categorías y lista agrupada (como en Sacar) */
+.vl-cats { flex: none; display: flex; gap: 8px; overflow-x: auto; padding: 8px 10px; position: sticky; z-index: 49; background: var(--bg-main, #fff); -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.vl-cats::-webkit-scrollbar { display: none; }
+.vl-cat { flex: 0 0 auto; min-height: 44px; border: 1.5px solid var(--border-color, #cbd5e1); background: var(--bg-surface, #f1f5f9); color: var(--text-main, #1a3a5c); border-radius: 999px; padding: 9px 14px; font: inherit; font-weight: 700; font-size: .92rem; white-space: nowrap; cursor: pointer; }
+.vl-cat b { margin-left: 4px; }
+.vl-cat.on { background: #1a3a5c; border-color: #1a3a5c; color: #fff; }
+body.d-mar .vl-cat.on { background: var(--mar-oro, #d9ad5b); border-color: var(--mar-oro, #d9ad5b); color: #0a1322; }
+.vl-cat.listo:not(.on) { opacity: .6; }
+.vl-grupo { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 14px 12px 6px; font-weight: 800; font-size: 1.02rem; color: var(--text-main, #1a3a5c); border-bottom: 2px solid var(--border-color, #cbd5e1); }
+.vl-grupo span { font-weight: 600; font-size: .82rem; color: var(--text-muted, #64748b); white-space: nowrap; }
+#verificadorModal.vf-escribiendo .vl-cats { display: none !important; }
+/* Nombre del producto en negrita y más grande */
+.vl-card .nm, body.d-ind .vl-card .nm, body.d-mar .vl-card .nm { font-weight: 800 !important; font-size: 1.05rem !important; line-height: 1.3 !important; }
+/* Ver tabla: en pantalla oscura el panel es blanco y el texto salía casi blanco. Texto oscuro siempre. */
+#tablaPantallaCompleta .series-input { background: #f8fafc !important; color: #0f172a !important; border: 1.5px solid #94a3b8 !important; font-size: 1rem; }
+#tablaPantallaCompleta td, #tablaPantallaCompleta .chip:not(.active), #tablaPantallaCompleta .cat-chip:not(.active) { color: #0f172a; }
+#tablaPantallaCompleta tr.cat-header td { color: #fff; }
+/* Nombre del producto en negrita y más grande */
+#verificadorTableBody tr[data-index] td:nth-child(4) { font-weight: 800; font-size: 1rem; color: #0f172a; line-height: 1.3; }
+/* En el celular cada fila de la tabla es una tarjeta: primero el producto, a lo ancho y en negrita */
+@media (max-width: 700px) {
+  #tablaPantallaCompleta .data-table, #tablaPantallaCompleta #verificadorTableBody { display: block; width: 100%; min-width: 0 !important; }
+  #tablaPantallaCompleta .data-table thead { display: none; }
+  #verificadorTableBody tr.cat-header, #verificadorTableBody tr.cat-header td { display: block; }
+  #verificadorTableBody tr[data-index] { display: grid; grid-template-columns: 1fr auto auto; gap: 6px 12px; align-items: center; padding: 12px 14px; border-bottom: 1px solid #e2e8f0; }
+  #verificadorTableBody tr[data-index] td { display: block; padding: 0 !important; border: 0 !important; width: auto !important; min-width: 0 !important; }
+  #verificadorTableBody tr[data-index] td:nth-child(4) { grid-column: 1 / -1; order: -1; font-size: 1.1rem; }
+  #verificadorTableBody tr[data-index] td:nth-child(5) { grid-column: 1 / -1; }
+  #verificadorTableBody tr[data-index] td:nth-child(5) textarea { width: 100%; }
+}
+</style>
 </body>
 </html>
