@@ -63,6 +63,10 @@ Esta regla también está en la "Bitácora JAT Control Suite".
       y el texto ya no sale casi blanco sobre fondo blanco en pantalla oscura. Bloque `jat-categorias-negrita`.
       Historia: las categorías no se borraron; desde el 9 nov la lista de debajo de la cámara pasó a ser la pantalla
       principal y quedó sin categorías (solo estaban en "Ver tabla").
+- [ ] **Nombre del egreso completo y en negrita** (20 nov 2026, Jorge ve poco): en la lista de Inicio (Personal), en el
+      botón Continuar, en la barra de Revisar (Personal y Venta), en Mis egresos (Venta) y en la lista de Revisión de
+      Mercadería el nombre ya no se corta con "…": baja a otra línea, en negrita y más grande. Si un nombre largo
+      se corta en algún lado, es un error: corregirlo igual.
 - [ ] **Teclado solo al tocar un campo**: ningún botón, tarjeta ni lectura abre el teclado.
 - [ ] **Botón ＋ con las acciones de cada ventana**, en vez de barras de botones.
 - [ ] **El ＋ y el gatillo no tapan ningún botón**: se esconden cuando hay otra ventana encima.
@@ -269,3 +273,4 @@ marcado en cada producto contado y buscar escribiendo con lista para elegir con 
   que ahora también lee todos los códigos alrededor). LEER de Venta se mantiene apretado.
 - 2026-11-20: categorías en la lista de Revisar (Personal) y en la tabla de PC; producto en negrita grande en todos los
   programas; tabla del celular como tarjetas con texto oscuro legible.
+- 2026-11-20: nombre del egreso completo (sin "…"), en negrita y más grande en todas las listas del celular.
