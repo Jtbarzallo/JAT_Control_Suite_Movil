@@ -1157,7 +1157,7 @@ function lectura(codigos) {
 }
 function noEncontrado(cod) {
   if (navigator.vibrate) navigator.vibrate([40, 40, 40]);
-  sEstado('❌ PRODUCTO NO ENCONTRADO — ' + cod); decir('Producto no encontrado.');
+  sEstado('❌ PRODUCTO NO ENCONTRADO, VERIFIQUE — ' + cod); decir('Producto no encontrado. Verifique.');
 }
 function accionProducto(idx) {
   if (gatModo) gatSoltar();

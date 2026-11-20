@@ -4068,8 +4068,8 @@
             if (navigator.vibrate) navigator.vibrate([40, 40, 40]);
             const linea = $('camLastLine');
             if (linea) { linea.style.display = 'block'; linea.textContent = '📦 Leído: ' + primero + ' (no coincide con este egreso)'; }
-            mostrarUltimoEscaneo(-1, 'error', '❌ PRODUCTO NO ENCONTRADO — código leído: ' + primero);
-            hablarHat('Producto no encontrado.', 'error', {force:true, interrupt:true});
+            mostrarUltimoEscaneo(-1, 'error', '❌ PRODUCTO NO ENCONTRADO, VERIFIQUE — código leído: ' + primero);
+            hablarHat('Producto no encontrado. Verifique.', 'error', {force:true, interrupt:true});
             if (typeof jatProductoFueraEgreso === 'function') jatProductoFueraEgreso(primero);
         }
 
@@ -7294,10 +7294,26 @@
             };
             const pintarL = (on) => { bL.style.background = on ? '#d4a017' : '#1E7F4A'; bL.textContent = on ? '...' : 'LEER'; };
             let enfocar = () => {};
-            bL.addEventListener('click', () => {
-                armado = Date.now() + 2000; sinCoincidir = ''; jatBipDespertar(); pintarL(true); enfocar(); if (navigator.vibrate) navigator.vibrate(25);
-                clearTimeout(tAv); tAv = setTimeout(() => { if (armado) { armado = 0; pintarL(false); if (sinCoincidir) { const c = sinCoincidir; sinCoincidir = ''; alLeer(c, ctrl); } else ctrl.estado('No se leyó. Acerca o aleja un poco y aprieta LEER'); } }, 2050);
+            // LEER como gatillo (19 nov 2026): se mantiene apretado y lee hasta encontrar el código correcto;
+            // al encontrarlo bip + vibración y se apaga. Al soltar sin encontrarlo: "Producto no encontrado. Verifique".
+            // Toque corto: queda leyendo 2 s, como antes.
+            let leerIni = 0, leerApretado = false;
+            const terminarLeer = () => { armado = 0; pintarL(false); if (sinCoincidir) { const c = sinCoincidir; sinCoincidir = ''; alLeer(c, ctrl); } else ctrl.estado('No se leyó. Acerca o aleja un poco y mantén apretado LEER'); };
+            bL.style.touchAction = 'none';
+            bL.addEventListener('contextmenu', e => e.preventDefault());
+            bL.addEventListener('pointerdown', (e) => {
+                e.preventDefault(); leerApretado = true; leerIni = Date.now();
+                armado = Date.now() + 600000; sinCoincidir = ''; jatBipDespertar(); pintarL(true); enfocar(); if (navigator.vibrate) navigator.vibrate(25);
+                clearTimeout(tAv);
             });
+            const soltarLeer = () => {
+                if (!leerApretado) return; leerApretado = false;
+                if (!armado) return;   // ya leyó el correcto
+                clearTimeout(tAv);
+                if (Date.now() - leerIni < 350) { armado = Date.now() + 2000; tAv = setTimeout(() => { if (armado) terminarLeer(); }, 2050); }
+                else terminarLeer();
+            };
+            ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => bL.addEventListener(t, soltarLeer));
             const lectura = (cods) => {
                 if (!Array.isArray(cods)) cods = [cods];
                 cods = cods.map(c => String(c || '').trim()).filter(Boolean);
@@ -7390,7 +7406,7 @@
             };
             document.getElementById('ubRegScan').addEventListener('click', () => {
                 if (!regZel.value) return showAlert('Primero elige la zona donde estás', 'warning');
-                const c = escanerContinuo('📍 ' + regZel.value + (regD.value ? ' · ' + regD.value : '') + ' — aprieta LEER en cada producto', registrar);
+                const c = escanerContinuo('📍 ' + regZel.value + (regD.value ? ' · ' + regD.value : '') + ' — mantén apretado LEER en cada producto', registrar);
                 c.alCerrar = cargarVistaUbicaciones;
             });
             document.getElementById('ubRegBus').addEventListener('input', (e) => {
@@ -7540,9 +7556,9 @@
             document.querySelectorAll('[data-si]').forEach(b => b.addEventListener('click', () => hojaSacar(eg, +b.dataset.si, null)));
             document.getElementById('salCierre').addEventListener('click', () => cargarEgresoParaVerificar(eg.id));
             document.getElementById('salScan').addEventListener('click', () => {
-                const c = escanerContinuo('📤 Aprieta LEER en cada producto que sacas', (cod, ctrl) => {
+                const c = escanerContinuo('📤 Mantén apretado LEER en cada producto que sacas', (cod, ctrl) => {
                     const i = eg.productos.findIndex(p => String(p.barcode).trim() === cod);
-                    if (i < 0) { ctrl.estado('❌ ' + cod + ' no está en este egreso'); try { hablarHat('No está en este egreso.', 'error', { force: true }); } catch (e) {} return; }
+                    if (i < 0) { if (navigator.vibrate) navigator.vibrate([40, 40, 40]); ctrl.estado('❌ Producto no encontrado, verifique — ' + cod); try { hablarHat('Producto no encontrado. Verifique.', 'error', { force: true }); } catch (e) {} return; }
                     hojaSacar(eg, i, ctrl);
                 }, cods => {   // lee todos los códigos alrededor y escoge el del egreso (primero uno que falte sacar)
                     const en = cods.filter(c => eg.productos.some(p => String(p.barcode).trim() === c));

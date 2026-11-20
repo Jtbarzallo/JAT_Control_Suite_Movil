@@ -47,7 +47,13 @@ Esta regla también está en la "Bitácora JAT Control Suite".
       pendiente). Si lo que ve no está en el egreso sigue buscando; "Producto no encontrado" sale recién al
       soltar el gatillo (o a los 2,5 s del toque corto). Al **registrar ubicaciones** (Sacar y Venta) se
       sigue tomando solo el código del recuadro, porque ahí no hay egreso para comparar.
-      Revisión de Mercadería (piloto) no se tocó.
+      **19 nov 2026:** también en Revisión de Mercadería (piloto): ahí, si al soltar lo visto es un producto del
+      kardex que no va en el egreso, se anota como sobrante igual que antes; si no, solo avisa.
+- [ ] **"Producto no encontrado. Verifique."** (19 nov 2026, Personal, Venta, Sacar y Revisión de Mercadería):
+      si al soltar el gatillo no vio ningún código del egreso, lo dice en voz, lo muestra y vibra 3 veces.
+      Cuando encuentra el correcto: bip, vibración, dice "1 de 2" y el láser se apaga (se suelta y se vuelve a apretar).
+- [ ] **LEER se mantiene apretado** (19 nov 2026, Salida por ubicación y registrar ubicaciones en Venta): igual que el
+      gatillo; toque corto sigue leyendo 2 s como antes.
 - [ ] **Teclado solo al tocar un campo**: ningún botón, tarjeta ni lectura abre el teclado.
 - [ ] **Botón ＋ con las acciones de cada ventana**, en vez de barras de botones.
 - [ ] **El ＋ y el gatillo no tapan ningún botón**: se esconden cuando hay otra ventana encima.
@@ -249,3 +255,6 @@ marcado en cada producto contado y buscar escribiendo con lista para elegir con 
 - 2026-11-16: bienvenida "Dónde se guardan tus datos" y línea de último respaldo con lugar (rojo si > 24 h) en
   Personal, Venta y Revisión de Mercadería; Revisión de Mercadería recibe respaldo automático y "Recuperar respaldo".
 - 2026-11-16: bip de escáner real al leer con el gatillo y láser apagado (Personal, Venta y Revisión de Mercadería).
+- 2026-11-19: gatillo "mantener apretado": busca entre todos los códigos (SAP, EAN, UPC, serie) el del egreso, y al
+  soltar sin encontrarlo dice "Producto no encontrado. Verifique." (Personal, Venta, Sacar y Revisión de Mercadería,
+  que ahora también lee todos los códigos alrededor). LEER de Venta se mantiene apretado.

@@ -4343,8 +4343,8 @@
             if (navigator.vibrate) navigator.vibrate([40, 40, 40]);
             const linea = $('camLastLine');
             if (linea) { linea.style.display = 'block'; linea.textContent = '📦 Leído: ' + primero + ' (no coincide con este egreso)'; }
-            mostrarUltimoEscaneo(-1, 'error', '❌ PRODUCTO NO ENCONTRADO — código leído: ' + primero);
-            hablarHat('Producto no encontrado.', 'error', {force:true, interrupt:true});
+            mostrarUltimoEscaneo(-1, 'error', '❌ PRODUCTO NO ENCONTRADO, VERIFIQUE — código leído: ' + primero);
+            hablarHat('Producto no encontrado. Verifique.', 'error', {force:true, interrupt:true});
         }
 
         // ---- PANTALLA COMPLETA — oculta la barra de direcciones de Chrome sin instalar nada ----

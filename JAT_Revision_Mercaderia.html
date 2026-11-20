@@ -981,14 +981,18 @@ async function iniciarCamara(destino){
       camLoop = setInterval(async () => {
         if (ocupado || v.readyState < 2) return; ocupado = true;
         if (!puedeLeer()){ ocupado = false; return; }
-        try{ const r = await camDetector.detect(modoGatilloActivo() ? recorte(v) : v); if (r.length) lecturaCamara(r[0].rawValue); }catch(e){}
+        try{
+          // Gatillo: lee la imagen completa, todos los códigos alrededor (19 nov 2026), y escoge el del egreso
+          if (modoGatilloActivo()){ const r = await camDetector.detect(v); if (r.length) lecturaGatillo(codigosDelCentroAfuera(r, v)); }
+          else { const r = await camDetector.detect(v); if (r.length) lecturaCamara(r[0].rawValue); }
+        }catch(e){}
         ocupado = false;
       }, 120);
     } else {
       $('#camSt').textContent = '🟡 Cargando lector…';
       await cargarZXing();
       camZX = new ZXing.BrowserMultiFormatReader();
-      camZX.decodeFromVideoElementContinuously(v, r => { pintarGatillo(); if (r && puedeLeer()) lecturaCamara(r.getText()); });
+      camZX.decodeFromVideoElementContinuously(v, r => { pintarGatillo(); if (r && puedeLeer()) (modoGatilloActivo() ? lecturaGatillo([r.getText()]) : lecturaCamara(r.getText())); });
       $('#camSt').textContent = textoListo();
     }
   }catch(e){
@@ -1021,6 +1025,45 @@ function lecturaCamara(cod){
   if (camDestino === 'kx'){ $('#kxBuscar').value = cod; pintarKardex(); beep(nombreKardex(cod) ? 'ok' : 'error'); if (!nombreKardex(cod)) hablar('Código no está en el kardex.'); detenerCamara(); return; }
   procesarCodigo(cod);
 }
+// ---- GATILLO: LEE TODOS LOS CÓDIGOS ALREDEDOR Y ESCOGE EL CORRECTO (19 nov 2026) ----
+// Mientras se mantiene apretado, la cámara mira la imagen completa (SAP, EAN, UPC, serie…), ordena los
+// códigos del centro hacia afuera y toma solo el que está en el egreso (primero uno que falte contar).
+// Al encontrarlo: bip, vibración, dice "1 de 2" y el láser se apaga; se suelta y se vuelve a apretar.
+// Si nada coincide sigue buscando; recién al soltar dice "Producto no encontrado. Verifique."
+function codigosDelCentroAfuera(r, video){
+  const cx = (video.videoWidth || 0) / 2, cy = (video.videoHeight || 0) / 2;
+  const d = x => { const b = x.boundingBox; return b ? Math.hypot(b.x + b.width / 2 - cx, b.y + b.height / 2 - cy) : 1e9; };
+  return [...r].sort((a, b) => d(a) - d(b)).map(x => String(x.rawValue || '').trim()).filter(Boolean);
+}
+function elegirCodigoRev(cods){
+  const en = [];
+  for (const c of cods){
+    const i = buscarIndicePorCodigo(c);
+    if (i >= 0 && (rev.libre || !rev.productos[i].extra) && !en.includes(c)) en.push(c);
+  }
+  if (en.length) return en.find(c => { const p = rev.productos[buscarIndicePorCodigo(c)]; return p.extra || p.qty < p.expectedQty; }) || en[0];
+  if (rev.libre) return cods.find(c => nombreKardex(c)) || null;   // revisión libre: un producto del kardex
+  return null;
+}
+let camSinCoincidir = [];
+function lecturaGatillo(cods){
+  cods = (cods || []).map(c => String(c || '').trim()).filter(Boolean);
+  if (!cods.length || !gatilloActivo()) return;
+  if (!rev){ lecturaCamara(cods[0]); return; }
+  const ok = elegirCodigoRev(cods);
+  if (!ok){ camSinCoincidir = cods; return; }   // sigue buscando el correcto mientras esté apretado
+  camSinCoincidir = []; camUlt = ''; camUltT = 0;   // cada apretón es una lectura nueva
+  lecturaCamara(ok);
+}
+function noEncontradoGatillo(cods){
+  // Un producto del kardex que no va en el egreso se anota como sobrante, como siempre.
+  const k = cods.find(c => nombreKardex(c));
+  if (k || rev.libre){ procesarCodigo(k || cods[0]); return; }
+  uso.noEncontrados++; ls.set(K.uso, uso);
+  beep(false); hablar('Producto no encontrado. Verifique.');
+  mostrarUltimo('bad', `❌ <b>PRODUCTO NO ENCONTRADO, VERIFIQUE</b><br><small>Leído: ${esc(cods[0])}</small>`);
+}
+setInterval(() => { if (camSinCoincidir.length && !gatilloActivo()){ const c = camSinCoincidir; camSinCoincidir = []; if (rev && !rev.finalizada) noEncontradoGatillo(c); } }, 150);
 function detenerCamara(dejarCaja){
   clearInterval(camLoop); camLoop = null;
   try{ camZX && camZX.reset(); }catch(e){} camZX = null;
@@ -1049,7 +1092,7 @@ async function apretarGatillo(ev){
   if (ev){ ev.preventDefault(); ev.stopPropagation(); }
   if (!camGatillo) return;
   if (!camStream || camDestino !== 'rev'){ await iniciarCamara('rev'); if (!camStream) return; }
-  disparando = true; disparoHasta = 0; disparoIni = Date.now(); jatBipDespertar();
+  disparando = true; disparoHasta = 0; disparoIni = Date.now(); camSinCoincidir = []; jatBipDespertar();
   try{ navigator.vibrate && navigator.vibrate(15); }catch(e){}
   pintarGatillo();
 }
