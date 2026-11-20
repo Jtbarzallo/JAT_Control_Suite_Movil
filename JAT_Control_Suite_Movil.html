@@ -2106,7 +2106,7 @@
         }
         container.innerHTML = filtrados.map(e => {
             const pct = e.estadoVerificacion.total > 0 ? Math.round(e.estadoVerificacion.verificados / e.estadoVerificacion.total * 100) : 0;
-            const colorPct = pct === 100 ? '#27ae60' : pct > 50 ? '#f39c12' : '#1a6392';
+            const colorPct = pct === 100 ? '#0a6b2c' : pct > 50 ? '#9a4a00' : '#0b4f8a';
             return `
             <div class="egreso-item" onclick="cargarEgresoParaVerificar('${e.id}')">
                 <div style="font-weight:600;padding-right:30px;">📋 ${e.nombre}</div>
@@ -6800,6 +6800,19 @@ body.d-osc .jimp-box{background:#14202e;color:#e8eef4}body.d-osc .jimp-it{border
 </script>
 
 <style id="jat-categorias-negrita">
+/* ===== Ventanas blancas (Buscar egresos, Guardar como, etc.): texto oscuro y nítido, en colores (20 nov 2026) ===== */
+.modal:not(#verificadorModal) .modal-content { background: #ffffff; color: #0b1b2e; }
+.modal:not(#verificadorModal) .modal-content label { color: #0b1b2e !important; font-weight: 700; font-size: .95rem; }
+.modal:not(#verificadorModal) .modal-content input, .modal:not(#verificadorModal) .modal-content textarea, .modal:not(#verificadorModal) .modal-content select { background: #ffffff !important; color: #0b1b2e !important; border: 2px solid #1a3a5c !important; font-size: 1.05rem !important; }
+.modal:not(#verificadorModal) .modal-content input::placeholder, .modal:not(#verificadorModal) .modal-content textarea::placeholder { color: #44566b; opacity: 1; }
+.modal:not(#verificadorModal) .modal-header h3 { color: #0b223d; font-size: 1.25rem; font-weight: 800; }
+.modal:not(#verificadorModal) .close-modal { color: #0b223d; font-size: 2.2rem; }
+#buscarEgresosModal #filtroEgresos { padding: 14px 18px !important; }
+#buscarEgresosModal .egreso-item { background: #ffffff; border: 2px solid #1a3a5c; padding: 14px 52px 14px 16px; }
+#buscarEgresosModal .egreso-item > div:nth-child(1) { color: #0b223d !important; font-weight: 800 !important; font-size: 1.12rem !important; line-height: 1.3; overflow-wrap: anywhere; }
+#buscarEgresosModal .egreso-item > div:nth-child(2) { color: #1e3a5f !important; font-size: .95rem !important; font-weight: 600; overflow-wrap: anywhere; margin-top: 4px !important; }
+#buscarEgresosModal .egreso-item > div:nth-child(3) { font-size: 1rem !important; font-weight: 800; margin-top: 6px !important; }
+#buscarEgresosModal .egreso-item strong { color: #0b223d; font-size: 1.12rem; font-weight: 800; overflow-wrap: anywhere; }
 /* 20 nov 2026: categorías en Revisar y el producto en negrita grande (Jorge ve poco). */
 /* Revisar: fila de categorías y lista agrupada (como en Sacar) */
 .vl-cats { flex: none; display: flex; gap: 8px; overflow-x: auto; padding: 8px 10px; position: sticky; z-index: 49; background: var(--bg-main, #fff); -webkit-overflow-scrolling: touch; scrollbar-width: none; }

@@ -67,6 +67,11 @@ Esta regla también está en la "Bitácora JAT Control Suite".
       botón Continuar, en la barra de Revisar (Personal y Venta), en Mis egresos (Venta) y en la lista de Revisión de
       Mercadería el nombre ya no se corta con "…": baja a otra línea, en negrita y más grande. Si un nombre largo
       se corta en algún lado, es un error: corregirlo igual.
+- [ ] **Ventanas blancas nítidas** (20 nov 2026, Jorge ve poco): en Buscar egresos (y las demás ventanas blancas:
+      Guardar como, etc.) el texto salía casi blanco sobre fondo blanco, gris y cortado. Ahora texto azul oscuro casi
+      negro, nombre del egreso completo en negrita, borde grueso en el buscador y los porcentajes en colores fuertes
+      (verde, naranja oscuro, azul). Regla: en este programa nada en gris claro; todo con contraste alto y en colores.
+      Aplica a Personal, Venta y PC.
 - [ ] **Teclado solo al tocar un campo**: ningún botón, tarjeta ni lectura abre el teclado.
 - [ ] **Botón ＋ con las acciones de cada ventana**, en vez de barras de botones.
 - [ ] **El ＋ y el gatillo no tapan ningún botón**: se esconden cuando hay otra ventana encima.
@@ -274,3 +279,4 @@ marcado en cada producto contado y buscar escribiendo con lista para elegir con 
 - 2026-11-20: categorías en la lista de Revisar (Personal) y en la tabla de PC; producto en negrita grande en todos los
   programas; tabla del celular como tarjetas con texto oscuro legible.
 - 2026-11-20: nombre del egreso completo (sin "…"), en negrita y más grande en todas las listas del celular.
+- 2026-11-20: ventanas blancas (Buscar egresos, etc.) con texto oscuro nítido, nombre completo y porcentajes en colores fuertes.
