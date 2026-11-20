@@ -3150,7 +3150,8 @@
             th{background:#f0f2f5;font-weight:600;}
             tr.verified{background:#fff9e6;}
             .footer{margin-top:24px;font-size:0.75rem;color:#7f8c8d;border-top:1px solid #eee;padding-top:12px;}
-            @media print{body{padding:12px;}}
+            @page{size:A3 portrait;margin:8mm}
+            @media print{body{padding:0;}}
     
         .modal-panel-large { background:white; border-radius:22px; width:94%; max-width:1050px; max-height:88vh; overflow:auto; padding:24px; box-shadow:0 20px 60px rgba(0,0,0,.25); }
         .cierre-grid { display:grid; grid-template-columns: repeat(4, minmax(120px, 1fr)); gap:12px; margin:12px 0 16px; }
@@ -3180,6 +3181,7 @@
         ${currentProductos.map((p,i) => `<tr class="${p.verified?'verified':''}"><td>${i+1}</td><td style="font-family:monospace;font-size:0.75rem;">${p.barcode}</td><td style="text-align:center;">${formatearQty(getVerifiedQty(p))}/${formatearQty(getExpectedQty(p))}</td><td>${p.verified?'✅ VERIFICADO':'⏳ PENDIENTE'}</td><td style="white-space:nowrap;">${fechaHoraEscaneo(p)}</td><td>${p.productName}</td><td>${p.seriesTexto || p.observacion || ''}</td></tr>`).join('')}
         </table>
         <div class="footer">JAT Control Suite — Sistema de Verificación de Egresos | ${new Date().toLocaleString()}</div>
+        <script>window.addEventListener('load',function(){try{var H=404*3.7795,sh=document.documentElement.scrollHeight;if(sh>H){document.body.style.zoom=Math.max(0.3,H/sh*0.97);}}catch(e){}});<\/script>
         </body></html>`);
         w.document.close();
         setTimeout(() => w.print(), 400);
@@ -3193,31 +3195,86 @@
             return;
         }
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        // HOJA A3 VERTICAL (297 x 420 mm) y TODO EN UNA SOLA HOJA: se busca la letra más grande con la que
+        // caben todos los productos (así no se desperdicia papel). Solo si son cientos de filas pasa a más hojas.
+        const PW = 297, PH = 420, M = 10, PT = 0.3528;
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a3' });
         const nombre = currentEgreso?.nombre || 'Egreso';
         const total = totalEsperado();
         const verif = totalVerificado();
-        let y = 12;
-        doc.setFontSize(14); doc.text((opts && opts.revisado) ? 'EGRESO REVISADO - 100% VERIFICADO' : 'JAT Control Suite - Verificación de Egreso', 12, y); if (opts && opts.revisado) { doc.setFontSize(9); doc.text('Revisión terminada: ' + jatFH(Date.now()), 200, y); }
-        doc.setFontSize(9); y += 7;
-        doc.text(`Documento: ${nombre}`, 12, y); y += 5;
-        if (currentEgreso?.secuencial) { doc.text(`Secuencial: ${currentEgreso.secuencial}`, 12, y); y += 5; }
-        doc.text(`Origen: ${currentEgreso?.bodegaOrigen || ''}    Destino: ${currentEgreso?.bodegaDestino || ''}`, 12, y); y += 5;
-        doc.text(`Total: ${formatearQty(total)} artículos / ${currentProductos.length} códigos    Verificado: ${formatearQty(verif)}`, 12, y); y += 8;
-        doc.setFontSize(8);
-        doc.text('#', 8, y); doc.text('Código', 16, y); doc.text('Cant.', 48, y); doc.text('Estado', 66, y); doc.text('Fecha y hora', 92, y); doc.text('Descripción', 120, y); y += 4;
-        doc.line(8, y, 288, y); y += 4;
-        currentProductos.forEach((p, i) => {
-            if (y > 195) { doc.addPage(); y = 12; }
-            doc.text(String(i + 1), 8, y);
-            doc.text(String(p.barcode), 16, y);
-            doc.text(`${formatearQty(getVerifiedQty(p))}/${formatearQty(getExpectedQty(p))}`, 48, y);
-            doc.text(isProductoVerificado(p) ? 'VERIFICADO' : 'PENDIENTE', 66, y);
-            doc.text(fechaHoraEscaneo(p), 92, y);
-            doc.text(doc.splitTextToSize(String(p.productName || ''), 166), 120, y);
-            y += 5;
+        const filas = currentProductos.map((p, i) => ({
+            n: String(i + 1), cod: String(p.barcode),
+            cant: `${formatearQty(getVerifiedQty(p))}/${formatearQty(getExpectedQty(p))}`,
+            ok: isProductoVerificado(p), fh: fechaHoraEscaneo(p), desc: String(p.productName || '')
+        }));
+        // Encabezado
+        let y = 14;
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
+        doc.text((opts && opts.revisado) ? 'EGRESO REVISADO - 100% VERIFICADO' : 'JAT Control Suite - Verificación de Egreso', M, y);
+        if (opts && opts.revisado) { doc.setFontSize(11); doc.setFont('helvetica', 'normal'); doc.text('Revisión terminada: ' + jatFH(Date.now()), PW - M, y, { align: 'right' }); }
+        y += 9;
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.text(`Documento: ${nombre}`, M, y); y += 6;
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
+        if (currentEgreso?.secuencial) { doc.text(`Secuencial: ${currentEgreso.secuencial}`, M, y); y += 5.6; }
+        doc.text(`Origen: ${currentEgreso?.bodegaOrigen || ''}    Destino: ${currentEgreso?.bodegaDestino || ''}`, M, y); y += 5.6;
+        doc.text(`Total: ${formatearQty(total)} artículos / ${currentProductos.length} códigos    Verificado: ${formatearQty(verif)}`, M, y); y += 8;
+        const yTabla = y;
+        // Distribución de columnas según el tamaño de letra
+        const medir = (textos, negrita, fs) => { doc.setFont('helvetica', negrita ? 'bold' : 'normal'); doc.setFontSize(fs); let m = 0; textos.forEach(t => { const w = doc.getTextWidth(String(t)); if (w > m) m = w; }); return m; };
+        const armar = (fs) => {
+            const gap = fs * 0.4, L = {};
+            let x = M;
+            const col = (clave, textos, neg, enc) => { L[clave] = x; x += Math.max(medir(textos.concat([enc]), neg, fs), 0) + gap; };
+            col('n', filas.map(f => f.n), false, '#');
+            col('cod', filas.map(f => f.cod), false, 'Código');
+            col('cant', filas.map(f => f.cant), false, 'Cant.');
+            col('est', ['VERIFICADO', 'PENDIENTE'], true, 'Estado');
+            col('fh', filas.map(f => f.fh), false, 'Fecha y hora');
+            L.desc = x; L.descW = PW - M - x;
+            if (L.descW < 55) return null;
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(fs);
+            L.lineH = fs * PT * 1.2; L.pad = fs * PT * 0.22;
+            L.lineas = filas.map(f => doc.splitTextToSize(f.desc, L.descW));
+            L.alturas = L.lineas.map(ls => ls.length * L.lineH + L.pad * 2);
+            L.hEnc = fs * PT * 1.2 + 3;
+            L.suma = L.alturas.reduce((a, b) => a + b, 0);
+            return L;
+        };
+        const alto1 = PH - 12 - yTabla;          // alto disponible en la primera hoja
+        const altoN = PH - 12 - (M + 4);         // alto disponible en las hojas siguientes
+        let fs = 5, L = null;
+        // Primero intenta UNA sola hoja con letra de 6 en adelante; si son demasiadas filas, usa el mínimo de hojas.
+        for (let hojas = 1; hojas <= 8 && !L; hojas++) {
+            for (const t of [12, 11, 10.5, 10, 9.5, 9, 8.5, 8, 7.5, 7, 6.5, 6, 5.5, 5]) {
+                if (hojas === 1 && t < 6) break;
+                const c = armar(t);
+                if (!c) continue;
+                const cap = alto1 + (hojas - 1) * altoN - (hojas - 1) * Math.max.apply(null, c.alturas) - hojas * c.hEnc;
+                if (c.suma <= cap) { fs = t; L = c; break; }
+            }
+        }
+        if (!L) { fs = 5; L = armar(5) || armar(4); }
+        const encabezadoTabla = (yy) => {
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(fs);
+            const b = yy + fs * PT;
+            doc.text('#', L.n, b); doc.text('Código', L.cod, b); doc.text('Cant.', L.cant, b); doc.text('Estado', L.est, b); doc.text('Fecha y hora', L.fh, b); doc.text('Descripción', L.desc, b);
+            doc.setDrawColor(0); doc.setLineWidth(0.4); doc.line(M, yy + L.hEnc - 1, PW - M, yy + L.hEnc - 1);
+            return yy + L.hEnc;
+        };
+        y = encabezadoTabla(yTabla);
+        filas.forEach((f, i) => {
+            if (y + L.alturas[i] > PH - 12) { doc.addPage(); y = encabezadoTabla(M + 4); }
+            const b = y + L.pad + fs * PT;
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(fs);
+            doc.text(f.n, L.n, b); doc.text(f.cod, L.cod, b); doc.text(f.cant, L.cant, b);
+            doc.setFont('helvetica', 'bold');
+            doc.text(f.ok ? 'VERIFICADO' : 'PENDIENTE', L.est, b);
+            doc.text(L.lineas[i], L.desc, b, { lineHeightFactor: 1.2 });
+            doc.setFont('helvetica', 'normal'); doc.text(f.fh, L.fh, b);
+            y += L.alturas[i];
+            doc.setDrawColor(190); doc.setLineWidth(0.15); doc.line(M, y, PW - M, y);
         });
-        try { const n = doc.getNumberOfPages(); for (let k = 1; k <= n; k++) { doc.setPage(k); doc.setFontSize(7); doc.text(`Generado: ${jatFH(Date.now())}  ·  Página ${k} de ${n}`, 8, 205); } } catch (_) {}
+        try { const n = doc.getNumberOfPages(); for (let k = 1; k <= n; k++) { doc.setPage(k); doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.text(`Generado: ${jatFH(Date.now())}  ·  Página ${k} de ${n}`, M, PH - 6); } } catch (_) {}
         if (opts && opts.devolver) return doc;
         doc.save(`${safeFileName(nombre)}.pdf`);
         showAlert('📄 PDF descargado', 'success');

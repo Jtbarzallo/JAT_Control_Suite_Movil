@@ -108,6 +108,12 @@ Esta regla también está en la "Bitácora JAT Control Suite".
       una copia en la lista **🖨️ Para imprimir** (menú y aviso de completado) con Imprimir, Compartir y "Ya impreso".
       Solo se genera cuando el egreso PASA a completo mientras se revisa, no al abrir uno ya completo.
       En Personal, Venta y PC. Revisión de Mercadería (piloto) no se toca.
+- [ ] **Impresión en UNA sola hoja A3 vertical** (20 nov 2026): el PDF (el revisado y el de "Exportar PDF") sale en A3
+      vertical (297 x 420 mm) y la letra se ajusta sola: usa la más grande (hasta 12) con la que caben todos los
+      productos en una hoja, mínimo 6; solo si son muchísimos (unos 95 o más) pasa a la cantidad mínima de hojas con
+      la letra más grande posible. Descripción en negrita, columnas medidas al texto, línea fina entre filas y cabecera
+      repetida si hay más de una hoja. El botón "Imprimir" de la hoja en pantalla también pide A3 vertical y se achica
+      solo para entrar en una hoja. En Personal, Venta y PC.
 - [ ] En la versión personal, el egreso abierto en Inicio aparece en Sacar, y el elegido en
       Sacar pasa a Revisar (es el mismo documento).
 - [ ] **Escáner USB / Bluetooth tipo pistola (NETUM y similares)** (20 nov 2026): escribe como un teclado, así que
@@ -286,3 +292,4 @@ marcado en cada producto contado y buscar escribiendo con lista para elegir con 
 - 2026-11-20: nombre del egreso completo (sin "…"), en negrita y más grande en todas las listas del celular.
 - 2026-11-20: ventanas blancas (Buscar egresos, etc.) con texto oscuro nítido, nombre completo y porcentajes en colores fuertes.
 - 2026-11-20: escáner USB/Bluetooth (NETUM): recupera el foco solo y no pierde códigos (Personal, Venta, Revisión y Sacar).
+- 2026-11-20: impresión del egreso en una sola hoja A3 vertical, con letra que se ajusta sola (Personal, Venta y PC).
