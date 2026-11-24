@@ -1,0 +1,45 @@
+{
+  "name": "jat-control-suite-pc",
+  "productName": "JAT Control Suite PC",
+  "version": "1.0.0",
+  "description": "JAT Control Suite PC - Verificador de egresos profesional",
+  "author": "Jorge Andrés Toledo",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis --publish never"
+  },
+  "devDependencies": {
+    "electron": "33.2.1",
+    "electron-builder": "25.1.8"
+  },
+  "dependencies": {
+    "pdfjs-dist": "3.11.174",
+    "jspdf": "2.5.1"
+  },
+  "build": {
+    "appId": "ec.jat.controlsuite.pc",
+    "productName": "JAT Control Suite PC",
+    "copyright": "Jorge Andrés Toledo",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["main.js", "preload.js", "app/**/*", "package.json"],
+    "asar": true,
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "build/icon.png",
+      "artifactName": "JAT_Control_Suite_PC_Instalador.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "JAT Control Suite PC",
+      "deleteAppDataOnUninstall": false,
+      "language": "3082",
+      "installerLanguages": ["es_ES"]
+    }
+  }
+}

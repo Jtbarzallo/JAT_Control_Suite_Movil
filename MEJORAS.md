@@ -258,6 +258,13 @@ celular que sirven en PC están en dos bloques al final del archivo: `<style id=
       permiso tras un toque; antes se quedaba en "Reconectar carpeta" y no guardaba). Si nunca se eligió
       carpeta, el aviso para elegirla sale al abrir. Los `.tmp` se borran después de cada guardado.
       También en Venta y Personal (permiso con el primer toque y sin `.tmp`; sin el aviso al abrir).
+- [ ] **Aplicación de escritorio para Windows** (24 nov 2026, carpeta `pc/`): instalador
+      `JAT_Control_Suite_PC_Instalador.exe` en GitHub Releases (etiqueta `pc-v1.0.N`, nunca "latest",
+      para no cruzarse con el APK). Es la misma `JAT_Control_Suite_PC.html` (cada cambio en ella arma un
+      instalador nuevo) con las librerías dentro (sin internet) y `pc/adaptador.js`, que guarda directo en
+      OneDrive › BODEGA RICAURTE › REVISION DIGITAL sin pedir permisos (la encuentra sola en cualquier PC;
+      si no, la pregunta una vez). Acceso directo en el escritorio, Ctrl + / Ctrl − para agrandar la letra.
+      Respaldo: los egresos quedan en la carpeta de OneDrive; desinstalar no borra los datos de la app.
 - [ ] Ya tenía y se conserva: hora de marcado, aviso de repetido, voz por caso, conteo rápido
       (F4/F9/Insert, CÓDIGO*cantidad), deshacer, cierre seguro, guardado en carpeta OneDrive, OneView,
       cartas de constancia y actas UCACUE.
@@ -330,3 +337,4 @@ marcado en cada producto contado y buscar escribiendo con lista para elegir con 
 - 2026-11-20: icono violeta con logo JAT y manifiesto propio para la versión de PC (acceso directo en el escritorio).
 - 2026-11-24: app de Android (APK) de la versión personal: sin internet, lector ML Kit, respaldo en Descargas › JAT Control Suite, impresión A3, voz y dictado nativos, actualización dentro de la app.
 - 2026-11-24: guardado automático en la carpeta de trabajo: se activa con el primer toque tras abrir el navegador, aviso de elegir carpeta al abrir (PC, carpeta REVISION DIGITAL) y sin archivos `.tmp` sobrantes (PC, Venta y Personal).
+- 2026-11-24: aplicación de escritorio para Windows de la versión de PC (instalador .exe en GitHub Releases, guarda directo en REVISION DIGITAL).

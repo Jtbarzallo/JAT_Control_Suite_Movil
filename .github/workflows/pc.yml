@@ -1,0 +1,51 @@
+name: Compilar JAT Control Suite PC (Windows)
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "pc/**"
+      - ".github/workflows/pc.yml"
+      - "JAT_Control_Suite_PC.html"
+      - "icon-pc-*.png"
+      - "logo-jat-pc.svg"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Instalar
+        working-directory: pc
+        run: npm install --no-audit --no-fund
+      - name: Preparar la página
+        run: python pc/preparar.py
+      - name: Ponerle la versión
+        working-directory: pc
+        shell: bash
+        run: npm pkg set version=1.0.${{ github.run_number }}
+      - name: Compilar instalador
+        working-directory: pc
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: npx electron-builder --win nsis --publish never
+      - name: Publicar descarga
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: pc-v1.0.${{ github.run_number }}
+          name: JAT Control Suite PC v1.0.${{ github.run_number }}
+          body: |
+            Programa de escritorio para Windows. Descarga **JAT_Control_Suite_PC_Instalador.exe**, ábrelo e instala.
+            Guarda solo en OneDrive › BODEGA RICAURTE › REVISION DIGITAL (Egresos, Backups, Reportes, Imprimir, Config).
+          files: pc/dist/JAT_Control_Suite_PC_Instalador.exe
+          make_latest: false
