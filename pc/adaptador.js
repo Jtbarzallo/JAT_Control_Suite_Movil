@@ -85,6 +85,17 @@
     return raiz(r.nombre);
   };
 
+  // Abrir/guardar archivo: la ventana de Windows no acepta la carpeta simulada como inicio
+  ['showOpenFilePicker', 'showSaveFilePicker'].forEach(fn => {
+    const orig = window[fn];
+    if (typeof orig !== 'function') return;
+    window[fn] = function (op) {
+      const o = Object.assign({}, op || {});
+      if (o.startIn && (o.startIn instanceof CarpetaPC || o.startIn instanceof ArchivoPC)) delete o.startIn;
+      return orig.call(window, o);
+    };
+  });
+
   // Lo que se ejecuta cuando ya cargó todo el programa
   window.JATPCIniciar = async function () {
     try {

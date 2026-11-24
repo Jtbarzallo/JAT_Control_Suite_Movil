@@ -265,6 +265,14 @@ celular que sirven en PC están en dos bloques al final del archivo: `<style id=
       OneDrive › BODEGA RICAURTE › REVISION DIGITAL sin pedir permisos (la encuentra sola en cualquier PC;
       si no, la pregunta una vez). Acceso directo en el escritorio, Ctrl + / Ctrl − para agrandar la letra.
       Respaldo: los egresos quedan en la carpeta de OneDrive; desinstalar no borra los datos de la app.
+- [ ] **Revisiones: reporte, línea de tiempo y buscar producto** (24 nov 2026, PC, Venta y Personal):
+      menú "📋 Revisiones (reporte e imprimir)" (en Personal y Venta también en el botón ＋). Dice "el último
+      producto que disparaste fue X, el 23/11 a las 11:30"; línea de tiempo con cada disparo, desmarcado y
+      repetido; buscar un producto en todos los egresos (si se marcó y a qué hora). Lee los egresos del
+      programa y los `.hat` de la carpeta Egresos. Imprime cualquier revisión aunque no esté al 100 %
+      (reporte A4) y botón "🖨️ Imprimir revisión" siempre visible en la pantalla del verificador.
+      En la carpeta, los reportes y PDF revisados se guardan por mes: `Imprimir/2026-11/…`.
+- [ ] App de PC: "Abrir egreso guardado" ya no falla y los PDF revisados se ven para imprimir.
 - [ ] Ya tenía y se conserva: hora de marcado, aviso de repetido, voz por caso, conteo rápido
       (F4/F9/Insert, CÓDIGO*cantidad), deshacer, cierre seguro, guardado en carpeta OneDrive, OneView,
       cartas de constancia y actas UCACUE.
@@ -338,3 +346,4 @@ marcado en cada producto contado y buscar escribiendo con lista para elegir con 
 - 2026-11-24: app de Android (APK) de la versión personal: sin internet, lector ML Kit, respaldo en Descargas › JAT Control Suite, impresión A3, voz y dictado nativos, actualización dentro de la app.
 - 2026-11-24: guardado automático en la carpeta de trabajo: se activa con el primer toque tras abrir el navegador, aviso de elegir carpeta al abrir (PC, carpeta REVISION DIGITAL) y sin archivos `.tmp` sobrantes (PC, Venta y Personal).
 - 2026-11-24: aplicación de escritorio para Windows de la versión de PC (instalador .exe en GitHub Releases, guarda directo en REVISION DIGITAL).
+- 2026-11-24: Revisiones (reporte con último disparo y hora, línea de tiempo, buscar producto, imprimir cualquier revisión), Imprimir por mes; arreglos de la app de PC (abrir egreso, visor PDF).

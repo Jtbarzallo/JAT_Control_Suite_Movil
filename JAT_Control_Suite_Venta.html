@@ -8323,7 +8323,7 @@ window.JATShell = (function () {
                   { ico: '🛒', txt: 'Registrar salida sin egreso', sub: 'Escaneas lo que sale', run: hoja('eg-salida') },
                   { ico: '📂', txt: 'Abrir archivo de egreso', run: () => accion('abrirEgreso') },
                   { ico: '📁', txt: 'Egresos guardados', sub: 'Buscar en este teléfono', run: () => accion('buscarEgresos') },
-                  { ico: '🖨️', txt: 'Para imprimir', sub: 'PDF de egresos revisados', run: () => window.JATImprimir && JATImprimir.abrir() },
+                  { ico: '🖨️', txt: 'Para imprimir', sub: 'PDF de egresos revisados', run: () => window.JATImprimir && JATImprimir.abrir() }, { ico: '📋', txt: 'Revisiones', sub: 'Reporte, línea de tiempo, buscar e imprimir', run: () => window.JATRevisiones && JATRevisiones.abrir() },
                   { ico: '📋', txt: 'Historial / avances', run: () => accion('historial') }
               ] },
             { id: 'ingreso', txt: 'Ingreso', titulo: 'Ingreso', abrir: () => cargarVistaIngreso(),
@@ -9123,7 +9123,7 @@ body.d-osc .jimp-box{background:#14202e;color:#e8eef4}body.d-osc .jimp-it{border
       if (typeof isAndroidBridge === 'function' && isAndroidBridge()) return false;
       if (typeof oneDriveDirHandle === 'undefined' || !oneDriveDirHandle) return false;
       if ((await oneDriveDirHandle.queryPermission({ mode: 'readwrite' })) !== 'granted') return false;
-      await escribirArchivoOneDrive('Imprimir/' + nom, blob, 'application/pdf');
+      await escribirArchivoOneDrive('Imprimir/' + new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '/' + nom, blob, 'application/pdf');
       return true;
     } catch (e) { console.warn('Imprimir: carpeta no disponible', e); return false; }
   }
@@ -9141,7 +9141,7 @@ body.d-osc .jimp-box{background:#14202e;color:#e8eef4}body.d-osc .jimp-it{border
     await guardarCopia(it); recortar();
     const enCarpeta = await aCarpeta(blob, nom);
     if (!enCarpeta) bajar(blob, nom);
-    it.donde = enCarpeta ? 'carpeta de trabajo › Imprimir' : 'Descargas';
+    it.donde = enCarpeta ? 'carpeta de trabajo › Imprimir › ' + new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') : 'Descargas';
     ultimo = it;
     try { currentEgreso.pdfRevisado = { t, archivo: nom, donde: it.donde }; } catch (_) {}
     aviso('🖨️ PDF revisado guardado en ' + it.donde + ' y en "Para imprimir"');
@@ -9323,5 +9323,268 @@ body.d-osc .jimp-box{background:#14202e;color:#e8eef4}body.d-osc .jimp-it{border
   #verificadorTableBody tr[data-index] td:nth-child(5) textarea { width: 100%; }
 }
 </style>
+<style id="jat-revisiones">
+/* ===== JAT Revisiones: reporte de revisión, línea de tiempo y búsqueda de productos (24 nov 2026) ===== */
+.jrev-modal{position:fixed;inset:0;background:rgba(4,14,28,.72);z-index:100000;display:flex;align-items:flex-start;justify-content:center;padding:14px;overflow:auto}
+.jrev-box{background:#fff;color:#0b1b2e;border-radius:16px;width:100%;max-width:1100px;padding:18px 20px 22px;box-shadow:0 20px 60px rgba(0,0,0,.35);font-size:1rem}
+.jrev-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.jrev-top h3{margin:0;font-size:1.35rem;font-weight:800;color:#0b223d}
+.jrev-box button{font:inherit;font-weight:700;border-radius:10px;border:2px solid #0b223d;background:#0b223d;color:#fff;padding:9px 14px;cursor:pointer;font-size:.95rem}
+.jrev-box button.sec{background:#fff;color:#0b223d}
+.jrev-box button.oro{background:#c9a227;border-color:#8a6d0b;color:#0b1b2e}
+.jrev-tabs{display:flex;gap:8px;margin:14px 0 10px;flex-wrap:wrap}
+.jrev-tabs button.on{background:#c9a227;border-color:#8a6d0b;color:#0b1b2e}
+.jrev-in{width:100%;box-sizing:border-box;font-size:1.15rem;padding:13px 16px;border:2px solid #0b223d;border-radius:12px;margin:4px 0 12px;color:#0b1b2e;background:#fff}
+.jrev-ult{background:#0b223d;color:#fff;border-radius:14px;padding:14px 16px;margin:8px 0 14px;font-size:1.08rem;line-height:1.45}
+.jrev-ult b{color:#ffd54a}
+.jrev-card{border:2px solid #1a3a5c;border-radius:14px;padding:12px 14px;margin-bottom:10px;background:#fff}
+.jrev-card .nom{font-weight:800;font-size:1.12rem;color:#0b223d;overflow-wrap:anywhere}
+.jrev-card .dat{font-size:1rem;color:#0b1b2e;margin:5px 0 9px;line-height:1.45}
+.jrev-card .row{display:flex;gap:8px;flex-wrap:wrap}
+.jrev-ok{color:#0a7a2f;font-weight:800}.jrev-no{color:#c0161b;font-weight:800}.jrev-av{color:#b45309;font-weight:800}
+.jrev-t{width:100%;border-collapse:collapse;font-size:1rem}
+.jrev-t th{background:#0b223d;color:#fff;text-align:left;padding:8px 10px;position:sticky;top:0}
+.jrev-t td{border-bottom:2px solid #dbe3ec;padding:8px 10px;vertical-align:top}
+.jrev-t td b{color:#0b223d}
+.jrev-vacio{padding:16px;border:2px dashed #1a3a5c;border-radius:12px;font-size:1.05rem}
+.jrev-sel{font-size:1.05rem;padding:10px 12px;border:2px solid #0b223d;border-radius:10px;max-width:100%;color:#0b1b2e;background:#fff}
+#jrevBtnVerif{margin-right:6px;font-weight:800;border-radius:10px;border:2px solid #8a6d0b;background:#c9a227;color:#0b1b2e;padding:8px 14px;cursor:pointer;font-size:.95rem}
+</style>
+<script>
+/* ===== JAT Revisiones =====
+   - Reporte de cada egreso: último producto disparado (fecha y hora), marcados, faltantes.
+   - Línea de tiempo: cada disparo en orden con su hora (también desmarcados y repetidos).
+   - Buscar un producto en todos los egresos: en cuál estuvo, si se marcó y a qué hora.
+   - Imprimir o guardar en PDF cualquier revisión, esté o no al 100 %.
+   Lee los egresos de la memoria del programa y, si la carpeta de trabajo está conectada, también los
+   archivos .hat de Egresos (así aparecen los de otros días o de la otra PC). No cambia ni borra nada. */
+(function () {
+  if (typeof getExpectedQty !== 'function' || typeof getVerifiedQty !== 'function') return;
+  const z = n => String(n).padStart(2, '0');
+  const fh = t => { const d = new Date(t); return isNaN(d) ? '' : z(d.getDate()) + '/' + z(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + z(d.getHours()) + ':' + z(d.getMinutes()); };
+  const hora = t => { const d = new Date(t); return isNaN(d) ? '' : z(d.getHours()) + ':' + z(d.getMinutes()) + ':' + z(d.getSeconds()); };
+  const dia = t => { const d = new Date(t); return isNaN(d) ? '' : z(d.getDate()) + '/' + z(d.getMonth() + 1) + '/' + d.getFullYear(); };
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
+  const clave = s => String(s || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const qty = n => { const x = Number(n) || 0; return Number.isInteger(x) ? String(x) : x.toFixed(2); };
+  const aviso = (m, t) => { try { showAlert(m, t || 'info'); } catch (_) {} };
+  const nombreDe = e => e.nombre || e.secuencial || ('Egreso ' + (e.id || ''));
+  const TIPOS = { intento_repetido: 'Repetido (ya estaba marcado)', marcar_todos: 'Marcado con "marcar todos"', manual: 'Marcado a mano', series_observacion: 'Series / observación' };
+
+  // Cada movimiento de cada producto, en orden de tiempo
+  function eventos(e) {
+    const ev = [];
+    (e.productos || []).forEach((p, i) => {
+      (Array.isArray(p.historialMovimientos) ? p.historialMovimientos : []).forEach(m => {
+        if (!m || !m.fecha || m.tipo === 'series_observacion') return;
+        const c = Number(m.cantidadSumada);
+        const tipo = m.tipo === 'intento_repetido' ? 'rep' : (c < 0 ? 'des' : (c > 0 || m.cantidadSumada === undefined ? 'mar' : null));
+        if (!tipo) return;
+        ev.push({ t: new Date(m.fecha).getTime(), fecha: m.fecha, tipo, cant: c, p, i, origen: m.tipo, usuario: m.usuario || '' });
+      });
+      if (!(p.historialMovimientos || []).some(m => Number(m && m.cantidadSumada) > 0) && p.horaSalida && getVerifiedQty(p) > 0)
+        ev.push({ t: new Date(p.horaSalida).getTime(), fecha: p.horaSalida, tipo: 'mar', cant: getVerifiedQty(p), p, i, origen: '' });
+    });
+    return ev.filter(x => !isNaN(x.t)).sort((a, b) => a.t - b.t);
+  }
+  function resumen(e) {
+    let tot = 0, ver = 0, marcados = 0;
+    const ps = e.productos || [];
+    ps.forEach(p => { const ex = getExpectedQty(p), v = Math.min(getVerifiedQty(p), ex); tot += ex; ver += v; if (v >= ex && ex > 0) marcados++; });
+    const ev = eventos(e), mar = ev.filter(x => x.tipo === 'mar');
+    const ult = mar[mar.length - 1] || null, pri = mar[0] || null;
+    const g = e.persistencia && e.persistencia.fechaGuardado;
+    return { tot, ver, pct: tot ? Math.round(ver / tot * 100) : 0, codigos: ps.length, marcados, faltan: ps.length - marcados, ult, pri, ev,
+      t: ult ? ult.t : (g ? new Date(g).getTime() : (Number(e.id) || 0)) };
+  }
+  function ultimoTexto(r) {
+    if (!r.ult) return 'Todavía no se ha disparado ningún producto.';
+    return 'El último producto que disparaste fue <b>' + esc(r.ult.p.productName || r.ult.p.barcode) + '</b> (código ' + esc(r.ult.p.barcode || '') +
+      '), el <b>' + dia(r.ult.fecha) + ' a las ' + hora(r.ult.fecha).slice(0, 5) + '</b>.';
+  }
+
+  // Egresos: los del programa + los .hat de la carpeta Egresos que no estén en memoria
+  async function todos() {
+    const lista = [], vistos = new Set();
+    const memoria = (typeof egresosGuardados !== 'undefined' && Array.isArray(egresosGuardados)) ? egresosGuardados : [];
+    memoria.forEach(e => { if (e && Array.isArray(e.productos)) { lista.push({ e, en: 'memoria' }); vistos.add(String(e.id)); if (typeof safeFileName === 'function') vistos.add('f:' + safeFileName(nombreDe(e))); } });
+    try {
+      if (typeof oneDriveDirHandle !== 'undefined' && oneDriveDirHandle && !(typeof isAndroidBridge === 'function' && isAndroidBridge()) &&
+          (await oneDriveDirHandle.queryPermission({ mode: 'readwrite' })) === 'granted') {
+        const dir = await oneDriveDirHandle.getDirectoryHandle('Egresos', { create: true });
+        for await (const [n, h] of dir.entries()) {
+          if (h.kind !== 'file' || !/\.hat$/i.test(n)) continue;
+          if (vistos.has('f:' + n.replace(/\.hat$/i, ''))) continue;
+          try {
+            const e = JSON.parse(await (await h.getFile()).text());
+            if (!e || !Array.isArray(e.productos) || vistos.has(String(e.id))) continue;
+            vistos.add(String(e.id)); lista.push({ e, en: 'carpeta' });
+          } catch (_) {}
+        }
+      }
+    } catch (err) { console.warn('Revisiones: carpeta', err); }
+    lista.forEach(x => { x.r = resumen(x.e); });
+    return lista.sort((a, b) => b.r.t - a.r.t);
+  }
+
+  // ---------- Reporte para imprimir (HTML, hoja A4) ----------
+  function htmlReporte(e) {
+    const r = resumen(e), ahora = new Date();
+    const faltan = (e.productos || []).filter(p => getVerifiedQty(p) < getExpectedQty(p));
+    const filasT = r.ev.map((x, k) => '<tr class="' + x.tipo + '"><td>' + (k + 1) + '</td><td>' + dia(x.fecha) + '</td><td><b>' + hora(x.fecha) + '</b></td><td>' +
+      (x.tipo === 'mar' ? '✔ Marcado' + (x.cant > 1 ? ' +' + qty(x.cant) : '') : x.tipo === 'des' ? '✖ Desmarcado ' + qty(x.cant) : '⚠ Repetido') +
+      '</td><td class="mono">' + esc(x.p.barcode || '') + '</td><td><b>' + esc(x.p.productName || '') + '</b></td></tr>').join('');
+    const filasP = (e.productos || []).map((p, i) => { const v = getVerifiedQty(p), ex = getExpectedQty(p);
+      const m = r.ev.filter(x => x.p === p && x.tipo !== 'rep');
+      return '<tr class="' + (v >= ex ? 'ok' : 'no') + '"><td>' + (i + 1) + '</td><td class="mono">' + esc(p.barcode || '') + '</td><td><b>' + esc(p.productName || '') + '</b></td><td>' + qty(v) + ' / ' + qty(ex) + '</td><td>' +
+        (v >= ex ? '✔ MARCADO' : v > 0 ? '◐ INCOMPLETO' : '✖ NO MARCADO') + '</td><td>' + m.map(x => (x.tipo === 'des' ? '✖ desmarcado ' : '✔ ') + fh(x.fecha)).join('<br>') + '</td></tr>'; }).join('');
+    return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Reporte de revisión ' + esc(nombreDe(e)) + '</title><style>' +
+      'body{font-family:Segoe UI,Arial,sans-serif;color:#000;margin:18px;font-size:12.5px}h1{font-size:18px;margin:0 0 4px}h2{font-size:15px;margin:18px 0 6px;border-bottom:2px solid #000}' +
+      '.ult{border:2px solid #000;padding:10px 12px;font-size:14px;margin:10px 0;background:#fff7cc}.res{font-size:13px;line-height:1.6}' +
+      'table{border-collapse:collapse;width:100%}th,td{border:1px solid #444;padding:4px 6px;text-align:left;vertical-align:top}th{background:#ddd}' +
+      '.mono{font-family:Consolas,monospace}tr.no td{background:#ffe1e1}tr.des td{background:#ffe1e1}tr.rep td{background:#fff3cd}' +
+      '.pie{margin-top:14px;font-size:11px;border-top:1px solid #000;padding-top:6px}@page{size:A4 portrait;margin:10mm}</style></head><body>' +
+      '<h1>REPORTE DE REVISIÓN — ' + esc(nombreDe(e)) + '</h1>' +
+      '<div class="res">' + (e.bodegaOrigen ? '<b>Origen:</b> ' + esc(e.bodegaOrigen) + ' &nbsp; ' : '') + (e.bodegaDestino ? '<b>Destino:</b> ' + esc(e.bodegaDestino) + '<br>' : '') +
+      '<b>Avance:</b> ' + qty(r.ver) + ' de ' + qty(r.tot) + ' unidades (' + r.pct + ' %) · <b>Códigos marcados:</b> ' + r.marcados + ' de ' + r.codigos + ' · <b>Faltan:</b> ' + r.faltan +
+      (r.pri ? '<br><b>Primer disparo:</b> ' + fh(r.pri.fecha) + ' · <b>Último disparo:</b> ' + fh(r.ult.fecha) : '') + '</div>' +
+      '<div class="ult">' + ultimoTexto(r) + '</div>' +
+      (faltan.length ? '<h2>Productos que faltan (' + faltan.length + ')</h2><table><tr><th>Código</th><th>Producto</th><th>Marcado / Pedido</th></tr>' +
+        faltan.map(p => '<tr class="no"><td class="mono">' + esc(p.barcode || '') + '</td><td><b>' + esc(p.productName || '') + '</b></td><td>' + qty(getVerifiedQty(p)) + ' / ' + qty(getExpectedQty(p)) + '</td></tr>').join('') + '</table>' : '<h2>Todos los productos están marcados</h2>') +
+      '<h2>Línea de tiempo (cada disparo en orden)</h2>' + (filasT ? '<table><tr><th>#</th><th>Fecha</th><th>Hora</th><th>Qué pasó</th><th>Código</th><th>Producto</th></tr>' + filasT + '</table>' : '<p>Sin disparos registrados.</p>') +
+      '<h2>Todos los productos</h2><table><tr><th>#</th><th>Código</th><th>Producto</th><th>Cant.</th><th>Estado</th><th>Fecha y hora marcado</th></tr>' + filasP + '</table>' +
+      '<div class="pie">JAT Control Suite — Reporte de revisión impreso el ' + fh(ahora) + '</div></body></html>';
+  }
+  function imprimirHTML(html) {
+    const w = window.open('', '_blank');
+    if (!w) { aviso('El navegador bloqueó la ventana de impresión. Permite ventanas emergentes.', 'warning'); return; }
+    w.document.write(html); w.document.close();
+    setTimeout(() => { try { w.focus(); w.print(); } catch (_) {} }, 450);
+  }
+  async function guardarEnCarpeta(e) {
+    try {
+      if (typeof escribirArchivoOneDrive !== 'function' || typeof oneDriveDirHandle === 'undefined' || !oneDriveDirHandle) return false;
+      if (typeof isAndroidBridge === 'function' && isAndroidBridge()) return false;
+      if ((await oneDriveDirHandle.queryPermission({ mode: 'readwrite' })) !== 'granted') return false;
+      const d = new Date(), mes = d.getFullYear() + '-' + z(d.getMonth() + 1);
+      const base = typeof safeFileName === 'function' ? safeFileName(nombreDe(e)) : 'Egreso';
+      await escribirArchivoOneDrive('Imprimir/' + mes + '/REPORTE_' + base + '.html', new Blob([htmlReporte(e)], { type: 'text/html' }), 'text/html');
+      return true;
+    } catch (err) { console.warn('Revisiones: guardar reporte', err); return false; }
+  }
+  async function imprimirEgreso(e) {
+    imprimirHTML(htmlReporte(e));
+    if (await guardarEnCarpeta(e)) aviso('🖨️ Reporte también guardado en la carpeta de trabajo › Imprimir', 'success');
+  }
+  function abrirEnPrograma(x) {
+    try {
+      if (x.en === 'carpeta' && typeof egresosGuardados !== 'undefined' && !egresosGuardados.some(e => e.id === x.e.id)) {
+        egresosGuardados.push(x.e); if (typeof guardarEgresosStorage === 'function') guardarEgresosStorage();
+      }
+      if (typeof cargarEgresoParaVerificar === 'function') cargarEgresoParaVerificar(x.e.id);
+      cerrar(); aviso('📂 Egreso abierto: ' + nombreDe(x.e), 'success');
+    } catch (err) { aviso('No se pudo abrir el egreso', 'error'); }
+  }
+
+  // ---------- Ventana ----------
+  let lista = [], pestana = 'egresos', filtro = '', elegido = null;
+  function cerrar() { const m = document.getElementById('jrevModal'); if (m) m.remove(); }
+  async function abrir(p, egresoId) {
+    pestana = p || 'egresos';
+    let m = document.getElementById('jrevModal');
+    if (!m) { m = document.createElement('div'); m.id = 'jrevModal'; m.className = 'jrev-modal'; document.body.appendChild(m);
+      m.addEventListener('click', ev => { if (ev.target === m) cerrar(); }); }
+    m.innerHTML = '<div class="jrev-box"><div class="jrev-top"><h3>📋 Revisiones</h3><button type="button" class="sec" data-c>Cerrar</button></div><div class="jrev-vacio">Cargando revisiones…</div></div>';
+    m.querySelector('[data-c]').onclick = cerrar;
+    lista = await todos();
+    if (egresoId != null) elegido = lista.find(x => String(x.e.id) === String(egresoId)) || null;
+    if (!elegido && lista.length) elegido = (typeof currentEgreso !== 'undefined' && currentEgreso && lista.find(x => x.e.id === currentEgreso.id)) || lista[0];
+    pintar();
+  }
+  function pintar() {
+    const m = document.getElementById('jrevModal'); if (!m) return;
+    const g = lista.map(x => x.r.ult ? x : null).filter(Boolean).sort((a, b) => b.r.ult.t - a.r.ult.t)[0];
+    let cuerpo = '';
+    if (pestana === 'egresos') {
+      const f = norm(filtro);
+      const ls = lista.filter(x => !f || norm(nombreDe(x.e)).includes(f));
+      cuerpo = '<input class="jrev-in" data-f placeholder="Filtrar por nombre de egreso (ej. QUITO, 24871)…" value="' + esc(filtro) + '">' +
+        (ls.length ? ls.map(x => { const r = x.r, k = lista.indexOf(x);
+          return '<div class="jrev-card"><div class="nom">' + esc(nombreDe(x.e)) + '</div><div class="dat">' +
+            '<span class="' + (r.pct >= 100 ? 'jrev-ok' : r.ver > 0 ? 'jrev-av' : 'jrev-no') + '">' + r.pct + ' %</span> · ' + r.marcados + ' de ' + r.codigos + ' códigos marcados' + (r.faltan ? ' · <span class="jrev-no">faltan ' + r.faltan + '</span>' : '') + '<br>' +
+            (r.ult ? 'Último disparo: <b>' + esc(r.ult.p.productName || r.ult.p.barcode) + '</b> — <b>' + fh(r.ult.fecha) + '</b>' : 'Sin disparos todavía') +
+            (x.en === 'carpeta' ? '<br><small>Leído de la carpeta Egresos</small>' : '') + '</div><div class="row">' +
+            '<button type="button" class="oro" data-a="imp" data-k="' + k + '">🖨️ Imprimir reporte</button>' +
+            '<button type="button" data-a="tl" data-k="' + k + '">🕒 Línea de tiempo</button>' +
+            '<button type="button" class="sec" data-a="ab" data-k="' + k + '">📂 Abrir</button></div></div>'; }).join('')
+          : '<div class="jrev-vacio">No hay egresos' + (filtro ? ' con ese nombre' : ' guardados') + '.</div>');
+    } else if (pestana === 'tiempo') {
+      const x = elegido;
+      cuerpo = '<select class="jrev-sel" data-s>' + lista.map((y, k) => '<option value="' + k + '"' + (y === x ? ' selected' : '') + '>' + esc(nombreDe(y.e)) + '</option>').join('') + '</select>';
+      if (x) {
+        const ev = x.r.ev.slice().reverse();
+        cuerpo += '<div class="jrev-ult">' + ultimoTexto(x.r) + '<br>Avance: ' + x.r.pct + ' % · ' + x.r.marcados + ' de ' + x.r.codigos + ' códigos' + (x.r.pri ? ' · Empezó: ' + fh(x.r.pri.fecha) : '') + '</div>' +
+          '<div class="row" style="margin-bottom:10px"><button type="button" class="oro" data-a="imp" data-k="' + lista.indexOf(x) + '">🖨️ Imprimir este reporte</button></div>' +
+          (ev.length ? '<table class="jrev-t"><tr><th>Fecha</th><th>Hora</th><th>Qué pasó</th><th>Producto</th></tr>' + ev.map(y =>
+            '<tr><td>' + dia(y.fecha) + '</td><td><b>' + hora(y.fecha) + '</b></td><td class="' + (y.tipo === 'mar' ? 'jrev-ok' : y.tipo === 'des' ? 'jrev-no' : 'jrev-av') + '">' +
+            (y.tipo === 'mar' ? '✔ Marcado' + (y.cant > 1 ? ' +' + qty(y.cant) : '') : y.tipo === 'des' ? '✖ Desmarcado' : '⚠ Repetido') + (TIPOS[y.origen] && y.tipo === 'mar' ? '<br><small>' + TIPOS[y.origen] + '</small>' : '') + '</td><td><b>' +
+            esc(y.p.productName || '') + '</b><br><small>' + esc(y.p.barcode || '') + '</small></td></tr>').join('') + '</table>' : '<div class="jrev-vacio">Este egreso no tiene disparos registrados.</div>');
+      }
+    } else {
+      const f = norm(filtro), fc = clave(filtro), res = [];
+      if (f.length >= 3) lista.forEach((x, k) => (x.e.productos || []).forEach(p => {
+        if ((fc && clave(p.barcode).includes(fc)) || norm(p.productName).includes(f)) {
+          const v = getVerifiedQty(p), ex = getExpectedQty(p), m = x.r.ev.filter(y => y.p === p && y.tipo !== 'rep');
+          res.push({ x, k, p, v, ex, m });
+        } }));
+      cuerpo = '<input class="jrev-in" data-f placeholder="Escribe el código o el nombre del producto (mínimo 3 letras)…" value="' + esc(filtro) + '">' +
+        (f.length < 3 ? '<div class="jrev-vacio">Escribe al menos 3 letras o números del producto.</div>' :
+          res.length ? '<div style="margin-bottom:8px;font-weight:700">' + res.length + ' resultado(s)</div>' + res.slice(0, 300).map(y =>
+            '<div class="jrev-card"><div class="nom">' + esc(y.p.productName || '') + '</div><div class="dat">Código <b>' + esc(y.p.barcode || '') + '</b> · Egreso: <b>' + esc(nombreDe(y.x.e)) + '</b><br>' +
+            (y.v >= y.ex ? '<span class="jrev-ok">✔ MARCADO</span>' : y.v > 0 ? '<span class="jrev-av">◐ INCOMPLETO</span>' : '<span class="jrev-no">✖ NO MARCADO</span>') +
+            ' · ' + qty(y.v) + ' de ' + qty(y.ex) + (y.m.length ? ' · <b>' + y.m.map(q => (q.tipo === 'des' ? '✖ desmarcado ' : '✔ ') + fh(q.fecha)).join(', ') + '</b>' : '') + '</div><div class="row">' +
+            '<button type="button" class="oro" data-a="imp" data-k="' + y.k + '">🖨️ Imprimir reporte del egreso</button><button type="button" data-a="tl" data-k="' + y.k + '">🕒 Línea de tiempo</button></div></div>').join('')
+          : '<div class="jrev-vacio">Ese producto no aparece en ningún egreso guardado.</div>');
+    }
+    m.innerHTML = '<div class="jrev-box"><div class="jrev-top"><h3>📋 Revisiones</h3><button type="button" class="sec" data-c>Cerrar</button></div>' +
+      '<div class="jrev-ult">' + (g ? 'Último disparo de todos los egresos: <b>' + esc(g.r.ult.p.productName || g.r.ult.p.barcode) + '</b>, el <b>' + dia(g.r.ult.fecha) + ' a las ' + hora(g.r.ult.fecha).slice(0, 5) + '</b><br>en ' + esc(nombreDe(g.e)) : 'Todavía no hay disparos registrados.') + '</div>' +
+      '<div class="jrev-tabs"><button type="button" data-p="egresos" class="' + (pestana === 'egresos' ? 'on' : '') + '">Egresos revisados (' + lista.length + ')</button>' +
+      '<button type="button" data-p="tiempo" class="' + (pestana === 'tiempo' ? 'on' : '') + '">Línea de tiempo</button>' +
+      '<button type="button" data-p="buscar" class="' + (pestana === 'buscar' ? 'on' : '') + '">Buscar producto</button></div>' + cuerpo + '</div>';
+    m.querySelector('[data-c]').onclick = cerrar;
+    m.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { if (pestana !== b.dataset.p) filtro = ''; pestana = b.dataset.p; pintar(); });
+    const inp = m.querySelector('[data-f]');
+    if (inp) { inp.oninput = () => { filtro = inp.value; const pos = inp.selectionStart; clearTimeout(inp._t); inp._t = setTimeout(() => { pintar(); const n = document.querySelector('#jrevModal [data-f]'); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (_) {} } }, 250); }; }
+    const sel = m.querySelector('[data-s]'); if (sel) sel.onchange = () => { elegido = lista[+sel.value]; pintar(); };
+    m.querySelectorAll('[data-a]').forEach(b => b.onclick = () => { const x = lista[+b.dataset.k]; if (!x) return;
+      if (b.dataset.a === 'imp') imprimirEgreso(x.e); else if (b.dataset.a === 'tl') { elegido = x; pestana = 'tiempo'; filtro = ''; pintar(); } else abrirEnPrograma(x); });
+  }
+
+  window.JATRevisiones = { abrir, imprimirActual: () => { if (typeof currentEgreso !== 'undefined' && currentEgreso) { const e = Object.assign({}, currentEgreso, { productos: (typeof currentProductos !== 'undefined' && currentProductos.length) ? currentProductos : currentEgreso.productos }); imprimirEgreso(e); } else aviso('Abre un egreso primero', 'warning'); }, htmlReporte, resumen };
+
+  // Menú: "Revisiones (reporte e imprimir)" junto a Imprimir
+  function ponerMenu() {
+    const ref = document.querySelector('.menu-item[data-action="paraImprimir"]') || document.querySelector('.menu-item[data-action="imprimir"]');
+    if (ref && !document.querySelector('.menu-item[data-action="revisiones"]')) {
+      const it = document.createElement('div'); it.className = 'menu-item'; it.dataset.action = 'revisiones';
+      it.innerHTML = '<span class="icon">📋</span> Revisiones (reporte e imprimir)';
+      it.addEventListener('click', () => abrir());
+      ref.parentNode.insertBefore(it, ref.nextSibling);
+    }
+    // Botón siempre visible en la pantalla de revisión
+    const cab = document.querySelector('#verificadorModal .verificador-header');
+    if (cab && !document.getElementById('jrevBtnVerif')) {
+      const zona = cab.lastElementChild || cab;
+      const b = document.createElement('button'); b.type = 'button'; b.id = 'jrevBtnVerif'; b.textContent = '🖨️ Imprimir revisión';
+      b.title = 'Imprime el reporte de esta revisión (aunque no esté al 100 %)';
+      b.addEventListener('click', ev => { ev.stopPropagation(); window.JATRevisiones.imprimirActual(); });
+      zona.insertBefore(b, zona.firstChild);
+    }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ponerMenu); else ponerMenu();
+})();
+</script>
+
 </body>
 </html>

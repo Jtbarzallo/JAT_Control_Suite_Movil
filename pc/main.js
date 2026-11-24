@@ -132,7 +132,8 @@ function crearVentana() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      spellcheck: false
+      spellcheck: false,
+      plugins: true // visor de PDF para imprimir los PDF revisados
     }
   });
   ventana.maximize();
