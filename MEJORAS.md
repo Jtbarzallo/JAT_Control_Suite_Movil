@@ -203,6 +203,33 @@ Esta regla también está en la "Bitácora JAT Control Suite".
 - [ ] Se pide a Chrome que no borre los datos de la app (`navigator.storage.persist`).
 - [ ] El kardex no va en el respaldo: se recarga desde el Excel de inventario, que es su respaldo.
 
+## App de Android (APK) de la versión personal (`android/`)
+
+Se instala como cualquier app (`JATControlSuite.apk`, en Releases del repositorio) y trae adentro
+`JAT_Control_Suite_Movil.html` + `JAT_Salida_Mercaderia.html`. Se compila sola en GitHub Actions
+(`.github/workflows/android.yml`) cada vez que cambia una de esas páginas, los kardex, los íconos o `android/`.
+Firmada con la misma llave `jat.keystore` de las otras apps JAT, así se actualiza encima sin perder datos.
+
+- [ ] **Funciona sin internet**: pdf.js, jsPDF, SheetJS, ZXing, tesseract (OCR en español e inglés) y las
+      letras Inter/JetBrains Mono van dentro de la app (`android/preparar.py` las copia al compilar).
+- [ ] **Lector de códigos de barras de Google (ML Kit)** en lugar del lector de JavaScript: la página sigue
+      usando `BarcodeDetector`; el adaptador (`android/web/jat-android.js`) manda la imagen a ML Kit.
+- [ ] **Respaldo que sobrevive** (regla fija 3): los archivos `.hat` automáticos y todas las descargas (PDF, CSV,
+      Excel) se guardan en **Descargas › JAT Control Suite** con MediaStore, que no se borra al desinstalar. Además
+      la app permite la copia automática de Android (`allowBackup`). Para recuperar: Inicio › ＋ › Importar / abrir archivo.
+- [ ] **Imprimir en A3 vertical**: "Imprimir PDF revisado" abre la impresión de Android con el PDF (hoja A3);
+      el reporte HTML de respaldo también sale en A3 vertical.
+- [ ] **Compartir** (WhatsApp, Drive, OneDrive, correo) con la hoja de compartir de Android.
+- [ ] **Voz y dictado nativos**: la voz del teléfono (TextToSpeech) reemplaza a la de Chrome y el dictado usa el
+      reconocedor de Google del teléfono.
+- [ ] **Escáner USB/Bluetooth (NETUM)** y gatillo siguen igual (son teclado; el WebView los recibe).
+- [ ] **Cámara** pedida al abrir; pantalla siempre encendida; pantalla completa según la opción de la app; botón
+      Atrás cierra ventanas y para salir hay que tocarlo dos veces.
+- [ ] **Actualización dentro de la app**: avisa cuando hay versión nueva en Releases (Menú › Buscar actualización
+      para revisar a mano). Los datos se conservan al actualizar.
+- [ ] Regla 1 (Venta): la APK es solo de la versión personal; si se pide la de venta se arma igual con
+      `JAT_Control_Suite_Venta.html`.
+
 ## Versión de PC (`JAT_Control_Suite_PC.html`, antes VERIFICADOR_DE_EGRESOS_VOZ_3_3)
 
 Programa de escritorio (menú lateral, escáner de pistola USB, atajos de teclado). Las mejoras del
@@ -295,3 +322,4 @@ marcado en cada producto contado y buscar escribiendo con lista para elegir con 
 - 2026-11-20: escáner USB/Bluetooth (NETUM): recupera el foco solo y no pierde códigos (Personal, Venta, Revisión y Sacar).
 - 2026-11-20: impresión del egreso en una sola hoja A3 vertical, con letra que se ajusta sola (Personal, Venta y PC).
 - 2026-11-20: icono violeta con logo JAT y manifiesto propio para la versión de PC (acceso directo en el escritorio).
+- 2026-11-24: app de Android (APK) de la versión personal: sin internet, lector ML Kit, respaldo en Descargas › JAT Control Suite, impresión A3, voz y dictado nativos, actualización dentro de la app.

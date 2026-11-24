@@ -1,0 +1,71 @@
+name: Compilar JAT Control Suite (APK)
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "android/**"
+      - ".github/workflows/android.yml"
+      - "JAT_Control_Suite_Movil.html"
+      - "JAT_Salida_Mercaderia.html"
+      - "kardex_nombres.json"
+      - "kardex_categorias.json"
+      - "logo-jat-personal.svg"
+      - "icon-personal-*.png"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Librerías web (para que la app funcione sin internet)
+        run: |
+          set -o pipefail
+          mkdir -p android/npmlibs
+          cd android/npmlibs
+          npm init -y > /dev/null
+          npm install --no-audit --no-fund pdfjs-dist@3.11.174 jspdf@2.5.1 xlsx@0.18.5 tesseract.js@5.1.1 tesseract.js-core@5.1.1 @zxing/library@0.20.0 @tesseract.js-data/eng@1.0.0 @tesseract.js-data/spa@1.0.0 @fontsource/inter@5.3.0 @fontsource/jetbrains-mono@5.3.0 2>&1 | tee -a ../../build.log
+      - name: Preparar las páginas de la app
+        run: |
+          set -o pipefail
+          python3 android/preparar.py android/npmlibs/node_modules 2>&1 | tee -a build.log
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.10.2"
+      - name: Compilar
+        working-directory: android
+        run: |
+          set -o pipefail
+          gradle assembleRelease --no-daemon --stacktrace 2>&1 | tee -a ../build.log
+      - name: Renombrar APK
+        run: cp android/app/build/outputs/apk/release/app-release.apk JATControlSuite.apk
+      - name: Publicar descarga
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: JAT Control Suite v1.0.${{ github.run_number }}
+          files: JATControlSuite.apk
+          make_latest: true
+      - name: Guardar registro si falla
+        if: failure()
+        run: |
+          grep -E "^e: |error:|FAILURE|What went wrong|ERROR" -A3 build.log | head -150 > errores.txt || true
+          tail -80 build.log >> errores.txt || true
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git checkout --orphan registro-compilacion
+          git rm -rf --cached . > /dev/null
+          git add -f errores.txt
+          git commit -m "Registro de la compilación ${{ github.run_number }}"
+          git push -f origin registro-compilacion

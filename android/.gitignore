@@ -1,0 +1,8 @@
+# Se generan al compilar (preparar.py y npm)
+app/src/main/assets/www/
+npmlibs/
+build/
+app/build/
+.gradle/
+local.properties
+*.log

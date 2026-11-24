@@ -1,0 +1,19 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <group android:translateX="5.36" android:translateY="5.36" android:scaleX="0.19" android:scaleY="0.19">
+        <!-- marco dorado del visor -->
+        <path android:strokeColor="#E8BB62" android:strokeWidth="12" android:strokeLineCap="round" android:strokeLineJoin="round"
+            android:pathData="M96,178V132h46M416,178V132h-46M96,334v46h46M416,334v46h-46"/>
+        <!-- letras J A T -->
+        <path android:strokeColor="#FFFFFF" android:strokeWidth="25" android:strokeLineCap="round" android:strokeLineJoin="round"
+            android:pathData="M196,172v64a30,30 0 0 1 -60,0"/>
+        <path android:strokeColor="#FFFFFF" android:strokeWidth="25" android:strokeLineCap="round" android:strokeLineJoin="round"
+            android:pathData="M222,268l34,-96 34,96M235,236h42"/>
+        <path android:strokeColor="#FFFFFF" android:strokeWidth="25" android:strokeLineCap="round" android:strokeLineJoin="round"
+            android:pathData="M312,172h72M348,172v96"/>
+        <!-- código de barras -->
+        <path android:fillColor="#FFFFFF" android:pathData="M132,302h10v50h-10zM148,302h5v50h-5zM159,302h14v50h-14zM180,302h5v50h-5zM191,302h9v50h-9zM207,302h16v50h-16zM230,302h5v50h-5zM241,302h10v50h-10zM258,302h5v50h-5zM269,302h15v50h-15zM291,302h6v50h-6zM303,302h10v50h-10zM320,302h5v50h-5zM331,302h14v50h-14zM352,302h6v50h-6zM364,302h16v50h-16z"/>
+        <path android:fillColor="#E8BB62" android:pathData="M116,323h280v8h-280z"/>
+    </group>
+</vector>
