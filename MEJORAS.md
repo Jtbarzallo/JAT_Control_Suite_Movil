@@ -252,6 +252,12 @@ celular que sirven en PC están en dos bloques al final del archivo: `<style id=
       "Respaldar ahora" en Archivo, en Ajustes y en la barra de abajo ("Último respaldo: …", en rojo si
       tiene más de 24 h). Archivo → **Recuperar respaldo** trae todos los egresos que falten sin pisar
       los que ya están. `navigator.storage.persist`.
+- [ ] **Guardado automático sin trabarse** (24 nov 2026): la carpeta de trabajo es **REVISION DIGITAL**
+      (OneDrive › BODEGA RICAURTE) con Egresos, Backups, Reportes, Imprimir y Config. Al abrir el programa,
+      si ya hay carpeta, el guardado se activa con el primer clic o tecla (Chrome/Edge solo dejan pedir el
+      permiso tras un toque; antes se quedaba en "Reconectar carpeta" y no guardaba). Si nunca se eligió
+      carpeta, el aviso para elegirla sale al abrir. Los `.tmp` se borran después de cada guardado.
+      También en Venta y Personal (permiso con el primer toque y sin `.tmp`; sin el aviso al abrir).
 - [ ] Ya tenía y se conserva: hora de marcado, aviso de repetido, voz por caso, conteo rápido
       (F4/F9/Insert, CÓDIGO*cantidad), deshacer, cierre seguro, guardado en carpeta OneDrive, OneView,
       cartas de constancia y actas UCACUE.
@@ -323,3 +329,4 @@ marcado en cada producto contado y buscar escribiendo con lista para elegir con 
 - 2026-11-20: impresión del egreso en una sola hoja A3 vertical, con letra que se ajusta sola (Personal, Venta y PC).
 - 2026-11-20: icono violeta con logo JAT y manifiesto propio para la versión de PC (acceso directo en el escritorio).
 - 2026-11-24: app de Android (APK) de la versión personal: sin internet, lector ML Kit, respaldo en Descargas › JAT Control Suite, impresión A3, voz y dictado nativos, actualización dentro de la app.
+- 2026-11-24: guardado automático en la carpeta de trabajo: se activa con el primer toque tras abrir el navegador, aviso de elegir carpeta al abrir (PC, carpeta REVISION DIGITAL) y sin archivos `.tmp` sobrantes (PC, Venta y Personal).

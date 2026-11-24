@@ -1239,6 +1239,13 @@
         }
         await escribirArchivoOneDrive(tmp, contenido, tipo);
         await escribirArchivoOneDrive(nombreArchivo, contenido, tipo);
+        // El archivo bueno ya quedo escrito: se borra el .tmp para no llenar la carpeta
+        try {
+            const partes = String(tmp).replace(/\\/g, '/').split('/').filter(Boolean);
+            const nomTmp = partes.pop();
+            const dir = await obtenerDirectorioRuta(oneDriveDirHandle, partes.join('/'));
+            await dir.removeEntry(nomTmp);
+        } catch (_) {}
         return true;
     }
 
@@ -1377,6 +1384,41 @@
         }
     }
 
+    // Guardado automatico en la carpeta de trabajo (24 nov 2026).
+    // Chrome/Edge piden confirmar el permiso cada vez que se abre el navegador, y solo
+    // dejan pedirlo cuando el usuario toca algo: se activa con el primer toque o tecla.
+    let permisoPendienteHandler = null;
+    async function activarCarpetaConPermiso() {
+        if (!oneDriveDirHandle) return false;
+        try {
+            const ok = (await oneDriveDirHandle.queryPermission({ mode: 'readwrite' })) === 'granted' ||
+                       (await oneDriveDirHandle.requestPermission({ mode: 'readwrite' })) === 'granted';
+            if (!ok) { setOneDriveStatus('Permiso requerido: toca para activar', 'warn'); return false; }
+            oneDriveEnabled = true;
+            localStorage.setItem('oneliv_onedrive_enabled', '1');
+            setOneDriveStatus('Guardado automático activo: ' + (carpetaTrabajoNombre || 'carpeta'), 'ok');
+            await syncOneDriveNow(false);
+            return true;
+        } catch (e) {
+            console.warn('Permiso de carpeta:', e);
+            setOneDriveStatus('Permiso requerido: toca para activar', 'warn');
+            return false;
+        }
+    }
+    function esperarToqueParaPermiso() {
+        if (permisoPendienteHandler) return;
+        setOneDriveStatus('Toca cualquier parte para activar el guardado', 'warn');
+        permisoPendienteHandler = async () => {
+            document.removeEventListener('pointerdown', permisoPendienteHandler, true);
+            document.removeEventListener('keydown', permisoPendienteHandler, true);
+            permisoPendienteHandler = null;
+            const ok = await activarCarpetaConPermiso();
+            if (!ok) esperarToqueParaPermiso();
+        };
+        document.addEventListener('pointerdown', permisoPendienteHandler, true);
+        document.addEventListener('keydown', permisoPendienteHandler, true);
+    }
+
     async function iniciarOneDriveGuardado() {
         if (localStorage.getItem('oneliv_onedrive_enabled') !== '1') return;
         if (!('showDirectoryPicker' in window)) { setOneDriveStatus('Carpeta no compatible', 'warn'); return; }
@@ -1384,11 +1426,10 @@
             oneDriveDirHandle = await leerHandleOneDrive();
             if (!oneDriveDirHandle) return;
             setCarpetaTrabajo(localStorage.getItem('hat_work_folder_name') || oneDriveDirHandle.name || 'Carpeta seleccionada');
-            if (await asegurarPermisoOneDrive(oneDriveDirHandle)) {
-                oneDriveEnabled = true;
-                setOneDriveStatus('Carpeta conectada: ' + (carpetaTrabajoNombre || 'lista'), 'ok');
+            if ((await oneDriveDirHandle.queryPermission({ mode: 'readwrite' })) === 'granted') {
+                await activarCarpetaConPermiso();
             } else {
-                setOneDriveStatus('Permiso requerido', 'warn');
+                esperarToqueParaPermiso();
             }
         } catch (e) {
             console.warn('No se pudo restaurar carpeta:', e);
