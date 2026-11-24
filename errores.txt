@@ -1,0 +1,213 @@
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:144:81 Unresolved reference 'COD_CAMARA'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:159:25 Unresolved reference 'tiposDe'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:160:62 Overload resolution ambiguity between candidates:
+fun String.startsWith(prefix: String, ignoreCase: Boolean = ...): Boolean
+fun CharSequence.startsWith(prefix: CharSequence, ignoreCase: Boolean = ...): Boolean
+fun File.startsWith(other: String): Boolean
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:160:64 Unresolved reference 'it'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:171:83 Unresolved reference 'COD_ARCHIVO'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:242:50 Syntax error: Expecting member declaration.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:242:51 Syntax error: Expecting member declaration.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:242:52 Syntax error: Expecting member declaration.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:242:53 Syntax error: Expecting member declaration.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:244:21 Syntax error: Expecting a top level declaration.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:244:23 Syntax error: Expecting a top level declaration.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:244:28 Syntax error: Expecting a top level declaration.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:244:28 Function declaration must have a name.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:245:25 Unresolved reference 'lista'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:247:17 Syntax error: Expecting a top level declaration.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:248:13 Syntax error: Expecting a top level declaration.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:249:9 Syntax error: Expecting a top level declaration.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:250:9 Syntax error: Expecting a top level declaration.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:250:16 Syntax error: Expecting a top level declaration.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:250:21 Syntax error: Expecting a top level declaration.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:250:22 Syntax error: Expecting a top level declaration.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:250:30 Syntax error: Expecting a top level declaration.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:250:31 Syntax error: Expecting a top level declaration.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:250:32 Syntax error: Expecting a top level declaration.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:250:33 Syntax error: Expecting a top level declaration.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:250:45 Syntax error: Expecting a top level declaration.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:250:46 Syntax error: Expecting a top level declaration.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:251:5 Syntax error: Expecting a top level declaration.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:255:57 'this' is not defined in this context.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:256:47 'this' is not defined in this context.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:257:13 Unresolved reference 'fotoUri'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:262:13 Unresolved reference 'startActivityForResult'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:262:39 Unresolved reference 'COD_FOTO'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:265:13 Unresolved reference 'fotoUri'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:271:5 Modifier 'override' is not applicable to 'top level function'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:272:9 No supertypes are accessible in this context.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:274:13 Unresolved reference 'COD_ARCHIVO'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:275:26 Unresolved reference 'elegirArchivos'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:276:17 Unresolved reference 'elegirArchivos'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:279:13 Unresolved reference 'COD_FOTO'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:280:26 Unresolved reference 'elegirArchivos'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:281:17 Unresolved reference 'elegirArchivos'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:282:25 Unresolved reference 'fotoUri'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:283:17 Unresolved reference 'fotoUri'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:284:17 Not enough information to infer type argument for 'K'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:285:21 Not enough information to infer type argument for 'K'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:285:39 Unresolved reference 'RESULT_OK'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:285:66 Unresolved reference 'onReceiveValue'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:285:101 Unresolved reference 'onReceiveValue'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:288:13 Unresolved reference 'COD_VOZ'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:289:26 Unresolved reference 'dictadoId'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:290:17 Unresolved reference 'dictadoId'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:292:39 Unresolved reference 'RESULT_OK'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:295:38 Argument type mismatch: actual type is 'kotlin.Any', but 'kotlin.String' was expected.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:297:38 Argument type mismatch: actual type is 'kotlin.Any', but 'kotlin.String' was expected.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:306:13 Unresolved reference 'checkSelfPermission'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:309:43 Unresolved reference 'checkSelfPermission'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:312:34 Unresolved reference 'requestPermissions'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:312:76 Unresolved reference 'COD_PERMISOS'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:315:5 Modifier 'override' is not applicable to 'top level function'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:316:9 No supertypes are accessible in this context.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:317:28 Unresolved reference 'COD_CAMARA'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:319:21 Unresolved reference 'pedidoCamara'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:320:13 Unresolved reference 'pedidoCamara'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:322:27 Unresolved reference 'grant'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:322:91 Unresolved reference 'deny'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:333:57 'this' is not defined in this context.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:347:9 Unresolved reference 'runOnUiThread'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:347:40 'this' is not defined in this context.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:354:13 Unresolved reference 'startActivity'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:362:9 Unresolved reference 'runOnUiThread'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:364:17 Unresolved reference 'web'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:379:9 Unresolved reference 'runOnUiThread'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:380:13 Unresolved reference 'inmersivo'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:387:9 Unresolved reference 'window'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:387:51 Unresolved reference 'inmersivo'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:395:9 Unresolved reference 'runOnUiThread'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:396:13 Unresolved reference 'dictadoId'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:403:17 Unresolved reference 'startActivityForResult'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:403:43 Unresolved reference 'COD_VOZ'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:405:17 Unresolved reference 'dictadoId'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:415:26 Unresolved reference 'getSystemService'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:432:9 Unresolved reference 'runOnUiThread'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:433:29 'this' is not defined in this context.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:434:13 Unresolved reference 'impresion'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:452:5 Modifier 'override' is not applicable to 'top level function'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:453:9 Unresolved reference 'web'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:453:131 Cannot infer type for this parameter. Please specify it explicitly.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:456:29 Unresolved reference 'ultimoAtras'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:456:41 'operator' modifier is required on 'FirNamedFunctionSymbol kotlin/compareTo' in 'compareTo'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:457:21 Unresolved reference 'finish'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:459:21 Unresolved reference 'ultimoAtras'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:460:36 'this' is not defined in this context.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:466:5 Modifier 'override' is not applicable to 'top level function'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:467:9 No supertypes are accessible in this context.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:468:9 Unresolved reference 'web'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:470:9 Unresolved reference 'actualizador'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:473:5 Modifier 'override' is not applicable to 'top level function'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:474:9 Unresolved reference 'web'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:475:9 No supertypes are accessible in this context.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:478:5 Modifier 'override' is not applicable to 'top level function'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:479:9 No supertypes are accessible in this context.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:480:25 Unresolved reference 'inmersivo'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:483:5 Modifier 'override' is not applicable to 'top level function'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:484:9 Unresolved reference 'voz'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:485:9 Unresolved reference 'detector'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:487:13 Unresolved reference 'impresion'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:488:13 Unresolved reference 'web'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:491:9 No supertypes are accessible in this context.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:494:5 Modifier 'companion' is not applicable inside 'file'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:494:21 Syntax error: Name expected.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/MainActivity.kt:501:1 Syntax error: Expecting a top level declaration.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/Puente.kt:64:17 Unresolved reference 'avisar'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/Puente.kt:67:25 Unresolved reference 'avisar'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/Puente.kt:85:25 Unresolved reference 'avisar'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/Puente.kt:104:37 Unresolved reference 'imprimirPdf'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/Puente.kt:117:21 Unresolved reference 'avisar'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/Puente.kt:124:13 Unresolved reference 'imprimirHtml'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/Puente.kt:129:33 Unresolved reference 'abrirExterno'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/Puente.kt:134:13 Unresolved reference 'avisar'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/Puente.kt:141:13 Unresolved reference 'pantallaCompleta'.
+e: file:///home/runner/work/JAT_Control_Suite_Movil/JAT_Control_Suite_Movil/android/app/src/main/java/ec/jat/controlsuite/Puente.kt:158:13 Unresolved reference 'dictar'.
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_3-1795529950471.json
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileReleaseKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+	at org.gradle.internal.execution.steps.HandleStaleOutputsStep.execute(HandleStaleOutputsStep.java:75)
+	at org.gradle.internal.execution.steps.HandleStaleOutputsStep.execute(HandleStaleOutputsStep.java:41)
+	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.lambda$execute$0(AssignMutableWorkspaceStep.java:35)
+	at org.gradle.api.internal.tasks.execution.TaskExecution$4.withWorkspace(TaskExecution.java:289)
+	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.execute(AssignMutableWorkspaceStep.java:31)
+	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.execute(AssignMutableWorkspaceStep.java:22)
+	at org.gradle.internal.execution.steps.ChoosePipelineStep.execute(ChoosePipelineStep.java:40)
+	at org.gradle.internal.execution.steps.ChoosePipelineStep.execute(ChoosePipelineStep.java:23)
+	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.lambda$execute$2(ExecuteWorkBuildOperationFiringStep.java:67)
+	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.execute(ExecuteWorkBuildOperationFiringStep.java:67)
+	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.execute(ExecuteWorkBuildOperationFiringStep.java:39)
+	at org.gradle.internal.execution.steps.IdentityCacheStep.execute(IdentityCacheStep.java:46)
+	at org.gradle.internal.execution.steps.IdentityCacheStep.execute(IdentityCacheStep.java:34)
+	at org.gradle.internal.execution.steps.IdentifyStep.execute(IdentifyStep.java:48)
+	at org.gradle.internal.execution.steps.IdentifyStep.execute(IdentifyStep.java:35)
+	at org.gradle.internal.execution.impl.DefaultExecutionEngine$1.execute(DefaultExecutionEngine.java:61)
+	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.executeIfValid(ExecuteActionsTaskExecuter.java:127)
+	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.execute(ExecuteActionsTaskExecuter.java:116)
+	at org.gradle.api.internal.tasks.execution.FinalizePropertiesTaskExecuter.execute(FinalizePropertiesTaskExecuter.java:46)
+	at org.gradle.api.internal.tasks.execution.ResolveTaskExecutionModeExecuter.execute(ResolveTaskExecutionModeExecuter.java:51)
+	at org.gradle.api.internal.tasks.execution.SkipTaskWithNoActionsExecuter.execute(SkipTaskWithNoActionsExecuter.java:57)
+	at org.gradle.api.internal.tasks.execution.SkipOnlyIfTaskExecuter.execute(SkipOnlyIfTaskExecuter.java:74)
+	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.executeTask(EventFiringTaskExecuter.java:77)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:55)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:52)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:209)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:166)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter.execute(EventFiringTaskExecuter.java:52)
+	at org.gradle.execution.plan.LocalTaskNodeExecutor.execute(LocalTaskNodeExecutor.java:42)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:331)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:318)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.lambda$execute$0(DefaultTaskExecutionGraph.java:314)
+	at org.gradle.internal.operations.CurrentBuildOperationRef.with(CurrentBuildOperationRef.java:85)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:314)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:303)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.execute(DefaultPlanExecutor.java:459)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:376)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+Caused by: org.jetbrains.kotlin.gradle.tasks.CompilationErrorException: Compilation error. See log for more details
+	at org.jetbrains.kotlin.gradle.tasks.TasksUtilsKt.throwExceptionIfCompilationFailed(tasksUtils.kt:21)
+	at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.run(GradleKotlinCompilerWork.kt:119)
+	at org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction.execute(GradleCompilerRunnerWithWorkers.kt:76)
+	at org.gradle.workers.internal.DefaultWorkerServer.execute(DefaultWorkerServer.java:63)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:66)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:62)
+	at org.gradle.internal.classloader.ClassLoaderUtils.executeInClassloader(ClassLoaderUtils.java:100)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.lambda$execute$0(NoIsolationWorkerFactory.java:62)
+	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:44)
+	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:41)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:209)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:166)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.workers.internal.AbstractWorker.executeWrappedInBuildOperation(AbstractWorker.java:41)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.execute(NoIsolationWorkerFactory.java:59)
+	at org.gradle.workers.internal.DefaultWorkerExecutor.lambda$submitWork$0(DefaultWorkerExecutor.java:174)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runExecution(DefaultConditionalExecutionQueue.java:194)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.access$700(DefaultConditionalExecutionQueue.java:127)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner$1.run(DefaultConditionalExecutionQueue.java:169)
+	at org.gradle.internal.Factories$1.create(Factories.java:31)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:263)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:127)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:132)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runBatch(DefaultConditionalExecutionQueue.java:164)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.run(DefaultConditionalExecutionQueue.java:133)
+	... 2 more
+
+
+BUILD FAILED in 1m 47s
+35 actionable tasks: 35 executed
