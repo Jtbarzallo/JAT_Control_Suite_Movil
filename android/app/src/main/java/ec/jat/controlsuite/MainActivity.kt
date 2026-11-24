@@ -215,7 +215,7 @@ class MainActivity : Activity() {
 
     // ---------------------------------------------------------------- archivos y cámara
 
-    /** Convierte lo que pide la página (".pdf", "image/*"...) en tipos que entiende el selector de Android. */
+    /** Convierte lo que pide la página (como ".pdf" o imágenes) en tipos que entiende el selector de Android. */
     private fun tiposDe(aceptar: Array<String>?): Array<String> {
         val lista = ArrayList<String>()
         if (aceptar != null) {
