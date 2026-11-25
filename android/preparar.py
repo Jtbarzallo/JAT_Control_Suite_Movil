@@ -81,6 +81,8 @@ copiar(AQUI / "web" / "jat-android.js", WWW / "jat-android.js")
 for nombre in ("kardex_nombres.json", "kardex_categorias.json", "logo-jat-personal.svg",
                "icon-personal-192.png", "icon-personal-512.png"):
     copiar(RAIZ / nombre, WWW / nombre)
+# Lector de la pantalla del egreso de OneView (ventana OneView de la app)
+copiar(RAIZ / "oneview" / "jat-oneview.js", WWW / "jat-oneview.js")
 
 # ------------------------------------------------------------------ páginas
 CDN = [

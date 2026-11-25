@@ -26,7 +26,8 @@
         android:label="JAT Control Suite"
         android:largeHeap="true"
         android:hardwareAccelerated="true"
-        android:theme="@style/Tema">
+        android:theme="@style/Tema"
+        android:networkSecurityConfig="@xml/red">
 
         <activity
             android:name=".MainActivity"
@@ -59,7 +60,22 @@
                 <data android:mimeType="application/octet-stream" />
                 <data android:mimeType="text/csv" />
             </intent-filter>
+            <!-- Egreso desde OneView con el marcador "JAT" de Chrome (botón "Abrir en la app JAT") -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="jatcs" android:host="oneview" />
+            </intent-filter>
         </activity>
+
+        <!-- OneView dentro de la app para importar egresos -->
+        <activity
+            android:name=".OneViewActivity"
+            android:exported="false"
+            android:label="OneView"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|uiMode|density|fontScale|locale|layoutDirection"
+            android:windowSoftInputMode="adjustResize" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

@@ -64,7 +64,7 @@ class MainActivity : Activity() {
         actualizador = Actualizador(this)
         crearWeb()
         limpiarTemporales()
-        Compartidos.recibir(this, intent)
+        if (!OneView.desdeIntent(intent)) Compartidos.recibir(this, intent)
         pedirPermisos()
         web.postDelayed({ actualizador.buscar(false) }, 6000)
     }
@@ -287,6 +287,7 @@ class MainActivity : Activity() {
                     if (resultCode == RESULT_OK && u != null) cb.onReceiveValue(arrayOf(u)) else cb.onReceiveValue(null)
                 }
             }
+            COD_ONEVIEW -> js("window.JATOneView&&window.JATOneView.revisar()")
             COD_VOZ -> {
                 val id = dictadoId
                 dictadoId = null
@@ -410,6 +411,17 @@ class MainActivity : Activity() {
         }
     }
 
+    /** Ventana de OneView dentro de la app (importar egreso). */
+    fun abrirOneView() {
+        runOnUiThread {
+            try {
+                startActivityForResult(Intent(this, OneViewActivity::class.java), COD_ONEVIEW)
+            } catch (e: Exception) {
+                avisar("No se pudo abrir OneView")
+            }
+        }
+    }
+
     // ---------------------------------------------------------------- impresión
 
     private fun lanzarImpresion(adaptador: PrintDocumentAdapter, titulo: String) {
@@ -468,7 +480,8 @@ class MainActivity : Activity() {
     /** Llega un archivo compartido con la app ya abierta. */
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
-        if (Compartidos.recibir(this, intent)) js("window.JATHayCompartido&&window.JATHayCompartido()")
+        if (OneView.desdeIntent(intent)) js("window.JATOneView&&window.JATOneView.revisar()")
+        else if (Compartidos.recibir(this, intent)) js("window.JATHayCompartido&&window.JATHayCompartido()")
     }
 
     override fun onResume() {
@@ -505,5 +518,6 @@ class MainActivity : Activity() {
         const val COD_ARCHIVO = 21
         const val COD_FOTO = 22
         const val COD_VOZ = 23
+        const val COD_ONEVIEW = 24
     }
 }

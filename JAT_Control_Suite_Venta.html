@@ -2044,7 +2044,7 @@
         const productos = [];
         let actual = null;
 
-        const esCodigo = (v) => /^\d{6,18}$/.test(String(v || '').trim());
+        const esCodigo = (v) => /^(?:\d{6,18}|(?=\S*[A-Za-z])(?=(?:[^\s\d]*\d){3})[A-Za-z0-9][A-Za-z0-9'’´.\-]{4,24})$/.test(String(v || '').trim());
         const esCantidad = (v) => /^\d+(?:[\.,]\d+)?$/.test(String(v || '').trim());
         const normalizarCantidad = (v) => {
             const n = parseFloat(String(v || '').trim().replace(',', '.'));
@@ -2095,7 +2095,7 @@
         };
 
         const intentarFilaUnaLinea = (linea) => {
-            const m = linea.match(/^(\d{6,18})\s+(.+?)\s+(UNIDAD(?:ES)?\s+[A-ZÁÉÍÓÚÑ0-9 _.-]+)\s+(\d+(?:[\.,]\d+)?)\s*$/i);
+            const m = linea.match(/^((?:\d{6,18}|(?=\S*[A-Za-z])(?=(?:[^\s\d]*\d){3})[A-Za-z0-9][A-Za-z0-9'’´.\-]{4,24}))\s+(.+?)\s+(UNIDAD(?:ES)?\s+[A-ZÁÉÍÓÚÑ0-9 _.-]+)\s+(\d+(?:[\.,]\d+)?)\s*$/i);
             if (!m) return false;
             return agregarProducto(m[1], m[2], m[4], m[3]);
         };
@@ -2112,7 +2112,7 @@
                 continue;
             }
 
-            const empiezaCodigo = linea.match(/^(\d{6,18})\s+(.+)$/);
+            const empiezaCodigo = linea.match(/^((?:\d{6,18}|(?=\S*[A-Za-z])(?=(?:[^\s\d]*\d){3})[A-Za-z0-9][A-Za-z0-9'’´.\-]{4,24}))\s+(.+)$/);
             if (empiezaCodigo) {
                 cerrarActual();
                 actual = { codigo: empiezaCodigo[1], desc: [], unidadBodega: '', cantidad: null };
@@ -3649,6 +3649,7 @@
                 });
             }
             if (!file) return;
+            if (window.JATOneView && await JATOneView.intentarArchivo(file)) return;
             const txt = await file.text();
             const data = JSON.parse(txt);
             let egreso = data;
@@ -9596,6 +9597,7 @@ body.d-osc .jimp-box{background:#14202e;color:#e8eef4}body.d-osc .jimp-it{border
   const aviso = (m, t) => { try { showAlert(m, t || 'info'); } catch (_) {} };
   async function cargar(files) {
     if (!files.length) return;
+    if (window.JATOneView && files.length === 1 && await JATOneView.intentarArchivo(files[0])) return;
     aviso('📥 Egreso recibido: ' + files.map(f => f.name).join(', '), 'info');
     if (typeof importarArchivosEgreso === 'function') return importarArchivosEgreso(files);
     const pdf = files.find(f => /\.pdf$/i.test(f.name) || f.type === 'application/pdf');
@@ -9641,6 +9643,140 @@ body.d-osc .jimp-box{background:#14202e;color:#e8eef4}body.d-osc .jimp-it{border
   window.JATHayCompartido = desdeAndroid;
   window.JATRecibirArchivosCompartidos = cargar;
   const iniciar = () => setTimeout(() => { desdeAndroid(); desdePWA(); }, 900);
+  if (document.readyState === 'complete') iniciar(); else window.addEventListener('load', iniciar);
+})();
+</script>
+<style id="jat-oneview-estilo">
+.ini-btn.ini-oneview{grid-column:1/-1;background:linear-gradient(135deg,#0A1F44,#16346b)!important;color:#fff!important;border:3px solid #C9A227!important;min-height:76px;flex-direction:row;gap:12px;}
+.ini-btn.ini-oneview small{display:block;font-weight:700;opacity:1;color:#F3D77A;font-size:.8rem;}
+</style>
+<script id="jat-oneview">
+/* ===== Importar egreso desde OneView — 24 nov 2026 =====
+   - App de Android: "Importar desde OneView" abre OneView dentro de la app; con el egreso en pantalla
+     se toca "IMPORTAR ESTE EGRESO A JAT" y llega aquí (JATAndroid.oneViewPendiente).
+   - Chrome (celular o PC): marcador "JAT" en la página del egreso (oneview/index.html explica cómo);
+     abre esta página con #oneview=<datos> o descarga un archivo .oneview.json que se abre con
+     "Abrir archivo de egreso" o se comparte a la app.
+   Los datos entran por el mismo camino que el PDF (procesarTablaPegada): mismo nombre, mismo
+   guardado automático, mismo respaldo y se conserva el avance si el egreso ya existía. */
+(function () {
+  const PAGINA = 'venta';
+  const aviso = (m, t) => { try { showAlert(m, t || 'info'); } catch (_) { } };
+
+  function desdeB64(s) {
+    s = String(s || '').replace(/-/g, '+').replace(/_/g, '/');
+    while (s.length % 4) s += '=';
+    const bin = atob(s);
+    return new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0)));
+  }
+  const limpio = t => String(t == null ? '' : t).replace(/[\t\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+
+  // Arma el mismo texto que sale de un PDF de egreso, para usar el lector de siempre
+  function textoTabla(d) {
+    const m = d.meta || {};
+    const l = [];
+    if (m.secuencial) l.push(limpio(m.secuencial));
+    if (m.noComprobante) l.push('No. comprobante ' + limpio(m.noComprobante));
+    if (m.fechaComprobante) l.push('Fecha de comprobante ' + limpio(m.fechaComprobante));
+    if (m.bodegaOrigen) l.push('Bodega origen ' + limpio(m.bodegaOrigen));
+    if (m.bodegaDestino) l.push('Bodega destino ' + limpio(m.bodegaDestino));
+    if (m.puntoEmision) l.push('Punto de emisión ' + limpio(m.puntoEmision));
+    l.push('Detalle');
+    l.push('Código de barras\tProducto\tUnidad\tBodega\tCantidad');
+    d.productos.forEach(p => {
+      const uni = /^UNIDAD(ES)?$/i.test(limpio(p.unidad)) ? limpio(p.unidad).toUpperCase() : 'UNIDAD';
+      let bod = limpio(p.bodega);
+      if (!bod || /^\d+(?:[.,]\d+)?$/.test(bod)) bod = limpio(m.bodegaOrigen) || 'BODEGA';
+      const cant = Number(p.cantidad);
+      l.push([limpio(p.codigo), limpio(p.producto), uni, bod, (Math.round(cant * 1000) / 1000).toFixed(2)].join('\t'));
+    });
+    if (m.totalDocumento !== undefined && m.totalDocumento !== null && m.totalDocumento !== '') l.push('No. artículos ' + Number(m.totalDocumento).toFixed(2));
+    return l.join('\n');
+  }
+
+  function recibir(d) {
+    try { if (typeof d === 'string') d = JSON.parse(d); } catch (e) { aviso('❌ Los datos de OneView llegaron dañados. Vuelve a importar.', 'error'); return false; }
+    if (!d || !d.jatOneView || !Array.isArray(d.productos) || !d.productos.length) { aviso('❌ El egreso de OneView llegó vacío. Abre el egreso con la lista de productos y vuelve a importar.', 'error'); return false; }
+    if (typeof cargarVistaNuevoEgreso !== 'function' || typeof procesarTablaPegada !== 'function') { aviso('Esta versión no puede abrir egresos de OneView', 'error'); return false; }
+    try { const vm = document.getElementById('verificadorModal'); if (vm && vm.style.display === 'flex' && typeof cerrarVerificador === 'function') cerrarVerificador(); } catch (_) { }
+    cargarVistaNuevoEgreso(false);
+    const ta = document.getElementById('tablaEgresoInput');
+    if (!ta) { aviso('No se encontró la pantalla de nuevo egreso', 'error'); return false; }
+    ta.value = textoTabla(d);
+    const st = document.getElementById('pdfStatus'); if (st) st.innerText = 'Leído desde OneView: ' + ((d.meta && d.meta.secuencial) || 'egreso');
+    procesarTablaPegada();
+    try {
+      if (typeof currentProductos !== 'undefined' && currentProductos.length !== d.productos.length) {
+        aviso(`⚠️ OneView trae ${d.productos.length} productos y se cargaron ${currentProductos.length}. Revisa antes de verificar.`, 'warning');
+      }
+    } catch (_) { }
+    return true;
+  }
+
+  // Archivo .oneview.json (descargado con el marcador): lo reconoce "Abrir archivo de egreso" y "Compartir"
+  async function intentarArchivo(file) {
+    if (!file || file.size > 5e6 || /\.pdf$/i.test(file.name || '')) return false;
+    try {
+      const t = (await file.text()).replace(/^﻿/, '').trim();
+      if (!t.startsWith('{') || t.indexOf('"jatOneView"') < 0) return false;
+      const d = JSON.parse(t);
+      if (!d.jatOneView) return false;
+      return recibir(d);
+    } catch (e) { return false; }
+  }
+
+  function desdeEnlace() {
+    const h = location.hash || '';
+    if (!h.startsWith('#oneview=')) return;
+    const carga = h.slice(9);
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (_) { }
+    try { recibir(desdeB64(carga)); } catch (e) { aviso('❌ No se pudo leer el egreso de OneView', 'error'); }
+  }
+
+  let ocupado = false;
+  function desdeAndroid() {
+    if (ocupado || !(window.JATAndroid && typeof JATAndroid.oneViewPendiente === 'function')) return;
+    ocupado = true;
+    try { const t = JATAndroid.oneViewPendiente(); if (t) recibir(t); } catch (e) { aviso('❌ No se pudo abrir el egreso de OneView', 'error'); }
+    ocupado = false;
+  }
+
+  function abrir() {
+    if (window.JATAndroid && typeof JATAndroid.abrirOneView === 'function') { JATAndroid.abrirOneView(); return; }
+    const guia = 'oneview/index.html' + (PAGINA === 'venta' ? '?d=venta' : '');
+    window.open(guia, '_blank');
+  }
+
+  window.JATOneView = { recibir, intentarArchivo, abrir, revisar: desdeAndroid, textoTabla };
+
+  // Botón en Inicio (debajo de "Cargar egreso") y en el menú
+  function ponerBotones() {
+    const acc = document.querySelector('#mainContent .ini-acciones');
+    if (acc && !acc.querySelector('.ini-oneview')) {
+      const b = document.createElement('button');
+      b.className = 'ini-btn ini-oneview'; b.type = 'button'; b.setAttribute('data-no-fs', '');
+      b.innerHTML = '<span class="ico">🔗</span><span class="txt"><span>Importar desde OneView</span><small>' +
+        (window.JATAndroid ? 'Abre OneView aquí y trae el egreso' : 'Trae el egreso directo de OneView') + '</small></span>';
+      b.addEventListener('click', abrir);
+      const ref = acc.querySelector('.ini-cargar');
+      if (ref) ref.parentNode.insertBefore(b, ref.nextSibling); else acc.appendChild(b);
+    }
+    const it0 = document.querySelector('.menu-item[data-action="nuevoEgreso"]');
+    if (it0 && !document.querySelector('.menu-item[data-action="oneview"]')) {
+      const it = document.createElement('div'); it.className = 'menu-item'; it.dataset.action = 'oneview'; it.setAttribute('data-no-fs', '');
+      it.innerHTML = '<span class="icon">🔗</span> Importar desde OneView';
+      it.addEventListener('click', ev => { ev.stopPropagation(); try { document.body.classList.remove('ini-menu-abierto'); } catch (_) { } abrir(); });
+      it0.parentNode.insertBefore(it, it0.nextSibling);
+    }
+  }
+
+  function iniciar() {
+    ponerBotones();
+    const main = document.getElementById('mainContent');
+    if (main) new MutationObserver(() => { if (main.querySelector('.ini-acciones') && !main.querySelector('.ini-oneview')) ponerBotones(); }).observe(main, { childList: true });
+    setTimeout(() => { desdeEnlace(); desdeAndroid(); }, 900);
+    window.addEventListener('hashchange', desdeEnlace);
+  }
   if (document.readyState === 'complete') iniciar(); else window.addEventListener('load', iniciar);
 })();
 </script>

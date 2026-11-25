@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- OneView de La Victoria funciona con http (sin "s"): se permite solo para ese sitio -->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">lavictoria.ec</domain>
+    </domain-config>
+</network-security-config>

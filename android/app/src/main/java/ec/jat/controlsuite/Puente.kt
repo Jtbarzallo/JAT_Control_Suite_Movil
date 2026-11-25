@@ -31,6 +31,15 @@ class Puente(private val act: MainActivity) {
     @JavascriptInterface
     fun compartidosPendientes(): String = Compartidos.tomarPendientes()
 
+    /** Egreso traído desde OneView (ventana OneView de la app o marcador de Chrome). */
+    @JavascriptInterface
+    fun oneViewPendiente(): String = OneView.tomar()
+
+    @JavascriptInterface
+    fun abrirOneView() {
+        act.abrirOneView()
+    }
+
     // ---------- Archivos que salen de la app (descargas, compartir, imprimir) ----------
 
     @JavascriptInterface

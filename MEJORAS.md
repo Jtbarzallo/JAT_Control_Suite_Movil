@@ -146,6 +146,23 @@ Esta regla también está en la "Bitácora JAT Control Suite".
       que ya está, solo agrega las revisiones que falten).
 - [ ] Sin egresos no se baja respaldo por "cambios del día".
 
+## Importar egreso desde OneView (24 nov 2026, `oneview/`)
+
+- [ ] **Lector único** `oneview/jat-oneview.js`: lee la pantalla del egreso de OneView (Información general + Detalle):
+      número EGR, No. comprobante, fecha, bodega origen y destino, punto de emisión, y cada producto (código, producto,
+      unidad, bodega, cantidad). Compara con "No. artículos" y avisa en rojo si no cuadra. No toca usuario ni contraseña.
+- [ ] **App de Android**: Inicio › "Importar desde OneView" (y Menú) abre OneView dentro de la app (`OneViewActivity`);
+      la sesión queda guardada como en Chrome y vuelve a la última página. Botón dorado **IMPORTAR ESTE EGRESO A JAT**
+      → confirma (número, bodegas, productos, artículos) → entra a JAT. Solo `lavictoria.ec` puede usar http (`xml/red.xml`).
+- [ ] **Chrome (celular o PC)**: favorito "JAT" (guía en `oneview/index.html`, con versión corta y completa). En el egreso
+      abre una ventana con: "Abrir en la app JAT" (enlace `jatcs://oneview`), "Abrir en JAT (página web)" (`#oneview=`)
+      y "Descargar archivo (respaldo)" (`.oneview.json`, se abre con "Abrir archivo de egreso" o compartiéndolo a la app).
+- [ ] **Mismo camino que el PDF** (`procesarTablaPegada`): mismo nombre `EGR…_ORIGEN_A_DESTINO`, guardado y respaldo
+      automático; si el egreso ya existía se **conserva el avance** de la revisión.
+- [ ] **Códigos con letras al final** (2025122409004GD, 2025031333397N): Personal y Venta ahora los leen igual que PC
+      (antes esos productos se perdían al leer el PDF o la tabla pegada).
+- [ ] Regla 1: Venta recibe `#oneview=`, el archivo `.oneview.json` y el menú "Importar desde OneView" (guía con `?d=venta`).
+
 ## Kardex y ubicaciones
 
 - [ ] **Kardex por categorías grandes** (las mismas de Sacar): fila de chips "Todas" + una por categoría
@@ -351,3 +368,4 @@ marcado en cada producto contado y buscar escribiendo con lista para elegir con 
 - 2026-11-24: aplicación de escritorio para Windows de la versión de PC (instalador .exe en GitHub Releases, guarda directo en REVISION DIGITAL).
 - 2026-11-24: Revisiones (reporte con último disparo y hora, línea de tiempo, buscar producto, imprimir cualquier revisión), Imprimir por mes; arreglos de la app de PC (abrir egreso, visor PDF).
 - 2026-11-24: recibir el egreso compartido desde WhatsApp en la APK (y en Personal/Venta instaladas como página).
+- 2026-11-24: importar egreso desde OneView: ventana OneView dentro de la APK con botón IMPORTAR, favorito "JAT" para Chrome (abrir en la app, en la página web o descargar respaldo); Personal y Venta leen códigos con letras al final.

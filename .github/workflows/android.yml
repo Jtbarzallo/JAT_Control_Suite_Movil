@@ -8,6 +8,7 @@ on:
       - ".github/workflows/android.yml"
       - "JAT_Control_Suite_Movil.html"
       - "JAT_Salida_Mercaderia.html"
+      - "oneview/jat-oneview.js"
       - "kardex_nombres.json"
       - "kardex_categorias.json"
       - "logo-jat-personal.svg"
