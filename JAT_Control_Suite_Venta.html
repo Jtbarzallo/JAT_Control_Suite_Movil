@@ -9586,5 +9586,63 @@ body.d-osc .jimp-box{background:#14202e;color:#e8eef4}body.d-osc .jimp-it{border
 })();
 </script>
 
+<script id="jat-compartido">
+/* ===== Egreso compartido desde WhatsApp (u otra app) — 24 nov 2026 =====
+   WhatsApp › mantener presionado el PDF › Compartir › JAT Control Suite.
+   - App de Android (APK): la app copia el archivo y la página lo pide (JATAndroid.compartidosPendientes).
+   - Página instalada (PWA): el service worker guarda el archivo y abre la página con ?compartido=1.
+   Sirve para el PDF del egreso y también para un respaldo .hat/.json o un CSV. */
+(function () {
+  const aviso = (m, t) => { try { showAlert(m, t || 'info'); } catch (_) {} };
+  async function cargar(files) {
+    if (!files.length) return;
+    aviso('📥 Egreso recibido: ' + files.map(f => f.name).join(', '), 'info');
+    if (typeof importarArchivosEgreso === 'function') return importarArchivosEgreso(files);
+    const pdf = files.find(f => /\.pdf$/i.test(f.name) || f.type === 'application/pdf');
+    if (pdf && typeof cargarVistaNuevoEgreso === 'function' && typeof leerPDFSeleccionado === 'function') {
+      cargarVistaNuevoEgreso(false);
+      const inp = document.getElementById('pdfEgresoInput');
+      try { const dt = new DataTransfer(); dt.items.add(pdf); inp.files = dt.files; } catch (_) {}
+      return leerPDFSeleccionado();
+    }
+    aviso('Este archivo no se puede abrir aquí. Compártelo como PDF del egreso.', 'warning');
+  }
+  let ocupado = false;
+  async function desdeAndroid() {
+    if (ocupado || !(window.JATAndroid && typeof JATAndroid.compartidosPendientes === 'function')) return;
+    ocupado = true;
+    try {
+      const lista = JSON.parse(JATAndroid.compartidosPendientes() || '[]');
+      const files = [];
+      for (const x of lista) {
+        const b = await (await fetch(x.url)).blob();
+        files.push(new File([b], x.nombre || 'egreso.pdf', { type: x.tipo || b.type }));
+      }
+      await cargar(files);
+    } catch (e) { console.warn('compartido', e); aviso('No se pudo abrir el archivo compartido', 'error'); }
+    ocupado = false;
+  }
+  async function desdePWA() {
+    const u = new URL(location.href);
+    if (!u.searchParams.has('compartido')) return;
+    history.replaceState(null, '', u.pathname);
+    try {
+      const cache = await caches.open('jat-compartido');
+      const meta = await cache.match('meta').then(r => r ? r.json() : {}).catch(() => ({}));
+      const files = [];
+      for (const [i, m] of (meta.archivos || []).entries()) {
+        const r = await cache.match('archivo' + i);
+        if (r) files.push(new File([await r.blob()], m.nombre || 'egreso.pdf', { type: m.tipo || '' }));
+      }
+      for (const k of await cache.keys()) await cache.delete(k);
+      if (files.length) await cargar(files); else aviso('No llegó ningún archivo. Vuelve a compartirlo.', 'warning');
+    } catch (e) { aviso('No se pudo abrir el archivo compartido', 'error'); }
+  }
+  window.JATHayCompartido = desdeAndroid;
+  window.JATRecibirArchivosCompartidos = cargar;
+  const iniciar = () => setTimeout(() => { desdeAndroid(); desdePWA(); }, 900);
+  if (document.readyState === 'complete') iniciar(); else window.addEventListener('load', iniciar);
+})();
+</script>
 </body>
 </html>

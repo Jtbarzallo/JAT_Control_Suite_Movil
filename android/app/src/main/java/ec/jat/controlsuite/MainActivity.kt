@@ -64,6 +64,7 @@ class MainActivity : Activity() {
         actualizador = Actualizador(this)
         crearWeb()
         limpiarTemporales()
+        Compartidos.recibir(this, intent)
         pedirPermisos()
         web.postDelayed({ actualizador.buscar(false) }, 6000)
     }
@@ -112,6 +113,7 @@ class MainActivity : Activity() {
     private inner class ClienteWeb : WebViewClient() {
         override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
             val u = request?.url ?: return null
+            if (u.host == Recursos.HOST && (u.path ?: "").startsWith("/compartido/")) return Compartidos.responder(this@MainActivity, u.path ?: "")
             if (u.host == Recursos.HOST) return Recursos.responder(this@MainActivity, u.path ?: "")
             val local = Recursos.copiaLocalDeCdn(u.toString())
             if (local != null) return Recursos.responder(this@MainActivity, local)
@@ -461,6 +463,12 @@ class MainActivity : Activity() {
                 }
             }
         }
+    }
+
+    /** Llega un archivo compartido con la app ya abierta. */
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        if (Compartidos.recibir(this, intent)) js("window.JATHayCompartido&&window.JATHayCompartido()")
     }
 
     override fun onResume() {

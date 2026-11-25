@@ -26,5 +26,29 @@
       "purpose": "any maskable"
     }
   ],
-  "id": "JAT_Control_Suite_Venta.html"
+  "id": "JAT_Control_Suite_Venta.html",
+  "share_target": {
+    "action": "JAT_Control_Suite_Venta.html?compartido=1",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "files": [
+        {
+          "name": "archivo",
+          "accept": [
+            "application/pdf",
+            ".pdf",
+            "application/json",
+            ".json",
+            ".hat",
+            "application/octet-stream",
+            "text/csv",
+            ".csv"
+          ]
+        }
+      ]
+    }
+  }
 }

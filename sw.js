@@ -1,10 +1,31 @@
 // JAT Control Suite — service worker mínimo: permite instalar la app (pantalla completa).
 // No guarda copias: siempre carga la versión más nueva desde internet.
-// Además recibe los egresos que se comparten desde WhatsApp hacia "JAT Revisión".
+// Además recibe los egresos que se comparten desde WhatsApp hacia JAT Personal, JAT Suite (venta) y "JAT Revisión".
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
+  // Personal y Venta: egreso compartido (PDF, .hat/.json o CSV)
+  if (e.request.method === 'POST' && url.searchParams.has('compartido') &&
+      /JAT_Control_Suite_(Movil|Venta)\.html$/.test(url.pathname)) {
+    const pagina = url.pathname.split('/').pop();
+    e.respondWith((async () => {
+      try {
+        const datos = await e.request.formData();
+        const cache = await caches.open('jat-compartido');
+        for (const k of await cache.keys()) await cache.delete(k);
+        const archivos = [];
+        for (const f of datos.getAll('archivo')) {
+          if (!f || !f.size) continue;
+          await cache.put('archivo' + archivos.length, new Response(f, { headers: { 'Content-Type': f.type || 'application/octet-stream' } }));
+          archivos.push({ nombre: f.name, tipo: f.type });
+        }
+        await cache.put('meta', new Response(JSON.stringify({ archivos }), { headers: { 'Content-Type': 'application/json' } }));
+      } catch (err) {}
+      return Response.redirect(pagina + '?compartido=1', 303);
+    })());
+    return;
+  }
   if (e.request.method === 'POST' && url.pathname.endsWith('JAT_Revision_Mercaderia.html') && url.searchParams.has('compartido')) {
     e.respondWith((async () => {
       try {

@@ -100,7 +100,10 @@ Esta regla también está en la "Bitácora JAT Control Suite".
 ## Egresos
 
 - [ ] Se pueden elegir PDF desde OneDrive y Descargas sin que salgan en gris.
-- [ ] El egreso se recibe también compartiendo el PDF desde WhatsApp.
+- [ ] El egreso se recibe también compartiendo el PDF desde WhatsApp. **24 nov 2026: ya funciona en la APK y en
+      Personal y Venta instaladas como página**: WhatsApp › mantener presionado el PDF › Compartir › JAT Control
+      Suite (APK) / JAT Personal / JAT Suite. También sale en "Abrir con". En Personal acepta además el respaldo
+      `.hat`/`.json` y CSV (bloque `<script id="jat-compartido">`, `android/.../Compartidos.kt`, `sw.js`).
 - [ ] Todo se guarda solo; no hay botón obligatorio de guardar.
 - [ ] **PDF revisado al terminar** (12 nov 2026): cuando el egreso llega a 100 % verificado se genera solo
       "REVISADO_<egreso>_<fecha>_<hora>.pdf" (título "EGRESO REVISADO - 100% VERIFICADO" y hora de término).
@@ -347,3 +350,4 @@ marcado en cada producto contado y buscar escribiendo con lista para elegir con 
 - 2026-11-24: guardado automático en la carpeta de trabajo: se activa con el primer toque tras abrir el navegador, aviso de elegir carpeta al abrir (PC, carpeta REVISION DIGITAL) y sin archivos `.tmp` sobrantes (PC, Venta y Personal).
 - 2026-11-24: aplicación de escritorio para Windows de la versión de PC (instalador .exe en GitHub Releases, guarda directo en REVISION DIGITAL).
 - 2026-11-24: Revisiones (reporte con último disparo y hora, línea de tiempo, buscar producto, imprimir cualquier revisión), Imprimir por mes; arreglos de la app de PC (abrir egreso, visor PDF).
+- 2026-11-24: recibir el egreso compartido desde WhatsApp en la APK (y en Personal/Venta instaladas como página).

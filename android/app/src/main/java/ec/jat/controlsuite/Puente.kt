@@ -27,6 +27,10 @@ class Puente(private val act: MainActivity) {
         }
     }
 
+    /** Archivos compartidos a la app (WhatsApp › Compartir › JAT Control Suite). */
+    @JavascriptInterface
+    fun compartidosPendientes(): String = Compartidos.tomarPendientes()
+
     // ---------- Archivos que salen de la app (descargas, compartir, imprimir) ----------
 
     @JavascriptInterface
