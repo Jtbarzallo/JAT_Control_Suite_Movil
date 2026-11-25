@@ -5601,7 +5601,7 @@ window.JATShell = (function () {
         { ico: '📁', txt: 'Guardar como / carpeta', run: () => accion('guardarComo') },
         { ico: '🖨️', txt: 'Imprimir', run: () => accion('imprimir') },
         { ico: '📕', txt: 'Exportar PDF', run: () => accion('exportarPdf') },
-        { ico: '🖨️', txt: 'Para imprimir', sub: 'PDF de egresos revisados', run: () => window.JATImprimir && JATImprimir.abrir() }, { ico: '📋', txt: 'Revisiones', sub: 'Reporte, línea de tiempo, buscar e imprimir', run: () => window.JATRevisiones && JATRevisiones.abrir() },
+        { ico: '🖨️', txt: 'Para imprimir', sub: 'PDF de egresos revisados', run: () => window.JATImprimir && JATImprimir.abrir() }, { ico: '📋', txt: 'Revisiones', sub: 'Reporte, línea de tiempo, buscar e imprimir', run: () => window.JATRevisiones && JATRevisiones.abrir() }, { ico: '🖨️', txt: 'Imprimir revisión', sub: 'Reporte del egreso abierto, aunque no esté al 100 %', run: () => window.JATRevisiones && JATRevisiones.imprimirActual() },
         { ico: '📝', txt: 'Cartas de constancia', run: () => accion('constancias') },
         { ico: '📋', txt: 'Historial / avances', run: () => accion('historial') },
         { ico: '🗂️', txt: 'Carpeta de trabajo', sub: 'OneDrive / respaldo', run: () => accion('carpetaTrabajo') },
@@ -5635,7 +5635,7 @@ window.JATShell = (function () {
                   { ico: '📂', txt: 'Importar / abrir archivo', sub: '.hat, CSV, respaldo o PDF — varios a la vez', run: () => irAbrirArchivo() },
                   { ico: '✍️', txt: 'Pegar la tabla a mano', run: () => cargarVistaNuevoEgreso(false) },
                   { ico: '📁', txt: 'Egresos guardados', sub: 'Buscar en este teléfono', run: () => accion('buscarEgresos') },
-                  { ico: '🖨️', txt: 'Para imprimir', sub: 'PDF de egresos revisados', run: () => window.JATImprimir && JATImprimir.abrir() }, { ico: '📋', txt: 'Revisiones', sub: 'Reporte, línea de tiempo, buscar e imprimir', run: () => window.JATRevisiones && JATRevisiones.abrir() },
+                  { ico: '🖨️', txt: 'Para imprimir', sub: 'PDF de egresos revisados', run: () => window.JATImprimir && JATImprimir.abrir() }, { ico: '📋', txt: 'Revisiones', sub: 'Reporte, línea de tiempo, buscar e imprimir', run: () => window.JATRevisiones && JATRevisiones.abrir() }, { ico: '🖨️', txt: 'Imprimir revisión', sub: 'Reporte del egreso abierto, aunque no esté al 100 %', run: () => window.JATRevisiones && JATRevisiones.imprimirActual() },
                   { ico: '📋', txt: 'Historial / avances', run: () => accion('historial') }
               ] },
             { id: 'bodega', icono: 'sacar', txt: 'Sacar', titulo: 'Sacar mercadería', capa: true, abrir: bodega,
@@ -6995,7 +6995,7 @@ body.d-mar .vl-cat.on { background: var(--mar-oro, #d9ad5b); border-color: var(-
 .jrev-t td b{color:#0b223d}
 .jrev-vacio{padding:16px;border:2px dashed #1a3a5c;border-radius:12px;font-size:1.05rem}
 .jrev-sel{font-size:1.05rem;padding:10px 12px;border:2px solid #0b223d;border-radius:10px;max-width:100%;color:#0b1b2e;background:#fff}
-#jrevBtnVerif{margin-right:6px;font-weight:800;border-radius:10px;border:2px solid #8a6d0b;background:#c9a227;color:#0b1b2e;padding:8px 14px;cursor:pointer;font-size:.95rem}
+#jrevBtnVerif{flex-shrink:0;white-space:nowrap;margin-right:6px;font-weight:800;border-radius:10px;border:2px solid #8a6d0b;background:#c9a227;color:#0b1b2e;padding:8px 14px;cursor:pointer;font-size:.95rem}
 </style>
 <script>
 /* ===== JAT Revisiones =====
@@ -7007,6 +7007,9 @@ body.d-mar .vl-cat.on { background: var(--mar-oro, #d9ad5b); border-color: var(-
    archivos .hat de Egresos (así aparecen los de otros días o de la otra PC). No cambia ni borra nada. */
 (function () {
   if (typeof getExpectedQty !== 'function' || typeof getVerifiedQty !== 'function') return;
+  // Solo PC: botón en la cabecera del verificador. En celular la cabecera es angosta (aplastaba el nombre
+  // del egreso, 24 nov 2026): ahí "Imprimir revisión" va en el botón ＋.
+  const PONER_EN_CABECERA = false;
   const z = n => String(n).padStart(2, '0');
   const fh = t => { const d = new Date(t); return isNaN(d) ? '' : z(d.getDate()) + '/' + z(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + z(d.getHours()) + ':' + z(d.getMinutes()); };
   const hora = t => { const d = new Date(t); return isNaN(d) ? '' : z(d.getHours()) + ':' + z(d.getMinutes()) + ':' + z(d.getSeconds()); };
@@ -7220,7 +7223,7 @@ body.d-mar .vl-cat.on { background: var(--mar-oro, #d9ad5b); border-color: var(-
       ref.parentNode.insertBefore(it, ref.nextSibling);
     }
     // Botón siempre visible en la pantalla de revisión
-    const cab = document.querySelector('#verificadorModal .verificador-header');
+    const cab = PONER_EN_CABECERA ? document.querySelector('#verificadorModal .verificador-header') : null;
     if (cab && !document.getElementById('jrevBtnVerif')) {
       const zona = cab.lastElementChild || cab;
       const b = document.createElement('button'); b.type = 'button'; b.id = 'jrevBtnVerif'; b.textContent = '🖨️ Imprimir revisión';

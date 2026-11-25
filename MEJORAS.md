@@ -17,6 +17,11 @@ Jorge se agrega aquí el mismo día.
 
 Esta regla también está en la "Bitácora JAT Control Suite".
 
+## Antes de subir cualquier cambio (lección del 24 nov 2026)
+
+- [ ] Todo cambio que toque la pantalla se prueba con captura en **celular (412 px)** y en **PC**, y se compara
+      con la versión anterior. Nada se agrega a la cabecera del verificador del celular: es angosta.
+
 ## En todas las pantallas con escáner (Revisar, Sacar, Revisión de Mercadería, Venta; en PC lo que aplique, ver "Versión de PC")
 
 - [ ] **Gatillo disparador**: botón rojo ESCANEAR; la cámara lee solo mientras se aprieta,
@@ -290,7 +295,8 @@ celular que sirven en PC están en dos bloques al final del archivo: `<style id=
       producto que disparaste fue X, el 23/11 a las 11:30"; línea de tiempo con cada disparo, desmarcado y
       repetido; buscar un producto en todos los egresos (si se marcó y a qué hora). Lee los egresos del
       programa y los `.hat` de la carpeta Egresos. Imprime cualquier revisión aunque no esté al 100 %
-      (reporte A4) y botón "🖨️ Imprimir revisión" siempre visible en la pantalla del verificador.
+      (reporte A4). "🖨️ Imprimir revisión": en PC, botón en la cabecera del verificador; en Personal y Venta,
+      en el botón ＋ (24 nov 2026: en la cabecera del celular aplastaba el nombre del egreso; se quitó).
       En la carpeta, los reportes y PDF revisados se guardan por mes: `Imprimir/2026-11/…`.
 - [ ] App de PC: "Abrir egreso guardado" ya no falla y los PDF revisados se ven para imprimir.
 - [ ] Ya tenía y se conserva: hora de marcado, aviso de repetido, voz por caso, conteo rápido
@@ -369,3 +375,4 @@ marcado en cada producto contado y buscar escribiendo con lista para elegir con 
 - 2026-11-24: Revisiones (reporte con último disparo y hora, línea de tiempo, buscar producto, imprimir cualquier revisión), Imprimir por mes; arreglos de la app de PC (abrir egreso, visor PDF).
 - 2026-11-24: recibir el egreso compartido desde WhatsApp en la APK (y en Personal/Venta instaladas como página).
 - 2026-11-24: importar egreso desde OneView: ventana OneView dentro de la APK con botón IMPORTAR, favorito "JAT" para Chrome (abrir en la app, en la página web o descargar respaldo); Personal y Venta leen códigos con letras al final.
+- 2026-11-24: se quitó "Imprimir revisión" de la cabecera del verificador en el celular (aplastaba el nombre); ahora está en el ＋.
