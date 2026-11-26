@@ -116,12 +116,16 @@ Esta regla también está en la "Bitácora JAT Control Suite".
       una copia en la lista **🖨️ Para imprimir** (menú y aviso de completado) con Imprimir, Compartir y "Ya impreso".
       Solo se genera cuando el egreso PASA a completo mientras se revisa, no al abrir uno ya completo.
       En Personal, Venta y PC. Revisión de Mercadería (piloto) no se toca.
-- [ ] **Impresión en UNA sola hoja A3 vertical** (20 nov 2026): el PDF (el revisado y el de "Exportar PDF") sale en A3
-      vertical (297 x 420 mm) y la letra se ajusta sola: usa la más grande (hasta 12) con la que caben todos los
-      productos en una hoja, mínimo 6; solo si son muchísimos (unos 95 o más) pasa a la cantidad mínima de hojas con
-      la letra más grande posible. Descripción en negrita, columnas medidas al texto, línea fina entre filas y cabecera
-      repetida si hay más de una hoja. El botón "Imprimir" de la hoja en pantalla también pide A3 vertical y se achica
-      solo para entrar en una hoja. En Personal, Venta y PC.
+- [ ] **Hoja A3 del egreso, formato A** (25 nov 2026, reemplaza al de "una sola hoja" del 20 nov): el botón
+      "Imprimir" y el PDF (el revisado y el de "Exportar PDF") salen en A3 vertical (297 x 420 mm), todo en negro y
+      **sin pie de página**. Cabecera de UNA línea: egreso · origen → destino · fecha, y a la derecha el recuadro
+      "xx % REVISADO" (o "REVISADO 100 % · fecha hora" en el PDF revisado). Columnas: # · Código · Producto (negrita) ·
+      Cant. · Verificado · Fecha · Hora (PENDIENTE subrayado, "—" si no tiene hora). Series/observación debajo del
+      producto. **Hoja 1 con letra normal (14 px / 10,5 pt), unos 65 productos.** Lo que sobra va a la hoja 2 y la
+      letra se achica solo lo necesario para que entre todo ahí, **mínimo 12 px / 9 pt** (no bajar: Jorge no ve bien);
+      si ni así entra, se agregan hojas con 12 px. Desde la hoja 2 arriba dice "egreso — hoja X de N" y se repite la
+      cabecera de la tabla. Funciones `jatDatosHojaEgreso`, `imprimirReporte`, `descargarReportePDF`, iguales en
+      Personal, Venta y PC.
 - [ ] En la versión personal, el egreso abierto en Inicio aparece en Sacar, y el elegido en
       Sacar pasa a Revisar (es el mismo documento).
 - [ ] **Escáner USB / Bluetooth tipo pistola (NETUM y similares)** (20 nov 2026): escribe como un teclado, así que
@@ -376,3 +380,4 @@ marcado en cada producto contado y buscar escribiendo con lista para elegir con 
 - 2026-11-24: recibir el egreso compartido desde WhatsApp en la APK (y en Personal/Venta instaladas como página).
 - 2026-11-24: importar egreso desde OneView: ventana OneView dentro de la APK con botón IMPORTAR, favorito "JAT" para Chrome (abrir en la app, en la página web o descargar respaldo); Personal y Venta leen códigos con letras al final.
 - 2026-11-24: se quitó "Imprimir revisión" de la cabecera del verificador en el celular (aplastaba el nombre); ahora está en el ＋.
+- 2026-11-25: nueva hoja A3 del egreso (botón Imprimir y PDF): cabecera de una línea, columnas Verificado/Fecha/Hora, sin pie, 65 productos en la hoja 1 con letra normal y el resto en la hoja 2 con letra ajustada (mínimo 12 px) (Personal, Venta y PC).

@@ -2875,148 +2875,229 @@
         showAlert('📊 CSV exportado', 'success');
     }
 
-    function imprimirReporte() {
+    // ===== HOJA A3 DEL EGRESO (25 nov 2026, pedido de Jorge) =====
+    // Botón "Imprimir" y PDF (también el PDF revisado): hoja A3 vertical, cabecera de una sola línea,
+    // columnas # · Código · Producto · Cant. · Verificado · Fecha · Hora, todo en negro y sin pie de página.
+    // Hoja 1: letra normal (14 px / 10,5 pt) con todos los productos que quepan (unos 65).
+    // Lo que sobra va a la hoja 2 y la letra se achica solo lo necesario para que entre todo ahí
+    // (mínimo 12 px / 9 pt). Si ni con la letra mínima entra, se agregan más hojas.
+    function jatDatosHojaEgreso(opts) {
+        const total = totalEsperado(), verif = totalVerificado();
+        const pct = total > 0 ? Math.round(verif / total * 100) : 0;
+        const nombre = String(currentEgreso?.nombre || 'Egreso');
+        const o = String(currentEgreso?.bodegaOrigen || '').trim(), d = String(currentEgreso?.bodegaDestino || '').trim();
+        const ahora = jatFH(Date.now());
+        const revisado = !!(opts && opts.revisado === true);
+        const filas = currentProductos.map((p, i) => {
+            const fh = fechaHoraEscaneo(p), k = fh.indexOf(' ');
+            return {
+                n: String(i + 1), cod: String(p.barcode || ''), desc: String(p.productName || ''),
+                cant: formatearQty(getVerifiedQty(p)) + ' / ' + formatearQty(getExpectedQty(p)),
+                ok: isProductoVerificado(p),
+                fecha: fh ? (k > 0 ? fh.slice(0, k) : fh) : '', hora: (fh && k > 0) ? fh.slice(k + 1) : '',
+                obs: String(p.seriesTexto || p.observacion || '').replace(/\s*\n\s*/g, ' · ').trim()
+            };
+        });
+        return { nombre, o, d, hoy: ahora.split(' ')[0], badge: revisado ? 'REVISADO 100 % · ' + ahora : pct + ' % REVISADO', filas };
+    }
+
+    function imprimirReporte(opts) {
+        const D = jatDatosHojaEgreso(opts);
         const w = window.open('', '_blank');
-        const verificados = totalVerificado();
-        w.document.write(`<!DOCTYPE html><html><head><title>Reporte ${currentEgreso?.nombre || 'Egreso'}</title>
+        if (!w) { showAlert('El navegador bloqueó la ventana de impresión. Permite ventanas emergentes.', 'warning'); return; }
+        const e = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+        const ruta = (D.o || D.d) ? ' &nbsp;·&nbsp; ' + e(D.o || '—') + ' → ' + e(D.d || '—') : '';
+        const filasHTML = D.filas.map(f => '<tr><td class="c-n">' + f.n + '</td><td class="c-cod">' + e(f.cod) + '</td><td class="c-desc">' + e(f.desc) +
+            (f.obs ? '<div class="obs">' + e(f.obs) + '</div>' : '') + '</td><td class="c-cant">' + e(f.cant) + '</td><td class="c-est">' +
+            (f.ok ? 'VERIFICADO' : '<u>PENDIENTE</u>') + '</td><td class="c-fe">' + (f.fecha ? e(f.fecha) : '—') + '</td><td class="c-ho">' + (f.hora ? e(f.hora) : '—') + '</td></tr>').join('');
+        w.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>${e(D.nombre)}</title>
         <style>
-            body{font-family:'Segoe UI',sans-serif;padding:24px;color:#1a1a2e;}
-            h2{color:#1a3a5c;margin-bottom:8px;}
-            .info{background:#f8fafc;padding:14px;border-radius:8px;margin-bottom:20px;font-size:0.85rem;line-height:1.8;}
-            .prog{background:#eee;height:8px;border-radius:4px;margin-top:8px;}
-            .prog-fill{background:#27ae60;height:100%;border-radius:4px;}
-            table{border-collapse:collapse;width:100%;font-size:0.8rem;}
-            th,td{border:1px solid #ccc;padding:8px 12px;text-align:left;}
-            th{background:#f0f2f5;font-weight:600;}
-            tr.verified{background:#fff9e6;}
-            .footer{margin-top:24px;font-size:0.75rem;color:#7f8c8d;border-top:1px solid #eee;padding-top:12px;}
-            @page{size:A3 portrait;margin:8mm}
-            @media print{body{padding:0;}}
-    
-        .modal-panel-large { background:white; border-radius:22px; width:94%; max-width:1050px; max-height:88vh; overflow:auto; padding:24px; box-shadow:0 20px 60px rgba(0,0,0,.25); }
-        .cierre-grid { display:grid; grid-template-columns: repeat(4, minmax(120px, 1fr)); gap:12px; margin:12px 0 16px; }
-        .cierre-card { border:1px solid #dce3ea; border-radius:16px; padding:12px; background:#f8fafc; }
-        .cierre-card .num { font-size:1.6rem; font-weight:800; color:#0b5e8e; }
-        .cierre-card.ok .num { color:#16a34a; }
-        .cierre-card.warn .num { color:#f59e0b; }
-        .cierre-card.bad .num { color:#e74c3c; }
-        .status-chip { display:inline-block; border-radius:999px; padding:3px 10px; font-size:.68rem; font-weight:700; margin-left:6px; }
-        .status-chip.nuevo{background:#eef2ff;color:#1a6392;}
-        .status-chip.revision{background:#fff7ed;color:#c2410c;}
-        .status-chip.finalizado{background:#dcfce7;color:#166534;}
-        .audit-note { font-size:.72rem; color:#64748b; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:12px; padding:8px 12px; }
-        .table-mini { width:100%; border-collapse:collapse; font-size:.78rem; margin-top:10px; }
-        .table-mini th,.table-mini td{border-bottom:1px solid #edf2f7; padding:7px 8px; text-align:left;}
-        .table-mini th{background:#f8fafc;color:#1a3a5c;font-size:.68rem;text-transform:uppercase;}
-    </style></head><body>
-        <h2>📋 ${currentEgreso?.nombre || 'Egreso'}</h2>
-        <div class="info">
-            <strong>Fecha:</strong> ${new Date().toLocaleString()}<br>
-            ${currentEgreso?.bodegaOrigen ? `<strong>Origen:</strong> ${currentEgreso.bodegaOrigen}<br>` : ''}
-            ${currentEgreso?.bodegaDestino ? `<strong>Destino:</strong> ${currentEgreso.bodegaDestino}<br>` : ''}
-            <strong>Progreso:</strong> ${verificados} / ${formatearQty(totalEsperado())} unidades (${currentProductos.length > 0 ? Math.round(verificados/totalEsperado()*100) : 0}%)
-            <div class="prog"><div class="prog-fill" style="width:${currentProductos.length > 0 ? Math.round(verificados/totalEsperado()*100) : 0}%"></div></div>
-        </div>
-        <table><tr><th>#</th><th>Código</th><th>Cant.</th><th>Estado</th><th>Producto</th><th>Observaciones</th><th>Fecha y hora marcado</th></tr>
-        ${currentProductos.map((p,i) => `<tr class="${p.verified?'verified':''}"><td>${i+1}</td><td style="font-family:monospace;font-size:0.75rem;">${p.barcode}</td><td style="text-align:center;">${formatearQty(getVerifiedQty(p))}/${formatearQty(getExpectedQty(p))}</td><td>${p.verified?'✅ VERIFICADO':'⏳ PENDIENTE'}</td><td>${p.productName}</td><td>${p.seriesTexto || p.observacion || ''}</td><td>${marcasDeHora(p).map(m => jatFH(m.fecha)).join(' · ')}</td></tr>`).join('')}
-        </table>
-        <div class="footer">JAT Control Suite — Sistema de Verificación de Egresos | ${new Date().toLocaleString()}</div>
-        <script>window.addEventListener('load',function(){try{var H=404*3.7795,sh=document.documentElement.scrollHeight;if(sh>H){document.body.style.zoom=Math.max(0.3,H/sh*0.97);}}catch(e){}});<\/script>
+            *{box-sizing:border-box}
+            @page{size:A3 portrait;margin:7mm}
+            html,body{margin:0;padding:0;background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+            .hoja{width:283mm;height:405.5mm;overflow:hidden;break-after:page;page-break-after:always;--fs:14px}
+            .hoja:last-child{break-after:auto;page-break-after:auto}
+            .cab{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px 14px;border-bottom:2.5px solid #000;padding-bottom:5px;margin-bottom:8px}
+            .cab h1{margin:0;font-size:19px;font-weight:700;word-break:break-word}
+            .badge{font-size:15px;font-weight:700;padding:3px 10px;border:2px solid #000;white-space:nowrap}
+            .sig{font-size:13px;font-weight:700;border-bottom:2px solid #000;padding-bottom:3px;margin-bottom:5px;word-break:break-word}
+            table.tabla{width:100%;border-collapse:collapse;table-layout:fixed}
+            .tabla th,.tabla td{font-size:var(--fs);line-height:1.16;color:#000;vertical-align:top;text-align:left}
+            .tabla th{font-weight:700;padding:calc(var(--fs)*.28) 6px;border-top:2.5px solid #000;border-bottom:2.5px solid #000}
+            .tabla td{padding:calc(var(--fs)*.18) 6px;border-bottom:1px solid #000}
+            .tabla tr{break-inside:avoid;page-break-inside:avoid}
+            .c-n{width:2.6em;text-align:center!important}
+            .c-cod{width:14em;font-family:"Courier New",Courier,monospace;font-weight:700;word-break:break-all}
+            td.c-cod{font-size:calc(var(--fs)*.96)!important}
+            .c-desc{font-weight:700;word-break:break-word}
+            .c-cant{width:5.2em;text-align:center!important;font-weight:700;white-space:nowrap}
+            .c-est{width:8.6em;text-align:center!important;font-weight:700}
+            .c-fe{width:7.2em;text-align:center!important}
+            .c-ho{width:4.6em;text-align:center!important}
+            .obs{font-weight:400;font-size:.88em;margin-top:1px}
+            @media screen{body{background:#ddd}.hoja{background:#fff;margin:8px auto;padding:0;outline:1px solid #999}}
+        </style></head><body>
+        <table hidden><tbody id="jatFilas">${filasHTML}</tbody></table>
+        <div id="jatHojas"></div>
+        <script>
+        (function () {
+            var NORMAL = 14, MIN = 12, PASO = 0.25;
+            var filas = [].slice.call(document.getElementById('jatFilas').rows), cont = document.getElementById('jatHojas');
+            var THEAD = '<thead><tr><th class="c-n">#</th><th class="c-cod">Código</th><th class="c-desc">Producto</th><th class="c-cant">Cant.</th><th class="c-est">Verificado</th><th class="c-fe">Fecha</th><th class="c-ho">Hora</th></tr></thead>';
+            var CAB = ${JSON.stringify('<div class="cab"><h1>' + e(D.nombre) + ruta + ' &nbsp;·&nbsp; ' + e(D.hoy) + '</h1><span class="badge">' + e(D.badge) + '</span></div>').replace(/</g, '\\u003c')};
+            function hoja(primera) {
+                var h = document.createElement('section'); h.className = 'hoja';
+                h.innerHTML = (primera ? CAB : '<div class="sig"></div>') + '<table class="tabla">' + THEAD + '<tbody></tbody></table>';
+                cont.appendChild(h); return h;
+            }
+            function letra(h, px) { h.style.setProperty('--fs', px + 'px'); }
+            function cabe(h) { return h.scrollHeight <= h.clientHeight + 1; }
+            // Llena la hoja con filas desde i; devuelve hasta dónde llegó (al menos una fila por hoja)
+            function llenar(h, i) {
+                var tb = h.querySelector('tbody');
+                while (i < filas.length) {
+                    tb.appendChild(filas[i]);
+                    if (!cabe(h) && tb.rows.length > 1) { tb.removeChild(filas[i]); break; }
+                    i++;
+                }
+                return i;
+            }
+            var i = 0, h = hoja(true);
+            letra(h, NORMAL); i = llenar(h, i);
+            while (i < filas.length) {
+                h = hoja(false);
+                var tb = h.querySelector('tbody'), j;
+                for (j = i; j < filas.length; j++) tb.appendChild(filas[j]);
+                var px = NORMAL, entro = false;
+                for (; px >= MIN - 0.001; px = Math.round((px - PASO) * 100) / 100) { letra(h, px); if (cabe(h)) { entro = true; break; } }
+                if (entro) { i = filas.length; break; }
+                for (j = filas.length - 1; j >= i; j--) tb.removeChild(filas[j]);
+                letra(h, MIN); i = llenar(h, i);
+            }
+            var hs = document.querySelectorAll('.hoja');
+            [].forEach.call(document.querySelectorAll('.sig'), function (s) {
+                var k = [].indexOf.call(hs, s.parentNode) + 1;
+                s.textContent = ${JSON.stringify(D.nombre).replace(/</g, '\\u003c')} + ' — hoja ' + k + ' de ' + hs.length;
+            });
+        })();
+        <\/script>
         </body></html>`);
         w.document.close();
-        setTimeout(() => w.print(), 400);
+        setTimeout(() => { try { w.focus(); w.print(); } catch (_) {} }, 500);
     }
 
     function descargarReportePDF(opts) {
         if (!currentProductos.length) { showAlert('No hay productos para exportar', 'warning'); return; }
         if (!(window.jspdf && window.jspdf.jsPDF)) {
             showAlert('Lector PDF no disponible. Se abrirá imprimir/guardar como PDF.', 'warning');
-            imprimirReporte();
+            imprimirReporte(opts);
             return;
         }
         const { jsPDF } = window.jspdf;
-        // HOJA A3 VERTICAL (297 x 420 mm) y TODO EN UNA SOLA HOJA: se busca la letra más grande con la que
-        // caben todos los productos (así no se desperdicia papel). Solo si son cientos de filas pasa a más hojas.
-        const PW = 297, PH = 420, M = 10, PT = 0.3528;
+        const PW = 297, PH = 420, M = 8, PT = 0.3528, ABAJO = PH - M;
+        const NORMAL = 10.5, MIN = 9, PASO = 0.25;        // 10,5 pt = 14 px; 9 pt = 12 px
         const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a3' });
-        const nombre = currentEgreso?.nombre || 'Egreso';
-        const total = totalEsperado();
-        const verif = totalVerificado();
-        const filas = currentProductos.map((p, i) => ({
-            n: String(i + 1), cod: String(p.barcode),
-            cant: `${formatearQty(getVerifiedQty(p))}/${formatearQty(getExpectedQty(p))}`,
-            ok: isProductoVerificado(p), fh: fechaHoraEscaneo(p), desc: String(p.productName || '')
-        }));
-        // Encabezado
-        let y = 14;
-        doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
-        doc.text((opts && opts.revisado) ? 'EGRESO REVISADO - 100% VERIFICADO' : 'JAT Control Suite - Verificación de Egreso', M, y);
-        if (opts && opts.revisado) { doc.setFontSize(11); doc.setFont('helvetica', 'normal'); doc.text('Revisión terminada: ' + jatFH(Date.now()), PW - M, y, { align: 'right' }); }
-        y += 9;
-        doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.text(`Documento: ${nombre}`, M, y); y += 6;
-        doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
-        if (currentEgreso?.secuencial) { doc.text(`Secuencial: ${currentEgreso.secuencial}`, M, y); y += 5.6; }
-        doc.text(`Origen: ${currentEgreso?.bodegaOrigen || ''}    Destino: ${currentEgreso?.bodegaDestino || ''}`, M, y); y += 5.6;
-        doc.text(`Total: ${formatearQty(total)} artículos / ${currentProductos.length} códigos    Verificado: ${formatearQty(verif)}`, M, y); y += 8;
-        const yTabla = y;
-        // Distribución de columnas según el tamaño de letra
-        const medir = (textos, negrita, fs) => { doc.setFont('helvetica', negrita ? 'bold' : 'normal'); doc.setFontSize(fs); let m = 0; textos.forEach(t => { const w = doc.getTextWidth(String(t)); if (w > m) m = w; }); return m; };
+        const D = jatDatosHojaEgreso(opts);
+        const limpio = s => String(s || '').replace(/[→–—]/g, '-');
+        doc.setTextColor(0); doc.setDrawColor(0);
+
+        // Cabecera de una sola línea: egreso · origen > destino · fecha, y el recuadro con el avance
+        let y = M + 6;
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+        const bw = doc.getTextWidth(D.badge) + 6;
+        doc.setLineWidth(0.5); doc.rect(PW - M - bw, y - 5, bw, 7);
+        doc.text(D.badge, PW - M - bw + 3, y);
+        doc.setFontSize(14);
+        const titulo = limpio(D.nombre) + ((D.o || D.d) ? '  ·  ' + limpio(D.o || '-') + ' > ' + limpio(D.d || '-') : '') + '  ·  ' + D.hoy;
+        const tl = doc.splitTextToSize(titulo, PW - 2 * M - bw - 6);
+        doc.text(tl, M, y, { lineHeightFactor: 1.15 });
+        y += (tl.length - 1) * 14 * PT * 1.15 + 3;
+        doc.setLineWidth(0.7); doc.line(M, y, PW - M, y);
+        const y1 = y + 2.5;                    // inicio de la tabla en la hoja 1
+        const yN = M + 8;                      // inicio de la tabla en las hojas siguientes
+
+        // Medidas de columnas y alto de cada fila para una letra dada
+        const medir = (textos, neg, fs) => { doc.setFont('helvetica', neg ? 'bold' : 'normal'); doc.setFontSize(fs); let m = 0; textos.forEach(t => { const w = doc.getTextWidth(String(t)); if (w > m) m = w; }); return m; };
+        const cache = {};
         const armar = (fs) => {
-            const gap = fs * 0.4, L = {};
-            let x = M;
-            const col = (clave, textos, neg, enc) => { L[clave] = x; x += Math.max(medir(textos.concat([enc]), neg, fs), 0) + gap; };
-            col('n', filas.map(f => f.n), false, '#');
-            col('cod', filas.map(f => f.cod), false, 'Código');
-            col('cant', filas.map(f => f.cant), false, 'Cant.');
-            col('est', ['VERIFICADO', 'PENDIENTE'], true, 'Estado');
-            col('fh', filas.map(f => f.fh), false, 'Fecha y hora');
-            L.desc = x; L.descW = PW - M - x;
-            if (L.descW < 55) return null;
+            if (cache[fs]) return cache[fs];
+            const g = fs * PT * 1.1, F = D.filas, L = { fs };
+            L.wn = medir(F.map(f => f.n).concat(['#']), false, fs) + g;
+            L.wcod = medir(F.map(f => f.cod).concat(['Código']), true, fs * 0.96) + g;
+            L.wcant = medir(F.map(f => f.cant).concat(['Cant.']), true, fs) + g;
+            L.west = medir(['VERIFICADO', 'PENDIENTE', 'Verificado'], true, fs) + g;
+            L.wfe = medir(['00/00/0000', 'Fecha'], false, fs) + g;
+            L.who = medir(['00:00', 'Hora'], false, fs) + g;
+            L.xn = M; L.xcod = L.xn + L.wn; L.xdesc = L.xcod + L.wcod;
+            L.xho = PW - M - L.who; L.xfe = L.xho - L.wfe; L.xest = L.xfe - L.west; L.xcant = L.xest - L.wcant;
+            L.wdesc = L.xcant - L.xdesc - g * 0.5;
+            L.lineH = fs * PT * 1.16; L.pad = fs * PT * 0.2;
             doc.setFont('helvetica', 'bold'); doc.setFontSize(fs);
-            L.lineH = fs * PT * 1.2; L.pad = fs * PT * 0.22;
-            L.lineas = filas.map(f => doc.splitTextToSize(f.desc, L.descW));
-            L.alturas = L.lineas.map(ls => ls.length * L.lineH + L.pad * 2);
-            L.hEnc = fs * PT * 1.2 + 3;
-            L.suma = L.alturas.reduce((a, b) => a + b, 0);
-            return L;
+            L.lineas = F.map(f => doc.splitTextToSize(limpio(f.desc), L.wdesc));
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(fs * 0.88);
+            L.obs = F.map(f => f.obs ? doc.splitTextToSize(limpio(f.obs), L.wdesc) : []);
+            L.alto = F.map((f, i) => L.lineas[i].length * L.lineH + L.obs[i].length * L.lineH * 0.88 + L.pad * 2);
+            L.hEnc = fs * PT * 1.3 + 2;
+            return (cache[fs] = L);
         };
-        const alto1 = PH - 12 - yTabla;          // alto disponible en la primera hoja
-        const altoN = PH - 12 - (M + 4);         // alto disponible en las hojas siguientes
-        let fs = 5, L = null;
-        // Primero intenta UNA sola hoja con letra de 6 en adelante; si son demasiadas filas, usa el mínimo de hojas.
-        for (let hojas = 1; hojas <= 8 && !L; hojas++) {
-            for (const t of [12, 11, 10.5, 10, 9.5, 9, 8.5, 8, 7.5, 7, 6.5, 6, 5.5, 5]) {
-                if (hojas === 1 && t < 6) break;
-                const c = armar(t);
-                if (!c) continue;
-                const cap = alto1 + (hojas - 1) * altoN - (hojas - 1) * Math.max.apply(null, c.alturas) - hojas * c.hEnc;
-                if (c.suma <= cap) { fs = t; L = c; break; }
+        const suma = (L, a, b) => { let s = 0; for (let k = a; k < b; k++) s += L.alto[k]; return s; };
+        const llenar = (L, i, disponible) => { let s = 0, j = i; while (j < D.filas.length && (s + L.alto[j] <= disponible || j === i)) { s += L.alto[j]; j++; } return j; };
+
+        // Reparto en hojas
+        const hojas = [];
+        let L = armar(NORMAL), i = 0, fin = llenar(L, 0, ABAJO - y1 - L.hEnc);
+        hojas.push({ L, a: 0, b: fin, y0: y1 }); i = fin;
+        while (i < D.filas.length) {
+            let elegido = null;
+            for (let fs = NORMAL; fs >= MIN - 0.001; fs = Math.round((fs - PASO) * 100) / 100) {
+                const c = armar(fs);
+                if (suma(c, i, D.filas.length) <= ABAJO - yN - c.hEnc) { elegido = c; break; }
             }
+            if (elegido) { hojas.push({ L: elegido, a: i, b: D.filas.length, y0: yN }); break; }
+            const c = armar(MIN); fin = llenar(c, i, ABAJO - yN - c.hEnc);
+            hojas.push({ L: c, a: i, b: fin, y0: yN }); i = fin;
         }
-        if (!L) { fs = 5; L = armar(5) || armar(4); }
-        const encabezadoTabla = (yy) => {
+
+        const centro = (t, x, w, b) => doc.text(String(t), x + w / 2, b, { align: 'center' });
+        hojas.forEach((H, k) => {
+            const L = H.L, fs = L.fs;
+            if (k > 0) {
+                doc.addPage();
+                doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+                doc.text(doc.splitTextToSize(limpio(D.nombre) + ' - hoja ' + (k + 1) + ' de ' + hojas.length, PW - 2 * M)[0], M, M + 4);
+                doc.setLineWidth(0.5); doc.line(M, M + 5.5, PW - M, M + 5.5);
+            }
+            let yy = H.y0;
+            // Encabezado de la tabla
             doc.setFont('helvetica', 'bold'); doc.setFontSize(fs);
-            const b = yy + fs * PT;
-            doc.text('#', L.n, b); doc.text('Código', L.cod, b); doc.text('Cant.', L.cant, b); doc.text('Estado', L.est, b); doc.text('Fecha y hora', L.fh, b); doc.text('Descripción', L.desc, b);
-            doc.setDrawColor(0); doc.setLineWidth(0.4); doc.line(M, yy + L.hEnc - 1, PW - M, yy + L.hEnc - 1);
-            return yy + L.hEnc;
-        };
-        y = encabezadoTabla(yTabla);
-        filas.forEach((f, i) => {
-            if (y + L.alturas[i] > PH - 12) { doc.addPage(); y = encabezadoTabla(M + 4); }
-            const b = y + L.pad + fs * PT;
-            doc.setFont('helvetica', 'normal'); doc.setFontSize(fs);
-            doc.text(f.n, L.n, b); doc.text(f.cod, L.cod, b); doc.text(f.cant, L.cant, b);
-            doc.setFont('helvetica', 'bold');
-            doc.text(f.ok ? 'VERIFICADO' : 'PENDIENTE', L.est, b);
-            doc.text(L.lineas[i], L.desc, b, { lineHeightFactor: 1.2 });
-            doc.setFont('helvetica', 'normal'); doc.text(f.fh, L.fh, b);
-            y += L.alturas[i];
-            doc.setDrawColor(190); doc.setLineWidth(0.15); doc.line(M, y, PW - M, y);
+            doc.setLineWidth(0.6); doc.line(M, yy, PW - M, yy);
+            const bE = yy + 1 + fs * PT;
+            centro('#', L.xn, L.wn, bE); doc.text('Código', L.xcod, bE); doc.text('Producto', L.xdesc, bE);
+            centro('Cant.', L.xcant, L.wcant, bE); centro('Verificado', L.xest, L.west, bE); centro('Fecha', L.xfe, L.wfe, bE); centro('Hora', L.xho, L.who, bE);
+            yy += L.hEnc; doc.line(M, yy, PW - M, yy);
+            for (let r = H.a; r < H.b; r++) {
+                const f = D.filas[r], b = yy + L.pad + fs * PT;
+                doc.setFont('helvetica', 'normal'); doc.setFontSize(fs);
+                centro(f.n, L.xn, L.wn, b);
+                centro(f.fecha || '-', L.xfe, L.wfe, b); centro(f.hora || '-', L.xho, L.who, b);
+                doc.setFont('helvetica', 'bold');
+                centro(f.cant, L.xcant, L.wcant, b);
+                const est = f.ok ? 'VERIFICADO' : 'PENDIENTE';
+                centro(est, L.xest, L.west, b);
+                if (!f.ok) { const tw = doc.getTextWidth(est), cx = L.xest + L.west / 2; doc.setLineWidth(0.25); doc.line(cx - tw / 2, b + 0.6, cx + tw / 2, b + 0.6); }
+                doc.text(L.lineas[r], L.xdesc, b, { lineHeightFactor: 1.16 });
+                if (L.obs[r].length) {
+                    doc.setFont('helvetica', 'normal'); doc.setFontSize(fs * 0.88);
+                    doc.text(L.obs[r], L.xdesc, b + L.lineas[r].length * L.lineH, { lineHeightFactor: 1.16 });
+                }
+                doc.setFont('helvetica', 'bold'); doc.setFontSize(fs * 0.96);
+                doc.text(doc.splitTextToSize(f.cod, L.wcod)[0], L.xcod, b);
+                yy += L.alto[r];
+                doc.setLineWidth(0.15); doc.line(M, yy, PW - M, yy);
+            }
         });
-        try { const n = doc.getNumberOfPages(); for (let k = 1; k <= n; k++) { doc.setPage(k); doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.text(`Generado: ${jatFH(Date.now())}  ·  Página ${k} de ${n}`, M, PH - 6); } } catch (_) {}
         if (opts && opts.devolver) return doc;
-        doc.save(`${safeFileName(nombre)}.pdf`);
+        doc.save(`${safeFileName(D.nombre)}.pdf`);
         showAlert('📄 PDF descargado', 'success');
     }
 
