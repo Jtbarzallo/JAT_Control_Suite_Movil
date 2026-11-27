@@ -22,6 +22,30 @@
     return p + Date.now().toString(36) + contador + Math.floor(Math.random() * 1e6).toString(36);
   }
 
+  /* ---------- Guardado automático de egresos en Descargas › JAT Control Suite (27 nov 2026) ----------
+     La página ya sabe guardar en el teléfono con "HatAndroid" (Egresos/*.hat, Backups, Reportes, Config).
+     Aquí se lo damos: cada egreso queda como archivo en Descargas › JAT Control Suite y OneSync lo sube a OneDrive. */
+  var LUGAR = 'Descargas › JAT Control Suite';
+  if (!window.HatAndroid && typeof N.guardarArchivo === 'function') {
+    window.HatAndroid = {
+      guardarArchivo: function (ruta, contenido, tipo) {
+        try { return String(N.guardarArchivo(String(ruta), String(contenido == null ? '' : contenido), String(tipo || ''))); }
+        catch (e) { return 'ERR:' + (e && e.message || e); }
+      },
+      elegirCarpetaOneDrive: function () {
+        try { N.avisar('Los egresos se guardan solos en ' + LUGAR + '. OneSync los sube a OneDrive.'); } catch (_) {}
+        setTimeout(function () { try { if (typeof syncOneDriveNow === 'function') syncOneDriveNow(true); } catch (_) {} }, 300);
+      }
+    };
+    try { localStorage.setItem('hat_work_folder_name', LUGAR); } catch (_) {}
+    // Al abrir la app: una copia de todo (Config/HAT_EGRESOS_RESPALDO.json) y del egreso en curso
+    window.addEventListener('load', function () {
+      setTimeout(function () {
+        try { if (typeof syncOneDriveNow === 'function' && Array.isArray(egresosGuardados) && egresosGuardados.length) syncOneDriveNow(false); } catch (_) {}
+      }, 4000);
+    });
+  }
+
   /* ---------- Se comporta como app instalada ---------- */
   try { Object.defineProperty(navigator, 'standalone', { value: true, configurable: true }); } catch (_) {}
 

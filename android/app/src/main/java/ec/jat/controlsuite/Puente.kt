@@ -142,6 +142,19 @@ class Puente(private val act: MainActivity) {
         act.runOnUiThread { act.abrirExterno(Uri.parse(url)) }
     }
 
+    /**
+     * Guardado automático de egresos (27 nov 2026): escribe texto en Descargas › JAT Control Suite › <ruta>,
+     * reemplazando el archivo anterior del mismo egreso. Ej.: "Egresos/EGR123.hat".
+     */
+    @JavascriptInterface
+    fun guardarArchivo(ruta: String, contenido: String, tipo: String): String {
+        return try {
+            Archivos.escribirEnCarpeta(act, ruta, contenido.toByteArray(Charsets.UTF_8))
+        } catch (e: Exception) {
+            "ERR:" + (e.message ?: "error al guardar")
+        }
+    }
+
     @JavascriptInterface
     fun avisar(mensaje: String) {
         act.avisar(mensaje)

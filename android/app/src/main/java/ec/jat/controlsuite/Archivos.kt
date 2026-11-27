@@ -99,6 +99,93 @@ object Archivos {
         }
     }
 
+    /**
+     * Guarda (o reemplaza) un archivo dentro de Descargas/JAT Control Suite/<subcarpetas>, por ejemplo
+     * "Egresos/EGR123.hat". Es el guardado automático de los egresos: siempre el mismo archivo por egreso,
+     * así OneSync (u otra app) lo sube a OneDrive. No se borra al desinstalar la app. (27 nov 2026)
+     * Devuelve "OK:<lugar>" o "ERR:<motivo>".
+     */
+    fun escribirEnCarpeta(ctx: Context, ruta: String, datos: ByteArray): String {
+        val partes = ruta.replace('\\', '/').split('/')
+            .map { it.trim() }
+            .filter { it.isNotEmpty() && it != "." && it != ".." }
+            .map { nombreSeguro(it) }
+        if (partes.isEmpty()) return "ERR:nombre vacío"
+        val nombre = partes.last()
+        val sub = partes.dropLast(1).joinToString("/")
+        val rutaLimpia = partes.joinToString("/")
+        val lugar = "Descargas › $CARPETA › " + partes.joinToString(" › ")
+        return try {
+            if (Build.VERSION.SDK_INT >= 29) {
+                val resolver = ctx.contentResolver
+                val prefs = ctx.getSharedPreferences("jat_archivos", Context.MODE_PRIVATE)
+                val relativa = Environment.DIRECTORY_DOWNLOADS + "/" + CARPETA + (if (sub.isEmpty()) "" else "/$sub") + "/"
+
+                fun escribir(uri: Uri): Boolean = try {
+                    val fd = resolver.openFileDescriptor(uri, "rwt") ?: throw IllegalStateException("sin acceso")
+                    fd.use { d -> FileOutputStream(d.fileDescriptor).use { s -> s.write(datos); s.flush(); s.fd.sync() } }
+                    true
+                } catch (e: Exception) {
+                    false
+                }
+
+                // 1) El mismo archivo de la última vez (aunque Android le haya puesto otro nombre)
+                prefs.getString(rutaLimpia, null)?.let { guardado ->
+                    if (escribir(Uri.parse(guardado))) return "OK:$lugar"
+                    prefs.edit().remove(rutaLimpia).apply()
+                }
+                // 2) Un archivo de la app con ese nombre en esa carpeta
+                var existente: Uri? = null
+                resolver.query(
+                    MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                    arrayOf(MediaStore.MediaColumns._ID),
+                    MediaStore.MediaColumns.RELATIVE_PATH + "=? AND " + MediaStore.MediaColumns.DISPLAY_NAME + "=?",
+                    arrayOf(relativa, nombre),
+                    null
+                )?.use { c ->
+                    if (c.moveToFirst()) existente = android.content.ContentUris.withAppendedId(
+                        MediaStore.Downloads.EXTERNAL_CONTENT_URI, c.getLong(0)
+                    )
+                }
+                existente?.let { u ->
+                    if (escribir(u)) {
+                        prefs.edit().putString(rutaLimpia, u.toString()).apply()
+                        return "OK:$lugar"
+                    }
+                }
+                // 3) Archivo nuevo
+                val valores = ContentValues()
+                valores.put(MediaStore.MediaColumns.DISPLAY_NAME, nombre)
+                valores.put(MediaStore.MediaColumns.MIME_TYPE, tipoParaGuardar(nombre))
+                valores.put(MediaStore.MediaColumns.RELATIVE_PATH, relativa)
+                valores.put(MediaStore.MediaColumns.IS_PENDING, 1)
+                val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, valores)
+                    ?: return "ERR:Android no dejó crear el archivo"
+                if (!escribir(uri)) {
+                    resolver.delete(uri, null, null)
+                    return "ERR:no se pudo escribir el archivo"
+                }
+                val fin = ContentValues()
+                fin.put(MediaStore.MediaColumns.IS_PENDING, 0)
+                resolver.update(uri, fin, null, null)
+                prefs.edit().putString(rutaLimpia, uri.toString()).apply()
+            } else {
+                var dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), CARPETA)
+                if (sub.isNotEmpty()) dir = File(dir, sub)
+                if (!dir.exists()) dir.mkdirs()
+                val destino = File(dir, nombre)
+                val temporal = File(carpetaTemporal(ctx), "escribiendo_" + System.nanoTime())
+                FileOutputStream(temporal).use { s -> s.write(datos); s.flush(); s.fd.sync() }
+                FileInputStream(temporal).use { e -> FileOutputStream(destino).use { s -> e.copyTo(s) } }
+                temporal.delete()
+                MediaScannerConnection.scanFile(ctx, arrayOf(destino.absolutePath), null, null)
+            }
+            "OK:$lugar"
+        } catch (e: Exception) {
+            "ERR:" + (e.message ?: "error al guardar")
+        }
+    }
+
     fun uriCompartible(ctx: Context, archivo: File): Uri =
         FileProvider.getUriForFile(ctx, ctx.packageName + ".archivos", archivo)
 

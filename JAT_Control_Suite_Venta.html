@@ -1382,8 +1382,7 @@
     async function escribirArchivoSeguro(nombreArchivo, contenido, tipo = 'application/json') {
         const tmp = nombreArchivo + '.tmp';
         if (isAndroidBridge()) {
-            const r1 = window.HatAndroid.guardarArchivo(tmp, contenido, tipo);
-            if (!String(r1).startsWith('OK')) throw new Error(r1);
+            // APK (27 nov 2026): el teléfono reemplaza el archivo de forma segura; sin .tmp que OneSync suba a OneDrive
             const r2 = window.HatAndroid.guardarArchivo(nombreArchivo, contenido, tipo);
             if (!String(r2).startsWith('OK')) throw new Error(r2);
             return true;
@@ -2277,7 +2276,7 @@
         actualizarSidebarEgresoActivo();
         syncOneDriveNow(true);
         closeModal('guardarComoModal');
-        showAlert(`✅ Egreso "${nombre}" guardado en ${carpetaTrabajoNombre || 'carpeta seleccionada'}`, 'success');
+        showAlert((isAndroidBridge() || oneDriveDirHandle) ? `✅ Egreso "${nombre}" guardado en ${carpetaTrabajoNombre || 'la carpeta'}` : `✅ Egreso "${nombre}" guardado en el teléfono (sin carpeta elegida: queda solo en este navegador y en el respaldo de Descargas)`, 'success');
         // NO limpiar currentProductos aquí — el usuario puede querer verificar de inmediato
     }
 
