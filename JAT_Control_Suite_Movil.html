@@ -729,7 +729,7 @@
                 </div>
                 <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
                     <span class="badge-status" style="font-size:0.65rem;padding:3px 10px;">● Activo</span>
-                    <button class="vf-home-btn" onclick="cerrarVerificador();irInicio();">🏠 Inicio</button>
+                    <button class="vf-home-btn vf-salir-btn" onclick="jatGuardarYSalir()">💾 Guardar y salir</button>
                 </div>
             </div>
 
@@ -3860,6 +3860,25 @@
         if (!currentEgreso || !currentProductos.length) { showAlert('No hay egreso activo para guardar', 'warning'); return; }
         autoGuardarEgreso();
         syncOneDriveNow(true);
+    }
+
+    // ---- GUARDAR Y SALIR (27 nov 2026): escribe el egreso en la carpeta (APK: Descargas › JAT Control Suite → OneSync) y sale ----
+    async function jatGuardarYSalir() {
+        const hay = currentEgreso && currentProductos && currentProductos.length;
+        const nombre = hay ? (currentEgreso.nombre || currentEgreso.secuencial || 'egreso') : '';
+        persistLastError = '';
+        if (hay) {
+            try { autoGuardarEgreso('guardar y salir'); } catch (e) { console.warn(e); }
+            try { await syncOneDriveNow(false); } catch (e) { console.warn(e); }
+        }
+        const fallo = hay && !!persistLastError;
+        const enCarpeta = (typeof isAndroidBridge === 'function' && isAndroidBridge()) || !!oneDriveDirHandle;
+        cerrarVerificador();
+        irInicio();
+        if (!hay) { showAlert('No hay egreso abierto', 'info'); return; }
+        if (fallo) { showAlert('⚠️ Se guardó en el teléfono, pero no en la carpeta: ' + persistLastError, 'warning'); return; }
+        showAlert(enCarpeta ? `💾 "${nombre}" guardado en ${carpetaTrabajoNombre || 'la carpeta'}` : `💾 "${nombre}" guardado en el teléfono (sin carpeta elegida)`, 'success');
+        try { hablarHat('Guardado.', 'ok', {force:true}); } catch (e) {}
     }
 
     function cargarVistaHistorial() {
@@ -7509,5 +7528,8 @@ body.d-mar .vl-cat.on { background: var(--mar-oro, #d9ad5b); border-color: var(-
   if (document.readyState === 'complete') iniciar(); else window.addEventListener('load', iniciar);
 })();
 </script>
+<style>/* Guardar y salir (27 nov 2026): grande y fuerte, se ve bien */
+body .vf-home-btn.vf-salir-btn{background:#d9ad5b;color:#0b1626;border:2px solid #f3d38c;border-radius:12px;padding:10px 14px;font-weight:900;font-size:1.05rem;min-height:48px;white-space:nowrap;}
+</style>
 </body>
 </html>

@@ -246,6 +246,9 @@ Firmada con la misma llave `jat.keystore` de las otras apps JAT, así se actuali
 - [ ] **Respaldo que sobrevive** (regla fija 3): los archivos `.hat` automáticos y todas las descargas (PDF, CSV,
       Excel) se guardan en **Descargas › JAT Control Suite** con MediaStore, que no se borra al desinstalar. Además
       la app permite la copia automática de Android (`allowBackup`). Para recuperar: Inicio › ＋ › Importar / abrir archivo.
+- [ ] **Botón "Guardar y salir"** (27 nov 2026): en el verificador de Personal reemplaza a "Inicio" (dorado y grande).
+      Escribe el egreso en la carpeta (APK: Descargas › JAT Control Suite → OneSync → OneDrive) y vuelve a Inicio;
+      el egreso queda para "Continuar". Avisa si no pudo escribir en la carpeta. También en PC (junto a la ×); Venta ya lo tenía.
 - [ ] **Egresos a la nube con OneSync** (27 nov 2026): la APK guarda sola cada egreso como archivo en
       **Descargas › JAT Control Suite** con subcarpetas Egresos (`.hat` y `.json`), Backups (`.bak`), Reportes (`.csv`) y
       Config (`HAT_EGRESOS_RESPALDO.json`, todos los egresos). Siempre el mismo archivo por egreso (se reemplaza, sin `.tmp`).
@@ -388,3 +391,4 @@ marcado en cada producto contado y buscar escribiendo con lista para elegir con 
 - 2026-11-24: se quitó "Imprimir revisión" de la cabecera del verificador en el celular (aplastaba el nombre); ahora está en el ＋.
 - 2026-11-25: nueva hoja A3 del egreso (botón Imprimir y PDF): cabecera de una línea, columnas Verificado/Fecha/Hora, sin pie, 65 productos en la hoja 1 con letra normal y el resto en la hoja 2 con letra ajustada (mínimo 12 px) (Personal, Venta y PC).
 - 2026-11-27: APK: egresos guardados solos en Descargas › JAT Control Suite (Egresos, Backups, Reportes, Config) para que OneSync los suba a OneDrive › REVISION DIGITAL › CELULAR; "Guardar como" ya no dice "carpeta seleccionada" cuando no hay carpeta (Personal, Venta y PC).
+- 2026-11-27: botón "Guardar y salir" en el verificador (Personal y PC; Venta ya lo tenía).

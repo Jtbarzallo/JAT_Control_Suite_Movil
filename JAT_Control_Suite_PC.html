@@ -547,7 +547,7 @@
                 </div>
                 <div style="display:flex;align-items:center;gap:16px;">
                     <span class="badge-status">● Escáner activo</span>
-                    <span class="close-modal" onclick="cerrarVerificador()" style="font-size:1.6rem;">&times;</span>
+                    <button type="button" onclick="jatGuardarYSalir()" style="background:#0b223d;color:#fff;border:0;border-radius:12px;padding:10px 16px;font-weight:800;font-size:1rem;cursor:pointer;">💾 Guardar y salir</button><span class="close-modal" onclick="cerrarVerificador()" style="font-size:1.6rem;">&times;</span>
                 </div>
             </div>
 
@@ -3528,6 +3528,24 @@
         if (!currentEgreso || !currentProductos.length) { showAlert('No hay egreso activo para guardar', 'warning'); return; }
         autoGuardarEgreso();
         syncOneDriveNow(true);
+    }
+
+    // ---- GUARDAR Y SALIR (27 nov 2026): escribe el egreso en la carpeta (APK: Descargas › JAT Control Suite → OneSync) y sale ----
+    async function jatGuardarYSalir() {
+        const hay = currentEgreso && currentProductos && currentProductos.length;
+        const nombre = hay ? (currentEgreso.nombre || currentEgreso.secuencial || 'egreso') : '';
+        persistLastError = '';
+        if (hay) {
+            try { autoGuardarEgreso('guardar y salir'); } catch (e) { console.warn(e); }
+            try { await syncOneDriveNow(false); } catch (e) { console.warn(e); }
+        }
+        const fallo = hay && !!persistLastError;
+        const enCarpeta = (typeof isAndroidBridge === 'function' && isAndroidBridge()) || !!oneDriveDirHandle;
+        cerrarVerificador();
+        if (!hay) { showAlert('No hay egreso abierto', 'info'); return; }
+        if (fallo) { showAlert('⚠️ Se guardó en el teléfono, pero no en la carpeta: ' + persistLastError, 'warning'); return; }
+        showAlert(enCarpeta ? `💾 "${nombre}" guardado en ${carpetaTrabajoNombre || 'la carpeta'}` : `💾 "${nombre}" guardado en el teléfono (sin carpeta elegida)`, 'success');
+        try { hablarHat('Guardado.', 'ok', {force:true}); } catch (e) {}
     }
 
     function cargarVistaHistorial() {
